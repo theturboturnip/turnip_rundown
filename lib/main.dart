@@ -1,17 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:go_router/go_router.dart';
 import 'package:turnip_rundown/data/location/repository.dart';
 import 'package:turnip_rundown/data/weather/repository.dart';
-import 'package:turnip_rundown/screens/rundown/screen.dart';
-
-final router = GoRouter(initialLocation: "/", routes: [
-  GoRoute(
-    name: "rundown",
-    path: "/",
-    builder: (context, state) => const RundownScreen(),
-  )
-]);
+import 'package:turnip_rundown/nav.dart';
 
 void main() {
   runApp(const MyApp());
