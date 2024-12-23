@@ -29,6 +29,7 @@ class CurrentWeather {
 class HourlyPredictedWeather {
   const HourlyPredictedWeather({
     required this.precipitationSince24hrAgo,
+    required this.dateTimesForPredictions,
     required this.precipitation,
     required this.precipitationProb,
     required this.dryBulbTemp,
@@ -37,8 +38,11 @@ class HourlyPredictedWeather {
     required this.relHumidity,
   });
 
-  final DataSeries<Precipitation> precipitationSince24hrAgo;
-  final DataSeries<Precipitation> precipitation;
+  final DataSeries<Rainfall> precipitationSince24hrAgo;
+
+  final List<DateTime> dateTimesForPredictions;
+
+  final DataSeries<Rainfall> precipitation;
   final DataSeries<Percent> precipitationProb;
   final DataSeries<Temp> dryBulbTemp;
   final DataSeries<Temp> estimatedWetBulbGlobeTemp;

@@ -40,7 +40,8 @@ class RundownBloc extends Bloc<RundownEvent, RundownState> {
         await location.getLocation().then((newCoordinate) async {
           emit(RundownState(location: newCoordinate, weather: null, insights: []));
           await emitNewWeatherPrediction(weather, newCoordinate, emit);
-        }).onError((e, _) {
+        }).onError((e, s) {
+          print("error $e $s");
           emit(RundownState(location: null, weather: null, insights: [], error: RundownError.cantRetrieveLocation));
         });
       },
@@ -57,10 +58,11 @@ class RundownBloc extends Bloc<RundownEvent, RundownState> {
   }
 
   Future<void> emitNewWeatherPrediction(WeatherRepository weather, Coordinate location, Emitter emit) {
-    return weather.getPredictedWeather([location]).then((predictions) {
-      final newInsights = WeatherInsight.getInsights(predictions[0]);
-      emit(RundownState(location: location, weather: predictions[0], insights: newInsights));
-    }).onError((e, _) async {
+    return weather.getPredictedWeather(location).then((predictions) {
+      final newInsights = WeatherInsight.getInsights(predictions);
+      emit(RundownState(location: location, weather: predictions, insights: newInsights));
+    }).onError((e, s) async {
+      print("error $e $s");
       emit(RundownState(location: location, weather: null, insights: [], error: RundownError.cantRetrieveWeather));
     });
   }

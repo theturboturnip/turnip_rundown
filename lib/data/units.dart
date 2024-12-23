@@ -123,7 +123,7 @@ enum Length implements Convert<Length> {
   }
 }
 
-typedef Precipitation = Length;
+typedef Rainfall = Length;
 
 class Data<TUnit extends Convert<TUnit>> extends Equatable {
   const Data(this._value, this._unit);
@@ -157,6 +157,10 @@ class DataSeries<TUnit extends Convert<TUnit>> {
 
   Iterable<double> valuesAs(TUnit newUnit) {
     return _values.map((data) => _unit.convertDataTo(data, newUnit));
+  }
+
+  DataSeries<TUnit> slice(int startIndexIncl, int endIndexIncl) {
+    return DataSeries(_values.sublist(startIndexIncl, endIndexIncl + 1), _unit);
   }
 
   operator [](int i) => Data(_values[i], _unit);

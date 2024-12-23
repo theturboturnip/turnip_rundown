@@ -16,7 +16,7 @@ class MyApp extends StatelessWidget {
     return MultiRepositoryProvider(
       providers: [
         RepositoryProvider<LocationRepository>(create: (context) => GeolocatorLocationRepository()),
-        RepositoryProvider<WeatherRepository>(create: (context) => NotWorkingWeatherRepository()),
+        RepositoryProvider<WeatherRepository>(create: (context) => OpenMeteoWeatherRepository()),
       ],
       child: MaterialApp.router(
         title: 'Turnip Rundown',

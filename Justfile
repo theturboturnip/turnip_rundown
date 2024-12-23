@@ -4,7 +4,7 @@ default:
     @just --list
 
 dbg-web:
-    dart run sqflite_common_ffi_web:setup
+    # dart run sqflite_common_ffi_web:setup
     flutter run -d Chrome
 
 dbg-windows:
