@@ -1,4 +1,4 @@
-package com.example.turnip_rundown
+package com.theturboturnip.turnip_rundown
 
 import io.flutter.embedding.android.FlutterActivity
 
