@@ -95,7 +95,7 @@ final class SlipperyInsight extends WeatherInsight {
 
   static SlipperyInsight? tryFor(HourlyPredictedWeather weather) {
     // If there was at least 1mm of rain since 8hr ago
-    double rainBefore = weather.precipitationSince24hrAgo.valuesAs(Length.mm).take(16).sum;
+    double rainBefore = weather.precipitationSince24hrAgo.valuesAs(Length.mm).toList().reversed.take(8).sum;
     // or if there will be at least 1mm of rain in the next 24 hrs
     double rainInFuture = weather.precipitation.valuesAs(Length.mm).sum;
 
@@ -114,7 +114,7 @@ final class SlipperyInsight extends WeatherInsight {
   (String, String) userVisibleInfo() {
     return (
       "Rain Alert - Wear grippy shoes${futureRainIsNotable ? ", and bring an umbrella" : ""}",
-      "It rained ${rainBefore.valueAs(Length.mm).ceil()}mm in the last 8 hours, and may rain ${rainInFuture.valueAs(Length.mm).ceil()}mm",
+      "It rained ${rainBefore.valueAs(Length.mm).ceil()}mm in the last 8 hours, and may rain ${rainInFuture.valueAs(Length.mm).ceil()}mm later",
     );
   }
 }
