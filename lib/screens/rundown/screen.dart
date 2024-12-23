@@ -27,6 +27,18 @@ class RundownScreen extends StatelessWidget {
             builder: (context, state) {
               return Column(
                 children: [
+                  const Padding(
+                    padding: EdgeInsets.all(16),
+                    child: Center(
+                      child: Text(
+                        "Rundown",
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 20,
+                        ),
+                      ),
+                    ),
+                  ),
                   // _buildCurrentWeather(context),
                   _buildLocationDisplay(context, state),
                   ..._buildWeatherGraphs(context, state),
