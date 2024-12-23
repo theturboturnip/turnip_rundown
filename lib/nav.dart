@@ -52,7 +52,7 @@ final router = GoRouter(
                 throw Exception('Invalid index');
             }
           },
-          body: (context) => navigationShell,
+          body: (context) => SafeArea(child: navigationShell),
         );
       },
       branches: [
