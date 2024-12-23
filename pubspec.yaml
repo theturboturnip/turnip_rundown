@@ -51,6 +51,7 @@ dependencies:
   flutter_adaptive_scaffold: ^0.3.1
   collection: ^1.18.0
   fl_chart: ^0.69.2
+  sqflite_common_ffi_web: ^0.4.5+4
 
 dev_dependencies:
   flutter_test:

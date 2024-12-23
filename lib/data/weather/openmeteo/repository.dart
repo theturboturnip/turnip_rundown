@@ -4,10 +4,10 @@ import 'dart:convert';
 
 import 'package:collection/collection.dart';
 import 'package:json_annotation/json_annotation.dart';
+import 'package:turnip_rundown/data/api_cache.dart';
 import 'package:turnip_rundown/data/units.dart';
 import 'package:turnip_rundown/data/weather/model.dart';
 import 'package:turnip_rundown/data/weather/repository.dart';
-import 'package:http/http.dart' as http;
 
 part 'repository.g.dart';
 
@@ -142,11 +142,14 @@ SolarRadiation solarUnitFromOpenMeteo(String? str, {required SolarRadiation expe
 }
 
 class OpenMeteoWeatherRepository extends WeatherRepository {
+  OpenMeteoWeatherRepository({required this.cache});
+
+  final ApiCacheRepository cache;
+
   @override
-  Future<HourlyPredictedWeather> getPredictedWeather(Coordinate coords) async {
+  Future<HourlyPredictedWeather> getPredictedWeather(Coordinate coords, {bool forceRefreshCache = false}) async {
     // Get 3 days worth of predicted/measured data
-    // TODO cache this API call if calling within 1hr
-    final responseStr = await http.read(
+    final responseStr = await cache.makeHttpRequest(
       Uri(
         scheme: "https",
         host: "api.open-meteo.com",
@@ -165,6 +168,7 @@ class OpenMeteoWeatherRepository extends WeatherRepository {
           "forecast_days": "2",
         },
       ),
+      forceRefreshCache: forceRefreshCache,
     );
     final response = OpenMeteoHourlyRequest.fromJson(jsonDecode(responseStr));
 

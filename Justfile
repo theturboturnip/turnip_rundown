@@ -3,8 +3,10 @@ set windows-shell := ["powershell.exe", "-NoLogo", "-Command"]
 default:
     @just --list
 
+setup-web:
+    dart run sqflite_common_ffi_web:setup
+
 dbg-web:
-    # dart run sqflite_common_ffi_web:setup
     flutter run -d Chrome
 
 dbg-windows:

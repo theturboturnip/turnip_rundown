@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_adaptive_scaffold/flutter_adaptive_scaffold.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:turnip_rundown/data/api_cache.dart';
 import 'package:turnip_rundown/screens/rundown/screen.dart';
 import 'package:turnip_rundown/screens/settings/screen.dart';
 
@@ -47,6 +49,20 @@ final router = GoRouter(
                 //   applicationVersion: 'v${packageInfo.version}',
                 //   applicationLegalese: 'Copyright © 2022, Acme, Corp.',
                 // );
+                final stats = await RepositoryProvider.of<ApiCacheRepository>(context).getStats();
+                if (context.mounted) {
+                  showDialog(
+                    context: context,
+                    builder: (context) {
+                      return AlertDialog(
+                        title: const Text("Info"),
+                        content: Text(
+                          stats.hostStats.entries.map((entry) => "${entry.key} : hit ${entry.value.cacheHits} miss ${entry.value.cacheMisses}").join("\n"),
+                        ),
+                      );
+                    },
+                  );
+                }
                 break;
               default:
                 throw Exception('Invalid index');
