@@ -38,6 +38,8 @@ class RundownBloc extends Bloc<RundownEvent, RundownState> {
     on<RefreshCoordinate>(
       (event, emit) async {
         await location.getLocation().then((newCoordinate) async {
+          // TODO make rounding precision a preference?
+          newCoordinate = newCoordinate.roundedTo(2, elevationDp: 0);
           emit(RundownState(location: newCoordinate, weather: null, insights: []));
           await emitNewWeatherPrediction(weather, newCoordinate, emit);
         }).onError((e, s) {

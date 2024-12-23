@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'dart:math' as math;
 
 abstract interface class Convert<T> {
   double convertDataTo(double data, T to);
@@ -184,12 +185,27 @@ extension ConvertToDataSeries<TUnit extends Convert<TUnit>> on Iterable<Data<TUn
   }
 }
 
+extension RoundTo on double {
+  double roundTo(int places) {
+    final factor = math.pow(10, places);
+    return (this * factor).roundToDouble() / factor;
+  }
+}
+
 class Coordinate extends Equatable {
   const Coordinate({required this.lat, required this.long, this.elevation});
 
   final double lat;
   final double long;
   final double? elevation;
+
+  Coordinate roundedTo(int latLongDp, {required int elevationDp}) {
+    return Coordinate(
+      lat: lat.roundTo(latLongDp),
+      long: long.roundTo(latLongDp),
+      elevation: elevation?.roundTo(elevationDp),
+    );
+  }
 
   @override
   List<Object?> get props => [lat, long, elevation];
