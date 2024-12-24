@@ -35,7 +35,7 @@ final class RundownState extends Equatable {
 
   List<Coordinate> get coordinates => [
         if (includeCurrentLocationInInsights && currentLocation != null) currentLocation!,
-        ...otherNamedLocations.map((namedLocation) => namedLocation.location),
+        ...otherNamedLocations.map((namedLocation) => namedLocation.coordinate),
       ];
 }
 

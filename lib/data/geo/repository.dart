@@ -1,10 +1,11 @@
 import 'package:turnip_rundown/data/units.dart';
 
 class NamedCoordinate {
-  NamedCoordinate({required this.name, required this.location});
+  NamedCoordinate({required this.name, required this.address, required this.coordinate});
 
   final String name;
-  final Coordinate location;
+  final String address;
+  final Coordinate coordinate;
 }
 
 /// Repository for suggesting (lat, long) coordinates from a name query

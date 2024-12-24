@@ -146,7 +146,7 @@ class RundownScreen extends StatelessWidget {
           Container(
             width: 20,
             height: 20,
-            color: nthWeatherResultColor(0),
+            color: state.includeCurrentLocationInInsights ? nthWeatherResultColor(0) : Colors.transparent,
           ),
         ],
       ),
@@ -182,14 +182,14 @@ class RundownScreen extends StatelessWidget {
           },
         ),
         title: Text(namedLocation.name),
-        subtitle: Text(namedLocation.location.roundedTo(2, elevationDp: 0).toString()),
+        subtitle: Text(namedLocation.address + "\n" + namedLocation.coordinate.roundedTo(2, elevationDp: 0).toString()),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
               width: 20,
               height: 20,
-              color: nthWeatherResultColor(index + 1),
+              color: nthWeatherResultColor(index + (state.includeCurrentLocationInInsights ? 1 : 0)),
             ),
           ],
         ),
@@ -241,6 +241,8 @@ class RundownScreen extends StatelessWidget {
     //   },
     // );
 
+    final currentLocationCoord = state.currentLocation;
+
     final newLocationSearch = IconButton(
       icon: const Icon(Icons.add),
       onPressed: () async {
@@ -256,7 +258,7 @@ class RundownScreen extends StatelessWidget {
                             ?.map(
                               (namedLocation) => ListTile(
                                 title: Text(namedLocation.name),
-                                subtitle: Text(namedLocation.location.roundedTo(2, elevationDp: 0).toString()),
+                                subtitle: Text(namedLocation.address + "\n" + namedLocation.coordinate.roundedTo(2, elevationDp: 0).toString()),
                                 trailing: const Icon(Icons.add),
                                 onTap: () {
                                   Navigator.of(context).pop(namedLocation);
@@ -272,7 +274,12 @@ class RundownScreen extends StatelessWidget {
                         children: [
                           TextField(
                             key: const ValueKey("search"),
-                            onChanged: (newQuery) => context.read<LocationSuggestBloc>().add(UpdateLocationQuery(newQuery: newQuery)),
+                            onChanged: (newQuery) => context.read<LocationSuggestBloc>().add(
+                                  UpdateLocationQuery(
+                                    newQuery: newQuery,
+                                    near: currentLocationCoord,
+                                  ),
+                                ),
                             decoration: const InputDecoration(
                               hintText: "Search for a new location...",
                               suffixIcon: Icon(Icons.search),

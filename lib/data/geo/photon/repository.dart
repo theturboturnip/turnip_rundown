@@ -47,7 +47,9 @@ class PhotonGeocoderRepository extends GeocoderRepository {
               // see https://datatracker.ietf.org/doc/html/rfc7946#section-3.1.1
               return NamedCoordinate(
                 name: name,
-                location: Coordinate(
+                // Try to grab as many of these properties as possible, then combine them to make an approximate address
+                address: ["street", "district", "city", "country"].map((property) => properties[property] as String?).whereType<String>().join(", "),
+                coordinate: Coordinate(
                   lat: coords[1] as double,
                   long: coords[0] as double,
                 ),
