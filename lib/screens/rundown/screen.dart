@@ -16,36 +16,57 @@ class RundownScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (context) => RundownBloc(
-        RepositoryProvider.of<LocationRepository>(context),
-        RepositoryProvider.of<WeatherRepository>(context),
-      )..add(const RefreshCoordinate()),
+    return MultiBlocProvider(
+      // Create two blocs and glue them together:
+      // the 'RundownBloc' TODO RENAME which gathers locations to generate a rundown for,
+      // and the 'WeatherPredictBloc' which re-predicts the weather based on state changes from the RundownBloc
+      providers: [
+        BlocProvider(
+          create: (context) => RundownBloc(
+            RepositoryProvider.of<LocationRepository>(context),
+          )..add(const RefreshCurrentLocation()),
+        ),
+        BlocProvider(
+          create: (context) => WeatherPredictBloc(
+            RepositoryProvider.of<WeatherRepository>(context),
+          ),
+        ),
+      ],
       child: Scaffold(
         body: SingleChildScrollView(
-          child: BlocBuilder<RundownBloc, RundownState>(
-            builder: (context, state) {
-              return Column(
-                children: [
-                  const Padding(
-                    padding: EdgeInsets.all(16),
-                    child: Center(
-                      child: Text(
-                        "Rundown",
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 20,
-                        ),
-                      ),
+          child: Column(
+            children: [
+              const Padding(
+                padding: EdgeInsets.all(16),
+                child: Center(
+                  child: Text(
+                    "Rundown",
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 20,
                     ),
                   ),
-                  // _buildCurrentWeather(context),
-                  _buildLocationDisplay(context, state),
-                  ..._buildWeatherGraphs(context, state),
-                  ..._buildWeatherInsights(context, state),
-                ],
-              );
-            },
+                ),
+              ),
+              // _buildCurrentWeather(context),
+              // Whenever the RundownBloc changes,
+              // 1. rebuild the UI
+              // 2. refresh the predicted weather based on that change
+              BlocListener<RundownBloc, RundownState>(
+                listener: (context, state) => context.read<WeatherPredictBloc>().add(
+                      RefreshPredictedWeather(coordinates: state.coordinates),
+                    ),
+                child: BlocBuilder<RundownBloc, RundownState>(builder: _buildLocationDisplay),
+              ),
+              BlocBuilder<WeatherPredictBloc, WeatherPredictState>(builder: (context, state) {
+                return Column(
+                  children: [
+                    ..._buildWeatherGraphs(context, state),
+                    ..._buildWeatherInsights(context, state),
+                  ],
+                );
+              })
+            ],
           ),
         ),
       ),
@@ -60,17 +81,17 @@ class RundownScreen extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        if (state.error == RundownError.cantRetrieveLocation) const Text("Cannot retrieve location"),
-        if (state.error == null && state.location == null)
+        if (state.currentLocationError != null) Text("Cannot retrieve location: ${state.currentLocationError}"),
+        if (state.currentLocationError == null && state.currentLocation == null)
           const SizedBox(
             width: 100,
             child: LinearProgressIndicator(),
           ),
-        if (state.location != null) Text("Location: ${state.location!.lat} ${state.location!.long} ${state.location!.elevation ?? '??'}m"),
+        if (state.currentLocation != null) Text("Location: ${state.currentLocation!.lat} ${state.currentLocation!.long} ${state.currentLocation!.elevation ?? '??'}m"),
         IconButton(
           icon: const Icon(Icons.refresh),
           onPressed: () {
-            context.read<RundownBloc>().add(const RefreshCoordinate());
+            context.read<RundownBloc>().add(const RefreshCurrentLocation());
           },
         ),
         if (!kIsWeb && (Platform.isAndroid || Platform.isWindows))
@@ -84,39 +105,36 @@ class RundownScreen extends StatelessWidget {
     );
   }
 
-  List<Widget> _buildWeatherGraphs(BuildContext context, RundownState state) {
+  List<Widget> _buildWeatherGraphs(BuildContext context, WeatherPredictState state) {
+    // TODO combine weather plots
+    final weather = state.weathers.firstOrNull;
     return [
-      if (state.error == RundownError.cantRetrieveWeather) const Text("Cannot retrieve weather"),
-      if (state.error == null && state.location == null && state.weather == null)
-        const SizedBox(
-          width: 100,
-          child: LinearProgressIndicator(),
-        ),
-      if (state.weather != null) ...[
+      if (state.weatherPredictError != null) Text("Cannot retrieve weather: ${state.weatherPredictError}"),
+      if (weather != null) ...[
         chartOf(
-          state.weather!.dryBulbTemp,
+          weather.dryBulbTemp,
           Temp.celsius,
           defaultMin: const Data(5, Temp.celsius),
           baseline: const Data(15, Temp.celsius),
           defaultMax: const Data(25, Temp.celsius),
         ),
         chartOf(
-          state.weather!.estimatedWetBulbGlobeTemp,
+          weather.estimatedWetBulbGlobeTemp,
           Temp.celsius,
           defaultMin: const Data(5, Temp.celsius),
           baseline: const Data(15, Temp.celsius),
           defaultMax: const Data(25, Temp.celsius),
         ),
-        chartOf(state.weather!.precipitationSince24hrAgo, Rainfall.mm),
-        chartOf(state.weather!.precipitation, Rainfall.mm),
+        chartOf(weather.precipitationSince24hrAgo, Rainfall.mm),
+        chartOf(weather.precipitation, Rainfall.mm),
         chartOf(
-          state.weather!.precipitationProb,
+          weather.precipitationProb,
           Percent.outOf100,
           defaultMin: const Data(0, Percent.outOf100),
           defaultMax: const Data(100, Percent.outOf100),
         ),
         chartOf(
-          state.weather!.relHumidity,
+          weather.relHumidity,
           Percent.outOf100,
           defaultMin: const Data(0, Percent.outOf100),
           defaultMax: const Data(100, Percent.outOf100),
@@ -125,7 +143,7 @@ class RundownScreen extends StatelessWidget {
     ];
   }
 
-  List<Widget> _buildWeatherInsights(BuildContext context, RundownState state) {
+  List<Widget> _buildWeatherInsights(BuildContext context, WeatherPredictState state) {
     return state.insights.map((insight) {
       final (title, subtitle) = insight.userVisibleInfo();
       return ListTile(
