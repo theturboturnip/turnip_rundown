@@ -8,6 +8,8 @@ import 'package:path_provider/path_provider.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:sqflite_common_ffi_web/sqflite_ffi_web.dart';
 import 'package:turnip_rundown/data/api_cache.dart';
+import 'package:turnip_rundown/data/geo/photon/repository.dart';
+import 'package:turnip_rundown/data/geo/repository.dart';
 import 'package:turnip_rundown/data/location/repository.dart';
 import 'package:turnip_rundown/data/weather/repository.dart';
 import 'package:turnip_rundown/nav.dart';
@@ -26,10 +28,10 @@ void main() async {
     }
   }
 
-  final dbPath = (kDebugMode)
-      ? ":memory:"
+  final dbPath = (kIsWeb)
+      ? "turnip_rundown.db"
       : join(
-          await (Platform.isAndroid ? getDatabasesPath() : getLibraryDirectory().toString()),
+          (await getApplicationCacheDirectory()).path,
           "turnip_rundown.db",
         );
 
@@ -51,6 +53,11 @@ class MyApp extends StatelessWidget {
         RepositoryProvider<LocationRepository>(create: (context) => GeolocatorLocationRepository()),
         RepositoryProvider<WeatherRepository>(
           create: (context) => OpenMeteoWeatherRepository(
+            cache: RepositoryProvider.of<ApiCacheRepository>(context),
+          ),
+        ),
+        RepositoryProvider<GeocoderRepository>(
+          create: (context) => PhotonGeocoderRepository(
             cache: RepositoryProvider.of<ApiCacheRepository>(context),
           ),
         ),

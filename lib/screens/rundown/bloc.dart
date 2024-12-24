@@ -115,7 +115,7 @@ class RundownBloc extends Bloc<RundownEvent, RundownState> {
       (event, emit) {
         emit(RundownState(
           currentLocation: state.currentLocation,
-          includeCurrentLocationInInsights: true,
+          includeCurrentLocationInInsights: false,
           otherNamedLocations: state.otherNamedLocations,
         ));
       },

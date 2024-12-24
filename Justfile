@@ -6,8 +6,9 @@ default:
 setup-web:
     dart run sqflite_common_ffi_web:setup
 
+# Always use the same port so that we keep the same cache
 dbg-web:
-    flutter run -d Chrome
+    flutter run -d Chrome --web-port 50427
 
 dbg-windows:
     flutter run -d Windows

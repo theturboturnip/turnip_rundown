@@ -208,5 +208,54 @@ class Coordinate extends Equatable {
   }
 
   @override
+  String toString() {
+    if (elevation != null) {
+      return "$lat, $long, ${elevation}m";
+    }
+    return "$lat, $long";
+  }
+
+  @override
   List<Object?> get props => [lat, long, elevation];
+}
+
+extension MinMax on Iterable<num> {
+  /// The minimal and maximal elements of the iterable.
+  ///
+  /// If any element is [NaN](double.nan), the result is NaN.#
+  ///
+  /// If the iterable is empty, returns null.
+  (num, num)? get minMaxOrNull {
+    var iterator = this.iterator;
+    if (iterator.moveNext()) {
+      var min = iterator.current;
+      var max = iterator.current;
+      if (min.isNaN) {
+        return (min, min);
+      }
+
+      while (iterator.moveNext()) {
+        var newMin = iterator.current;
+        var newMax = iterator.current;
+        if (newMin.isNaN) {
+          return (newMin, newMin);
+        }
+        if (newMin < min) {
+          min = newMin;
+        }
+        if (newMax > max) {
+          max = newMax;
+        }
+      }
+      return (min, max);
+    }
+    return null;
+  }
+
+  /// The minimal and maximal elements of the iterable.
+  ///
+  /// If any element is [NaN](double.nan), the result is NaN.
+  ///
+  /// The iterable must not be empty.
+  (num, num) get minMax => minMaxOrNull ?? (throw StateError('No element'));
 }

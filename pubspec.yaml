@@ -52,6 +52,7 @@ dependencies:
   collection: ^1.18.0
   fl_chart: ^0.69.2
   sqflite_common_ffi_web: ^0.4.5+4
+  rxdart: ^0.28.0
 
 dev_dependencies:
   flutter_test:
