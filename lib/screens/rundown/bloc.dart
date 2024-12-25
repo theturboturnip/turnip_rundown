@@ -1,6 +1,5 @@
 import 'package:bloc/bloc.dart';
 import 'package:bloc_concurrency/bloc_concurrency.dart';
-import 'package:collection/collection.dart';
 import 'package:equatable/equatable.dart';
 import 'package:turnip_rundown/data.dart';
 import 'package:turnip_rundown/data/geo/repository.dart';
@@ -33,9 +32,9 @@ final class RundownState extends Equatable {
         currentLocationError,
       ];
 
-  List<Coordinate> get coordinates => [
-        if (includeCurrentLocationInInsights && currentLocation != null) currentLocation!,
-        ...otherNamedLocations.map((namedLocation) => namedLocation.coordinate),
+  List<NamedCoordinate> get coordinates => [
+        if (includeCurrentLocationInInsights && currentLocation != null) NamedCoordinate(name: "your location", address: "", coordinate: currentLocation!),
+        ...otherNamedLocations,
       ];
 }
 
@@ -150,42 +149,44 @@ class RundownBloc extends Bloc<RundownEvent, RundownState> {
 
 final class WeatherPredictState extends Equatable {
   const WeatherPredictState({
+    required this.locations,
     required this.weathers,
     required this.insights,
     this.weatherPredictError,
   });
 
+  final List<NamedCoordinate> locations;
   final List<HourlyPredictedWeather> weathers;
-  final List<WeatherInsight> insights;
+  final WeatherInsights? insights;
   final String? weatherPredictError;
 
   @override
-  List<Object?> get props => [weathers, insights, weatherPredictError];
+  List<Object?> get props => [locations, weathers, insights, weatherPredictError];
 }
 
 final class RefreshPredictedWeather {
-  const RefreshPredictedWeather({required this.coordinates});
+  const RefreshPredictedWeather({required this.locations});
 
-  final List<Coordinate> coordinates;
+  final List<NamedCoordinate> locations;
 }
 
 class WeatherPredictBloc extends Bloc<RefreshPredictedWeather, WeatherPredictState> {
-  WeatherPredictBloc(WeatherRepository weather) : super(const WeatherPredictState(weathers: [], insights: [])) {
+  WeatherPredictBloc(WeatherRepository weather) : super(const WeatherPredictState(locations: [], weathers: [], insights: null)) {
     on<RefreshPredictedWeather>(
       (event, emit) {
-        final weathers = Future.wait(event.coordinates.map((coords) => weather.getPredictedWeather(coords)).toList());
+        final weathers = Future.wait(event.locations.map((location) => weather.getPredictedWeather(location.coordinate)).toList());
         return weathers.then((predictions) {
-          // TODO do predictions a little more sensibly - put in a Set to avoid uniqueness? process all weathers together?
-          final newInsights = predictions.map((p) => WeatherInsight.getInsights(p)).flattened.toList();
           emit(WeatherPredictState(
+            locations: event.locations,
             weathers: predictions,
-            insights: newInsights,
+            insights: WeatherInsights.fromAnalysis(predictions),
           ));
         }).onError((e, s) async {
           print("error $e $s");
           emit(WeatherPredictState(
+            locations: const [],
             weathers: const [],
-            insights: const [],
+            insights: null,
             weatherPredictError: "$e",
           ));
         });

@@ -6,6 +6,8 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:intl/intl.dart';
+import 'package:turnip_rundown/data.dart';
 import 'package:turnip_rundown/data/geo/repository.dart';
 import 'package:turnip_rundown/data/location/repository.dart';
 import 'package:turnip_rundown/data/units.dart';
@@ -74,7 +76,7 @@ class RundownScreen extends StatelessWidget {
               // 2. refresh the predicted weather based on that change
               BlocListener<RundownBloc, RundownState>(
                 listener: (context, state) => context.read<WeatherPredictBloc>().add(
-                      RefreshPredictedWeather(coordinates: state.coordinates),
+                      RefreshPredictedWeather(locations: state.coordinates),
                     ),
                 child: BlocBuilder<RundownBloc, RundownState>(
                   builder: (context, state) {
@@ -146,7 +148,7 @@ class RundownScreen extends StatelessWidget {
           Container(
             width: 20,
             height: 20,
-            color: state.includeCurrentLocationInInsights ? nthWeatherResultColor(0) : Colors.transparent,
+            color: state.includeCurrentLocationInInsights && (state.currentLocation != null) ? nthWeatherResultColor(0) : Colors.transparent,
           ),
         ],
       ),
@@ -189,7 +191,7 @@ class RundownScreen extends StatelessWidget {
             Container(
               width: 20,
               height: 20,
-              color: nthWeatherResultColor(index + (state.includeCurrentLocationInInsights ? 1 : 0)),
+              color: nthWeatherResultColor(index + (state.includeCurrentLocationInInsights && (state.currentLocation != null) ? 1 : 0)),
             ),
           ],
         ),
@@ -346,18 +348,132 @@ class RundownScreen extends StatelessWidget {
     ];
   }
 
-  List<Widget> _buildWeatherInsights(BuildContext context, WeatherPredictState state) {
-    return state.insights.map((insight) {
-      final (title, subtitle) = insight.userVisibleInfo();
-      return ListTile(
-        leading: const Icon(Icons.warning_amber),
-        title: Text(title),
-        subtitle: Text(subtitle),
-      );
-    }).toList();
+  String _renderTimeRange(
+    (int, int) range,
+    List<DateTime> dateTimesForEachHour,
+  ) {
+    if (range.$1 == range.$2) {
+      return "at ${DateFormat.jm().format(dateTimesForEachHour[range.$1])}";
+    } else {
+      return "between ${DateFormat.jm().format(dateTimesForEachHour[range.$1])}-${DateFormat.jm().format(dateTimesForEachHour[range.$2])}";
+    }
   }
 
-  Widget chartOf<TUnit extends Convert<TUnit>>(Iterable<DataSeries<TUnit>> datas, TUnit asUnit, {Data<TUnit>? defaultMin, Data<TUnit>? baseline, Data<TUnit>? defaultMax}) {
+  Widget? _buildWeatherWarningInsight<TWarning>(
+    String title,
+    Iterable<Map<TWarning, List<(int, int)>>> listOfMappingOfWarningToHoursForEachLocation,
+    Map<TWarning, String> nameOfWarning,
+    List<String> listOfLocations,
+    List<DateTime> dateTimesForEachHour,
+  ) {
+    // TODO need to solve this
+    // if there are no warnings that apply for any hours in any location, return null.
+    // if there is exactly one warning that applies for any hours in exactly one location, show a simple warning
+    //  - e.g. "humid between x-y", optionally appending location if total locations != 1
+    // if there is exactly one warning
+
+    final groupedByWarning = <TWarning, Map<int, List<(int, int)>>>{};
+    for (final (index, map) in listOfMappingOfWarningToHoursForEachLocation.indexed) {
+      for (final entry in map.entries) {
+        if (entry.value.isNotEmpty) {
+          groupedByWarning.putIfAbsent(entry.key, () => <int, List<(int, int)>>{});
+          groupedByWarning[entry.key]![index] = entry.value;
+        }
+      }
+    }
+
+    if (groupedByWarning.values.isEmpty) {
+      return null;
+    }
+
+    // if (groupedByWarning.length == 1) {
+    //   return
+    // } else {
+
+    // }
+
+    final numLocations = listOfLocations.length;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(title, textAlign: TextAlign.start, style: const TextStyle(fontSize: 20)),
+        Padding(
+          padding: const EdgeInsets.only(right: 20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: groupedByWarning.entries.map((entry) {
+              var text = "${nameOfWarning[entry.key]} ";
+              text += entry.value.entries.map((entry) {
+                final locationIndex = entry.key;
+                final locationHours = entry.value;
+                return locationHours.map((range) => _renderTimeRange(range, dateTimesForEachHour)).join(", ") + (numLocations > 1 ? " at ${listOfLocations[locationIndex]}" : "");
+              }).join("; ");
+              return Text(
+                text,
+                textAlign: TextAlign.start,
+              );
+            }).toList(),
+          ),
+        )
+      ],
+    );
+  }
+
+  List<Widget> _buildWeatherInsights(BuildContext context, WeatherPredictState state) {
+    if (state.insights == null) {
+      return [];
+    } else {
+      final listOfLocations = state.locations.map((location) => location.name).toList();
+      final DateTime utcHourInLocalTime = DateTime.timestamp().copyWith(minute: 0, second: 0, millisecond: 0, microsecond: 0).toLocal();
+      final dateTimesForEachHour = List.generate(24, (index) => utcHourInLocalTime.add(Duration(hours: index)));
+
+      // TODO prior rain insight!
+
+      return [
+        Text(
+          "${state.insights!.minTempAt.$1.valueAs(Temp.celsius).toStringAsFixed(1)}–${state.insights!.maxTempAt.$1.valueAs(Temp.celsius).toStringAsFixed(1)}C",
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 50),
+        ),
+        _buildWeatherWarningInsight(
+          "Rain Warnings",
+          state.insights!.rainAt.map((rainStatus) => rainStatus.predictedRain),
+          {
+            PredictedRain.light: "Light rain",
+            PredictedRain.medium: "Medium rain",
+            PredictedRain.heavy: "Heavy rain",
+          },
+          listOfLocations,
+          dateTimesForEachHour,
+        ),
+        _buildWeatherWarningInsight(
+          "Wind Warnings",
+          state.insights!.windAt.map((windStatus) => windStatus.predictedWind),
+          {
+            PredictedWind.breezy: "Breezy",
+            PredictedWind.windy: "Windy",
+            PredictedWind.galey: "Gale-y",
+          },
+          listOfLocations,
+          dateTimesForEachHour,
+        ),
+        _buildWeatherWarningInsight(
+          "Humidity Warnings",
+          state.insights!.humidityAt.map((humidStatus) => humidStatus.predictedHumitity),
+          {
+            PredictedHighHumidity.sweaty: "Sweaty",
+            PredictedHighHumidity.uncomfortable: "Uncomfortable",
+            PredictedHighHumidity.coolMist: "Misty",
+          },
+          listOfLocations,
+          dateTimesForEachHour,
+        ),
+      ].whereType<Widget>().toList();
+    }
+  }
+
+  Widget chartOf<TUnit extends Unit<TUnit>>(Iterable<DataSeries<TUnit>> datas, TUnit asUnit, {Data<TUnit>? defaultMin, Data<TUnit>? baseline, Data<TUnit>? defaultMax}) {
     List<List<double>> dataPointss = datas.map((series) => series.valuesAs(asUnit).toList()).toList();
     final (dataMin, dataMax) = dataPointss.flattened.minMax as (double, double);
     return SizedBox(

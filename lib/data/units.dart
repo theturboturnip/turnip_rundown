@@ -1,11 +1,11 @@
 import 'package:equatable/equatable.dart';
 import 'dart:math' as math;
 
-abstract interface class Convert<T> {
+abstract interface class Unit<T> {
   double convertDataTo(double data, T to);
 }
 
-enum Temp implements Convert<Temp> {
+enum Temp implements Unit<Temp> {
   farenheit,
   celsius,
   kelvin;
@@ -34,26 +34,38 @@ enum Temp implements Convert<Temp> {
   }
 }
 
-enum Speed implements Convert<Speed> {
+enum Speed implements Unit<Speed> {
   kmPerH,
-  mPerS;
+  mPerS,
+  milesPerHour;
 
   @override
   double convertDataTo(double data, Speed to) {
     switch ((this, to)) {
       case (Speed.kmPerH, Speed.kmPerH):
       case (Speed.mPerS, Speed.mPerS):
+      case (Speed.milesPerHour, Speed.milesPerHour):
         return data;
 
       case (Speed.kmPerH, Speed.mPerS):
         return data * 3.6;
       case (Speed.mPerS, Speed.kmPerH):
         return data / 3.6;
+
+      case (Speed.milesPerHour, Speed.kmPerH):
+        return data * 1.609;
+      case (Speed.kmPerH, Speed.milesPerHour):
+        return data / 1.609;
+
+      case (Speed.milesPerHour, Speed.mPerS):
+        return data / 2.237;
+      case (Speed.mPerS, Speed.milesPerHour):
+        return data * 2.237; // i.e. 3.6 / 1.609
     }
   }
 }
 
-enum Percent implements Convert<Percent> {
+enum Percent implements Unit<Percent> {
   outOf1,
   outOf100;
 
@@ -71,7 +83,7 @@ enum Percent implements Convert<Percent> {
   }
 }
 
-enum Pressure implements Convert<Pressure> {
+enum Pressure implements Unit<Pressure> {
   millibars,
   hectopascals;
 
@@ -82,7 +94,7 @@ enum Pressure implements Convert<Pressure> {
   }
 }
 
-enum SolarRadiation implements Convert<SolarRadiation> {
+enum SolarRadiation implements Unit<SolarRadiation> {
   wPerM2;
 
   @override
@@ -92,7 +104,7 @@ enum SolarRadiation implements Convert<SolarRadiation> {
   }
 }
 
-enum Length implements Convert<Length> {
+enum Length implements Unit<Length> {
   m,
   cm,
   mm;
@@ -126,7 +138,7 @@ enum Length implements Convert<Length> {
 
 typedef Rainfall = Length;
 
-class Data<TUnit extends Convert<TUnit>> extends Equatable {
+class Data<TUnit extends Unit<TUnit>> extends Equatable {
   const Data(this._value, this._unit);
 
   final double _value;
@@ -146,11 +158,13 @@ class Data<TUnit extends Convert<TUnit>> extends Equatable {
 
 // 0-indexed series of data, all under one unit.
 // Immutable.
-class DataSeries<TUnit extends Convert<TUnit>> {
+class DataSeries<TUnit extends Unit<TUnit>> {
   const DataSeries(this._values, this._unit);
 
   final List<double> _values;
   final TUnit _unit;
+
+  int get length => _values.length;
 
   Iterable<Data<TUnit>> datas() {
     return _values.map((val) => Data(val, _unit));
@@ -168,7 +182,7 @@ class DataSeries<TUnit extends Convert<TUnit>> {
 }
 
 extension ToDataSeries on Iterable<double> {
-  DataSeries<TUnit> toDataSeries<TUnit extends Convert<TUnit>>(TUnit unit) {
+  DataSeries<TUnit> toDataSeries<TUnit extends Unit<TUnit>>(TUnit unit) {
     return DataSeries(
       toList(),
       unit,
@@ -176,7 +190,7 @@ extension ToDataSeries on Iterable<double> {
   }
 }
 
-extension ConvertToDataSeries<TUnit extends Convert<TUnit>> on Iterable<Data<TUnit>> {
+extension ConvertToDataSeries<TUnit extends Unit<TUnit>> on Iterable<Data<TUnit>> {
   DataSeries<TUnit> toDataSeries(TUnit baseUnit) {
     return DataSeries(
       map((data) => data.valueAs(baseUnit)).toList(),
