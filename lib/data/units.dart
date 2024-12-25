@@ -3,6 +3,7 @@ import 'dart:math' as math;
 
 abstract interface class Unit<T> {
   double convertDataTo(double data, T to);
+  String get display;
 }
 
 enum Temp implements Unit<Temp> {
@@ -32,6 +33,13 @@ enum Temp implements Unit<Temp> {
         return ((data - 32) * 5 / 9) + 273.15;
     }
   }
+
+  @override
+  String get display => switch (this) {
+        Temp.farenheit => "°F",
+        Temp.celsius => "°C",
+        Temp.kelvin => "°K",
+      };
 }
 
 enum Speed implements Unit<Speed> {
@@ -63,6 +71,13 @@ enum Speed implements Unit<Speed> {
         return data * 2.237; // i.e. 3.6 / 1.609
     }
   }
+
+  @override
+  String get display => switch (this) {
+        Speed.kmPerH => "kmph",
+        Speed.mPerS => "m/s",
+        Speed.milesPerHour => "mph",
+      };
 }
 
 enum Percent implements Unit<Percent> {
@@ -81,6 +96,12 @@ enum Percent implements Unit<Percent> {
         return data / 100;
     }
   }
+
+  @override
+  String get display => switch (this) {
+        Percent.outOf1 => "/1.0",
+        Percent.outOf100 => "%",
+      };
 }
 
 enum Pressure implements Unit<Pressure> {
@@ -92,6 +113,12 @@ enum Pressure implements Unit<Pressure> {
     // millibars = hectopascals
     return data;
   }
+
+  @override
+  String get display => switch (this) {
+        Pressure.millibars => "mbar",
+        Pressure.hectopascals => "hPa",
+      };
 }
 
 enum SolarRadiation implements Unit<SolarRadiation> {
@@ -102,13 +129,16 @@ enum SolarRadiation implements Unit<SolarRadiation> {
     assert(to == SolarRadiation.wPerM2);
     return data;
   }
+
+  @override
+  String get display => "W/m²";
 }
 
 enum Length implements Unit<Length> {
   m,
   cm,
-  mm;
-  // inch;
+  mm,
+  inch;
 
   @override
   double convertDataTo(double data, Length to) {
@@ -116,24 +146,46 @@ enum Length implements Unit<Length> {
       case (Length.m, Length.m):
       case (Length.cm, Length.cm):
       case (Length.mm, Length.mm):
+      case (Length.inch, Length.inch):
         return data;
 
       case (Length.m, Length.cm):
         return data / 100;
       case (Length.m, Length.mm):
         return data / 1000;
+      case (Length.m, Length.inch):
+        return data * 39.3701;
 
       case (Length.cm, Length.m):
         return data * 100;
       case (Length.cm, Length.mm):
         return data / 10;
+      case (Length.cm, Length.inch):
+        return data * 3.93701;
 
       case (Length.mm, Length.m):
         return data * 1000;
       case (Length.mm, Length.cm):
         return data * 10;
+      case (Length.mm, Length.inch):
+        return data * 0.393701;
+
+      case (Length.inch, Length.m):
+        return data / 39.3701;
+      case (Length.inch, Length.cm):
+        return data * 2.54;
+      case (Length.inch, Length.mm):
+        return data * 0.254;
     }
   }
+
+  @override
+  String get display => switch (this) {
+        Length.m => "m",
+        Length.cm => "cm",
+        Length.mm => "mm",
+        Length.inch => "in",
+      };
 }
 
 typedef Rainfall = Length;

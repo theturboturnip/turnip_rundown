@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:hive/hive.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
@@ -13,6 +14,7 @@ import 'package:turnip_rundown/data/geo/repository.dart';
 import 'package:turnip_rundown/data/current_coordinate/repository.dart';
 import 'package:turnip_rundown/data/weather/repository.dart';
 import 'package:turnip_rundown/nav.dart';
+import 'package:turnip_rundown/screens/settings/bloc.dart';
 
 void main() async {
   // Use sqflite on MacOS/iOS/Android.
@@ -35,15 +37,20 @@ void main() async {
           "turnip_rundown.db",
         );
 
+  Hive.init((kIsWeb) ? null : (await getApplicationSupportDirectory()).path);
+  final settingsBox = await Hive.openBox("settings");
+
   runApp(MyApp(
     cacheRepo: await SqfliteApiCacheRepository.getRepository(dbPath),
+    settingsBox: settingsBox,
   ));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key, required this.cacheRepo});
+  const MyApp({super.key, required this.cacheRepo, required this.settingsBox});
 
   final ApiCacheRepository cacheRepo;
+  final Box settingsBox;
 
   @override
   Widget build(BuildContext context) {
@@ -62,13 +69,16 @@ class MyApp extends StatelessWidget {
           ),
         ),
       ],
-      child: MaterialApp.router(
-        title: 'Turnip Rundown',
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
-          useMaterial3: true,
+      child: BlocProvider(
+        create: (context) => SettingsCubit(settingsBox),
+        child: MaterialApp.router(
+          title: 'Turnip Rundown',
+          theme: ThemeData(
+            colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
+            useMaterial3: true,
+          ),
+          routerConfig: router,
         ),
-        routerConfig: router,
       ),
     );
   }

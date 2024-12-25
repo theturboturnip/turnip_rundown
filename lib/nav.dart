@@ -24,10 +24,10 @@ final router = GoRouter(
               label: 'Settings',
               icon: Icon(Icons.settings),
             ),
-            NavigationDestination(
-              label: 'About',
-              icon: Icon(Icons.info),
-            ),
+            // NavigationDestination(
+            //   label: 'About',
+            //   icon: Icon(Icons.info),
+            // ),
           ],
           appBar: AppBar(title: const Text('Turnip Rundown')),
           onSelectedIndexChange: (index) async {
@@ -40,29 +40,6 @@ final router = GoRouter(
                 break;
               case 1:
                 context.go('/settings');
-                break;
-              case 2:
-                // final packageInfo = await PackageInfo.fromPlatform();
-                // showAboutDialog(
-                //   context: context,
-                //   applicationName: packageInfo.appName,
-                //   applicationVersion: 'v${packageInfo.version}',
-                //   applicationLegalese: 'Copyright © 2022, Acme, Corp.',
-                // );
-                final stats = await RepositoryProvider.of<ApiCacheRepository>(context).getStats();
-                if (context.mounted) {
-                  showDialog(
-                    context: context,
-                    builder: (context) {
-                      return AlertDialog(
-                        title: const Text("Info"),
-                        content: Text(
-                          stats.hostStats.entries.map((entry) => "${entry.key} : hit ${entry.value.cacheHits} miss ${entry.value.cacheMisses}").join("\n"),
-                        ),
-                      );
-                    },
-                  );
-                }
                 break;
               default:
                 throw Exception('Invalid index');
