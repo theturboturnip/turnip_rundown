@@ -55,6 +55,7 @@ dependencies:
   rxdart: ^0.28.0
   intl: ^0.20.1
   hive: ^2.2.3
+  snapping_sheet: ^3.1.0
 
 dev_dependencies:
   flutter_test:

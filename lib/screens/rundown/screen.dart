@@ -7,11 +7,13 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
+import 'package:snapping_sheet/snapping_sheet.dart';
 import 'package:turnip_rundown/data.dart';
 import 'package:turnip_rundown/data/geo/repository.dart';
 import 'package:turnip_rundown/screens/rundown/location_list_bloc.dart';
 import 'package:turnip_rundown/screens/rundown/location_suggest_bloc.dart';
 import 'package:turnip_rundown/screens/rundown/weather_prediction_bloc.dart';
+import 'package:turnip_rundown/screens/settings/bloc.dart';
 
 Color nthWeatherResultColor(int index) {
   const colors = [
@@ -53,44 +55,52 @@ class RundownScreen extends StatelessWidget {
         ),
       ],
       child: Scaffold(
-        body: SingleChildScrollView(
-          child: Column(
-            children: [
-              const Padding(
-                padding: EdgeInsets.all(16),
-                child: Center(
-                  child: Text(
-                    "Rundown",
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 20,
-                    ),
+        body: SnappingSheet(
+          grabbing: BlocBuilder<LocationListBloc, LocationListState>(
+            builder: (context, state) => GrabbingWidget(legend: state.legend),
+          ),
+          grabbingHeight: 85,
+          sheetBelow: SnappingSheetContent(
+            draggable: true,
+            child: BlocBuilder<LocationListBloc, LocationListState>(
+              builder: (context, state) {
+                return Container(
+                  color: Colors.white,
+                  child: ListView(
+                    children: _buildLocationsDisplay(context, state),
                   ),
-                ),
-              ),
-              // _buildCurrentWeather(context),
-              // Whenever the LocationListBloc changes,
-              // 1. rebuild the UI
-              // 2. refresh the predicted weather based on that change
-              BlocListener<LocationListBloc, LocationListState>(
+                );
+              },
+            ),
+          ),
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: BlocListener<LocationListBloc, LocationListState>(
+                // Whenever the LocationListBloc changes, refresh the predicted weather based on that change
                 listener: (context, state) => context.read<WeatherPredictBloc>().add(
-                      RefreshPredictedWeather(locations: state.coordinates),
+                      RefreshPredictedWeather(legend: state.legend),
                     ),
-                child: BlocBuilder<LocationListBloc, LocationListState>(
+                child: BlocBuilder<WeatherPredictBloc, WeatherPredictState>(
                   builder: (context, state) {
-                    return Column(children: _buildLocationsDisplay(context, state));
+                    return BlocBuilder<SettingsCubit, SettingsState>(
+                      builder: (context, settings) {
+                        return Column(
+                          children: [
+                            ..._buildWeatherInsights(context, state, settings),
+                            ..._buildWeatherGraphs(context, state, settings),
+                            // Bottom padding for the base of the grabbable thing
+                            const SizedBox(
+                              height: 75,
+                            ),
+                          ],
+                        );
+                      },
+                    );
                   },
                 ),
               ),
-              BlocBuilder<WeatherPredictBloc, WeatherPredictState>(builder: (context, state) {
-                return Column(
-                  children: [
-                    ..._buildWeatherInsights(context, state),
-                    ..._buildWeatherGraphs(context, state),
-                  ],
-                );
-              })
-            ],
+            ),
           ),
         ),
       ),
@@ -126,7 +136,7 @@ class RundownScreen extends StatelessWidget {
           }
         },
       ),
-      title: Text("My Location", style: currentCoordinateStyle),
+      title: Text("Your Location", style: currentCoordinateStyle),
       subtitle: Text(formattedCurrentCoordinate, style: currentCoordinateStyle),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
@@ -245,13 +255,39 @@ class RundownScreen extends StatelessWidget {
     ];
   }
 
-  List<Widget> _buildWeatherGraphs(BuildContext context, WeatherPredictState state) {
+  List<Widget> _buildWeatherGraphs(BuildContext context, WeatherPredictState state, SettingsState settings) {
     final DateTime utcHourInLocalTime = DateTime.timestamp().copyWith(minute: 0, second: 0, millisecond: 0, microsecond: 0).toLocal();
     final dateTimesForEachHour = List.generate(24, (index) => utcHourInLocalTime.add(Duration(hours: index)));
     final dateTimesForPriorHours = List.generate(24, (index) => utcHourInLocalTime.subtract(Duration(hours: 24 - index)));
     return [
       if (state.weatherPredictError != null) Text("Cannot retrieve weather: ${state.weatherPredictError}"),
       if (state.weathers.isNotEmpty) ...[
+        Wrap(
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: 10.0,
+          runSpacing: 10.0,
+          children: state.legend
+              .mapIndexed(
+                (index, legendElem) => Chip(
+                  avatar: Container(
+                    width: 10,
+                    height: 10,
+                    padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+                    color: nthWeatherResultColor(index),
+                  ),
+                  label: Text(legendElem.location.name),
+                  backgroundColor: Colors.transparent,
+                ),
+                // if (legendElem.isYourCoordinate)
+                //   Icon(
+                //     Icons.near_me,
+                //     size: 15,
+                //     color: Colors.grey[700]!,
+                //   ),
+                // ],
+              )
+              .toList(),
+        ),
         chartOf(
           "Dry Bulb Temperature",
           state.weathers.map((weather) => weather.dryBulbTemp),
@@ -372,19 +408,30 @@ class RundownScreen extends StatelessWidget {
         .toList();
   }
 
-  List<Widget> _buildWeatherInsights(BuildContext context, WeatherPredictState state) {
+  List<Widget> _buildWeatherInsights(BuildContext context, WeatherPredictState state, SettingsState settings) {
     if (state.insights == null) {
       return [];
     } else {
-      final listOfLocations = state.locations.map((location) => location.name).toList();
+      final listOfLocations = state.legend.map((legendElem) => legendElem.location.name).toList();
       final DateTime utcHourInLocalTime = DateTime.timestamp().copyWith(minute: 0, second: 0, millisecond: 0, microsecond: 0).toLocal();
       // Generate 25 hours because full 24-hour range is between (currentTime) and (currentTime+24) => 25 entries in the list
       final dateTimesForEachHour = List.generate(25, (index) => utcHourInLocalTime.add(Duration(hours: index)));
 
       return [
-        Text(
-          "${state.insights!.minTempAt.$1.valueAs(Temp.celsius).toStringAsFixed(1)}–${state.insights!.maxTempAt.$1.valueAs(Temp.celsius).toStringAsFixed(1)}C",
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 50),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10.0),
+          child: Wrap(
+            alignment: WrapAlignment.spaceEvenly,
+            spacing: 30.0,
+            children: settings.temperatureUnit.displayUnits().map(
+              (unit) {
+                return Text(
+                  "${state.insights!.minTempAt.$1.valueAs(unit).toStringAsFixed(1)}–${state.insights!.maxTempAt.$1.valueAs(unit).toStringAsFixed(1)}${unit.display}",
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 50),
+                );
+              },
+            ).toList(),
+          ),
         ),
         ...state.insights!.rainAt.mapIndexed((locationIndex, rainStatus) {
           if (rainStatus.preRain.valueAs(Length.mm) > 2.5) {
@@ -490,6 +537,41 @@ class RundownScreen extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class GrabbingWidget extends StatelessWidget {
+  const GrabbingWidget({super.key, required this.legend});
+
+  final List<LegendElement> legend;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20), bottom: Radius.circular(0)),
+        boxShadow: [
+          BoxShadow(blurRadius: 25, color: Colors.black.withOpacity(0.2)),
+        ],
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Container(
+            margin: const EdgeInsets.only(top: 20, bottom: 10),
+            width: 100,
+            height: 5,
+            decoration: BoxDecoration(
+              color: Colors.grey,
+              borderRadius: BorderRadius.circular(5),
+            ),
+          ),
+          Text(legend.map((legendElem) => legendElem.location.name).join(", ")),
+          const SizedBox(height: 10),
+        ],
       ),
     );
   }

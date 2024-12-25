@@ -31,10 +31,30 @@ final class LocationListState extends Equatable {
         currentCoordinateError,
       ];
 
-  List<Location> get coordinates => [
-        if (includeCurrentCoordinateInInsights && currentCoordinate != null) Location(name: "your location", address: "", coordinate: currentCoordinate!),
-        ...otherNamedLocations,
-      ];
+  List<LegendElement> get legend {
+    var legend = <LegendElement>[];
+    if (includeCurrentCoordinateInInsights && currentCoordinate != null) {
+      legend.add(
+        LegendElement(
+          isYourCoordinate: true,
+          location: Location(
+            name: "Your Location",
+            address: "",
+            coordinate: currentCoordinate!,
+          ),
+        ),
+      );
+    }
+    legend.addAll(otherNamedLocations.map((location) => LegendElement(isYourCoordinate: false, location: location)));
+    return legend;
+  }
+}
+
+final class LegendElement {
+  final bool isYourCoordinate;
+  final Location location;
+
+  LegendElement({required this.isYourCoordinate, required this.location});
 }
 
 sealed class LocationListEvent {
