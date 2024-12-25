@@ -313,36 +313,64 @@ class RundownScreen extends StatelessWidget {
   }
 
   List<Widget> _buildWeatherGraphs(BuildContext context, WeatherPredictState state) {
+    final DateTime utcHourInLocalTime = DateTime.timestamp().copyWith(minute: 0, second: 0, millisecond: 0, microsecond: 0).toLocal();
+    final dateTimesForEachHour = List.generate(24, (index) => utcHourInLocalTime.add(Duration(hours: index)));
+    final dateTimesForPriorHours = List.generate(24, (index) => utcHourInLocalTime.subtract(Duration(hours: 24 - index)));
     return [
       if (state.weatherPredictError != null) Text("Cannot retrieve weather: ${state.weatherPredictError}"),
       if (state.weathers.isNotEmpty) ...[
         chartOf(
+          "Dry Bulb Temperature",
           state.weathers.map((weather) => weather.dryBulbTemp),
           Temp.celsius,
+          dateTimesForEachHour,
           defaultMin: const Data(5, Temp.celsius),
           baseline: const Data(15, Temp.celsius),
           defaultMax: const Data(25, Temp.celsius),
         ),
         chartOf(
+          "Wet Bulb Globe Temperature (est.)",
           state.weathers.map((weather) => weather.estimatedWetBulbGlobeTemp),
           Temp.celsius,
+          dateTimesForEachHour,
           defaultMin: const Data(5, Temp.celsius),
           baseline: const Data(15, Temp.celsius),
           defaultMax: const Data(25, Temp.celsius),
         ),
-        chartOf(state.weathers.map((weather) => weather.precipitationSince24hrAgo), Rainfall.mm),
-        chartOf(state.weathers.map((weather) => weather.precipitation), Rainfall.mm),
         chartOf(
+          "Prior precipitation",
+          state.weathers.map((weather) => weather.precipitationSince24hrAgo),
+          Rainfall.mm,
+          dateTimesForPriorHours,
+        ),
+        chartOf(
+          "Precipitation",
+          state.weathers.map((weather) => weather.precipitation),
+          Rainfall.mm,
+          dateTimesForEachHour,
+        ),
+        chartOf(
+          "Precipitation Chance (%)",
           state.weathers.map((weather) => weather.precipitationProb),
           Percent.outOf100,
+          dateTimesForEachHour,
           defaultMin: const Data(0, Percent.outOf100),
           defaultMax: const Data(100, Percent.outOf100),
         ),
         chartOf(
+          "Humidity (%)",
           state.weathers.map((weather) => weather.relHumidity),
           Percent.outOf100,
+          dateTimesForEachHour,
           defaultMin: const Data(0, Percent.outOf100),
           defaultMax: const Data(100, Percent.outOf100),
+        ),
+        chartOf(
+          "Wind Speed (mph)",
+          state.weathers.map((weather) => weather.windspeed),
+          Speed.milesPerHour,
+          dateTimesForEachHour,
+          defaultMin: const Data(0, Speed.milesPerHour),
         ),
       ]
     ];
@@ -352,73 +380,63 @@ class RundownScreen extends StatelessWidget {
     (int, int) range,
     List<DateTime> dateTimesForEachHour,
   ) {
-    if (range.$1 == range.$2) {
-      return "at ${DateFormat.jm().format(dateTimesForEachHour[range.$1])}";
+    // The range should end at the end of hour = the start of the *next* hour
+    // e.g. (1, 2) is the two-hour range for (the hour starting at 1) and (the hour starting at 2)
+    // therefore is actually 1AM-3AM
+    if (range.$1 == 0) {
+      return "from now to ${DateFormat.jm().format(dateTimesForEachHour[range.$2 + 1])}";
+    }
+    return "${DateFormat.jm().format(dateTimesForEachHour[range.$1])}-${DateFormat.jm().format(dateTimesForEachHour[range.$2 + 1])}";
+    // }
+  }
+
+  String _renderActiveHours(
+    ActiveHours hours,
+    List<DateTime> dateTimesForEachHour,
+  ) {
+    // TODO make threshold relative to number of hours examined
+    if (hours.numActiveHours > 12) {
+      return "throughout";
     } else {
-      return "between ${DateFormat.jm().format(dateTimesForEachHour[range.$1])}-${DateFormat.jm().format(dateTimesForEachHour[range.$2])}";
+      return hours.asRanges.map((range) => _renderTimeRange(range, dateTimesForEachHour)).join(", ");
     }
   }
 
-  Widget? _buildWeatherWarningInsight<TWarning>(
-    String title,
-    Iterable<Map<TWarning, List<(int, int)>>> listOfMappingOfWarningToHoursForEachLocation,
-    Map<TWarning, String> nameOfWarning,
+  List<Widget> _buildWeatherWarningInsight<TWarning>(
+    Iterable<Map<TWarning, ActiveHours>> listOfMappingOfWarningToHoursForEachLocation,
+    Map<TWarning, (String, IconData)> nameOfWarning,
     List<String> listOfLocations,
     List<DateTime> dateTimesForEachHour,
   ) {
-    // TODO need to solve this
     // if there are no warnings that apply for any hours in any location, return null.
     // if there is exactly one warning that applies for any hours in exactly one location, show a simple warning
     //  - e.g. "humid between x-y", optionally appending location if total locations != 1
     // if there is exactly one warning
 
-    final groupedByWarning = <TWarning, Map<int, List<(int, int)>>>{};
+    final groupedByWarning = <TWarning, Map<int, ActiveHours>>{};
     for (final (index, map) in listOfMappingOfWarningToHoursForEachLocation.indexed) {
       for (final entry in map.entries) {
         if (entry.value.isNotEmpty) {
-          groupedByWarning.putIfAbsent(entry.key, () => <int, List<(int, int)>>{});
+          groupedByWarning.putIfAbsent(entry.key, () => <int, ActiveHours>{});
           groupedByWarning[entry.key]![index] = entry.value;
         }
       }
     }
 
-    if (groupedByWarning.values.isEmpty) {
-      return null;
-    }
-
-    // if (groupedByWarning.length == 1) {
-    //   return
-    // } else {
-
-    // }
-
-    final numLocations = listOfLocations.length;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(title, textAlign: TextAlign.start, style: const TextStyle(fontSize: 20)),
-        Padding(
-          padding: const EdgeInsets.only(right: 20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: groupedByWarning.entries.map((entry) {
-              var text = "${nameOfWarning[entry.key]} ";
-              text += entry.value.entries.map((entry) {
-                final locationIndex = entry.key;
-                final locationHours = entry.value;
-                return locationHours.map((range) => _renderTimeRange(range, dateTimesForEachHour)).join(", ") + (numLocations > 1 ? " at ${listOfLocations[locationIndex]}" : "");
-              }).join("; ");
-              return Text(
-                text,
-                textAlign: TextAlign.start,
-              );
-            }).toList(),
-          ),
-        )
-      ],
-    );
+    return groupedByWarning.entries
+        .map((entry) {
+          final warning = nameOfWarning[entry.key]!.$1;
+          final warningIcon = Icon(nameOfWarning[entry.key]!.$2);
+          return entry.value.entries.map((entry) {
+            final locationIndex = entry.key;
+            final locationHours = entry.value;
+            var title = "$warning ${listOfLocations.length > 1 ? "at ${listOfLocations[locationIndex]} " : ""}";
+            var subtitle = _renderActiveHours(locationHours, dateTimesForEachHour);
+            return ListTile(leading: warningIcon, title: Text(title), subtitle: Text(subtitle));
+          });
+        })
+        .flattened
+        .toList();
   }
 
   List<Widget> _buildWeatherInsights(BuildContext context, WeatherPredictState state) {
@@ -427,44 +445,47 @@ class RundownScreen extends StatelessWidget {
     } else {
       final listOfLocations = state.locations.map((location) => location.name).toList();
       final DateTime utcHourInLocalTime = DateTime.timestamp().copyWith(minute: 0, second: 0, millisecond: 0, microsecond: 0).toLocal();
-      final dateTimesForEachHour = List.generate(24, (index) => utcHourInLocalTime.add(Duration(hours: index)));
-
-      // TODO prior rain insight!
+      // Generate 25 hours because full 24-hour range is between (currentTime) and (currentTime+24) => 25 entries in the list
+      final dateTimesForEachHour = List.generate(25, (index) => utcHourInLocalTime.add(Duration(hours: index)));
 
       return [
         Text(
           "${state.insights!.minTempAt.$1.valueAs(Temp.celsius).toStringAsFixed(1)}–${state.insights!.maxTempAt.$1.valueAs(Temp.celsius).toStringAsFixed(1)}C",
           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 50),
         ),
-        _buildWeatherWarningInsight(
-          "Rain Warnings",
+        ...state.insights!.rainAt.mapIndexed((locationIndex, rainStatus) {
+          if (rainStatus.preRain.valueAs(Length.mm) > 2.5) {
+            return Text("Slippery ${listOfLocations.length > 1 ? "at ${listOfLocations[locationIndex]} " : ""}due to prior rain.");
+          } else {
+            return null;
+          }
+        }).whereType<Widget>(),
+        ..._buildWeatherWarningInsight(
           state.insights!.rainAt.map((rainStatus) => rainStatus.predictedRain),
           {
-            PredictedRain.light: "Light rain",
-            PredictedRain.medium: "Medium rain",
-            PredictedRain.heavy: "Heavy rain",
+            PredictedRain.light: ("Light rain", Icons.cloudy_snowing /* rainy, rainy_light */),
+            PredictedRain.medium: ("Medium rain", Icons.cloudy_snowing /* rainy, rainy_heavy */),
+            PredictedRain.heavy: ("Heavy rain", Icons.cloudy_snowing /* rainy, rainy_heavy */),
           },
           listOfLocations,
           dateTimesForEachHour,
         ),
-        _buildWeatherWarningInsight(
-          "Wind Warnings",
+        ..._buildWeatherWarningInsight(
           state.insights!.windAt.map((windStatus) => windStatus.predictedWind),
           {
-            PredictedWind.breezy: "Breezy",
-            PredictedWind.windy: "Windy",
-            PredictedWind.galey: "Gale-y",
+            PredictedWind.breezy: ("Breezy", Icons.air),
+            PredictedWind.windy: ("Windy", Icons.air),
+            PredictedWind.galey: ("Gale-y", Icons.storm),
           },
           listOfLocations,
           dateTimesForEachHour,
         ),
-        _buildWeatherWarningInsight(
-          "Humidity Warnings",
+        ..._buildWeatherWarningInsight(
           state.insights!.humidityAt.map((humidStatus) => humidStatus.predictedHumitity),
           {
-            PredictedHighHumidity.sweaty: "Sweaty",
-            PredictedHighHumidity.uncomfortable: "Uncomfortable",
-            PredictedHighHumidity.coolMist: "Misty",
+            PredictedHighHumidity.sweaty: ("Sweaty", Icons.thermostat /* humidity_high */),
+            PredictedHighHumidity.uncomfortable: ("Uncomfortably humid", Icons.thermostat /* humidity_mid */),
+            PredictedHighHumidity.coolMist: ("Misty", Icons.cloud_outlined /* mist */),
           },
           listOfLocations,
           dateTimesForEachHour,
@@ -473,9 +494,12 @@ class RundownScreen extends StatelessWidget {
     }
   }
 
-  Widget chartOf<TUnit extends Unit<TUnit>>(Iterable<DataSeries<TUnit>> datas, TUnit asUnit, {Data<TUnit>? defaultMin, Data<TUnit>? baseline, Data<TUnit>? defaultMax}) {
+  Widget chartOf<TUnit extends Unit<TUnit>>(String title, Iterable<DataSeries<TUnit>> datas, TUnit asUnit, List<DateTime> dateTimesForEachHour,
+      {Data<TUnit>? defaultMin, Data<TUnit>? baseline, Data<TUnit>? defaultMax}) {
     List<List<double>> dataPointss = datas.map((series) => series.valuesAs(asUnit).toList()).toList();
     final (dataMin, dataMax) = dataPointss.flattened.minMax as (double, double);
+    final overallMin = (defaultMin == null) ? dataMin : min(dataMin, defaultMin.valueAs(asUnit));
+    final overallMax = (defaultMax == null) ? dataMax : max(dataMax, defaultMax.valueAs(asUnit));
     return SizedBox(
       height: 200,
       child: LineChart(
@@ -489,10 +513,49 @@ class RundownScreen extends StatelessWidget {
                     color: nthWeatherResultColor(index),
                   ))
               .toList(),
-          titlesData: const FlTitlesData(),
-          minY: defaultMin != null ? min(dataMin, defaultMin.valueAs(asUnit).floorToDouble()) : dataMin,
-          maxY: defaultMax != null ? max(dataMax, defaultMax.valueAs(asUnit).ceilToDouble()) : dataMax,
+          titlesData: FlTitlesData(
+            topTitles: AxisTitles(axisNameWidget: Text(title), axisNameSize: 20, sideTitles: const SideTitles(showTitles: false)),
+            bottomTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                reservedSize: 30,
+                getTitlesWidget: (value, meta) {
+                  final hour = value.floor();
+                  final remainder = value - hour;
+                  return SideTitleWidget(
+                    axisSide: meta.axisSide,
+                    child: Text(
+                      DateFormat.jm().format(
+                        dateTimesForEachHour[hour].add(
+                          Duration(
+                            seconds: (3600 * remainder).round(),
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+                interval: 4,
+              ),
+            ),
+            leftTitles: const AxisTitles(sideTitles: SideTitles(reservedSize: 44, showTitles: true)),
+            rightTitles: const AxisTitles(sideTitles: SideTitles(reservedSize: 44, showTitles: true)),
+          ),
+          minY: (overallMin / 5).floorToDouble() * 5,
+          maxY: (overallMax / 5).ceilToDouble() * 5,
           baselineY: baseline?.valueAs(asUnit).roundToDouble(),
+          lineTouchData: LineTouchData(
+            touchTooltipData: LineTouchTooltipData(
+              getTooltipItems: (spots) => spots.map((spot) {
+                final textStyle = TextStyle(
+                  color: spot.bar.gradient?.colors.first ?? spot.bar.color ?? Colors.blueGrey,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                );
+                return LineTooltipItem(spot.y.toStringAsFixed(1), textStyle);
+              }).toList(),
+            ),
+          ),
         ),
       ),
     );

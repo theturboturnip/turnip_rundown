@@ -2,24 +2,37 @@ import 'package:collection/collection.dart';
 import 'package:turnip_rundown/data/units.dart';
 import 'package:turnip_rundown/data/weather/model.dart';
 
-// From a set of numbers, starting from the lowest number find all contiguous ranges of numbers in the set
-// e.g. {1,2, 4, 6,7,8} => (1, 2), (4, 4), (6, 8)
-List<(int, int)> hourRangesFromSet(Set<int> hours) {
-  if (hours.isEmpty) return [];
-  final sortedHours = hours.sorted((a, b) => a.compareTo(b));
-  var hourRanges = <(int, int)>[];
-  int currentRangeStart = sortedHours[0];
-  for (int i = 0; i < sortedHours.length; i++) {
-    if (currentRangeStart == sortedHours[i]) continue;
-    if (sortedHours[i] == sortedHours[i - 1] + 1) {
-      continue;
-    } else {
-      hourRanges.add((currentRangeStart, sortedHours[i - 1]));
-      currentRangeStart = sortedHours[i];
+class ActiveHours {
+  ActiveHours(this._hours);
+
+  final Set<int> _hours;
+
+  Iterable<int> get individualHours => _hours;
+
+  bool get isEmpty => _hours.isEmpty;
+  bool get isNotEmpty => _hours.isNotEmpty;
+
+  int get numActiveHours => _hours.length;
+
+  List<(int, int)> get asRanges {
+    // From a set of numbers, starting from the lowest number find all contiguous ranges of numbers in the set
+    // e.g. {1,2, 4, 6,7,8} => (1, 2), (4, 4), (6, 8)
+    if (_hours.isEmpty) return [];
+    final sortedHours = _hours.sorted((a, b) => a.compareTo(b));
+    var hourRanges = <(int, int)>[];
+    int currentRangeStart = sortedHours[0];
+    for (int i = 0; i < sortedHours.length; i++) {
+      if (currentRangeStart == sortedHours[i]) continue;
+      if (sortedHours[i] == sortedHours[i - 1] + 1) {
+        continue;
+      } else {
+        hourRanges.add((currentRangeStart, sortedHours[i - 1]));
+        currentRangeStart = sortedHours[i];
+      }
     }
+    hourRanges.add((currentRangeStart, sortedHours.last));
+    return hourRanges;
   }
-  hourRanges.add((currentRangeStart, sortedHours.last));
-  return hourRanges;
 }
 
 // From https://en.wikipedia.org/wiki/Rain#Intensity
@@ -48,7 +61,7 @@ class RainStatus {
   // sum of rainfall in the 8 preceding hours
   final Data<Length> preRain;
   // foreach level of predicted rain, the ranges of hours for which that rainfall is predicted (prediction > 15%)
-  final Map<PredictedRain, List<(int, int)>> predictedRain;
+  final Map<PredictedRain, ActiveHours> predictedRain;
 
   factory RainStatus.fromAnalysis(HourlyPredictedWeather weather, int maxLookahead) {
     final preRainMM = weather.precipitationSince24hrAgo.valuesAs(Length.mm).skip(16).sum;
@@ -74,13 +87,14 @@ class RainStatus {
 
     return RainStatus(
       preRain: Data(preRainMM, Length.mm),
-      predictedRain: predictedRain.map((key, hours) => MapEntry(key, hourRangesFromSet(hours))),
+      predictedRain: predictedRain.map((key, hours) => MapEntry(key, ActiveHours(hours))),
     );
   }
 }
 
 enum PredictedHighHumidity {
   sweaty, // hot 17+C
+  // TODO is 80+ humidity at 10 really uncomfortable?
   uncomfortable, // medium 10-17C
   coolMist; // cold <10C
 }
@@ -89,7 +103,7 @@ class HumidStatus {
   HumidStatus({required this.predictedHumitity});
 
   // foreach level of high humidity, the set of hours for which that humidity is predicted
-  final Map<PredictedHighHumidity, List<(int, int)>> predictedHumitity;
+  final Map<PredictedHighHumidity, ActiveHours> predictedHumitity;
 
   factory HumidStatus.fromAnalysis(HourlyPredictedWeather weather, int maxLookahead) {
     var predictedHumitity = <PredictedHighHumidity, Set<int>>{
@@ -111,7 +125,7 @@ class HumidStatus {
         predictedHumitity[key]!.add(i);
       }
     }
-    return HumidStatus(predictedHumitity: predictedHumitity.map((key, hours) => MapEntry(key, hourRangesFromSet(hours))));
+    return HumidStatus(predictedHumitity: predictedHumitity.map((key, hours) => MapEntry(key, ActiveHours(hours))));
   }
 }
 
@@ -131,7 +145,7 @@ class WindStatus {
   WindStatus({required this.predictedWind});
 
   // foreach level of wind, the set of hours for which that level is predicted
-  final Map<PredictedWind, List<(int, int)>> predictedWind;
+  final Map<PredictedWind, ActiveHours> predictedWind;
 
   factory WindStatus.fromAnalysis(HourlyPredictedWeather weather, int maxLookahead) {
     var predictedWind = <PredictedWind, Set<int>>{
@@ -155,7 +169,7 @@ class WindStatus {
         predictedWind[key]!.add(i);
       }
     }
-    return WindStatus(predictedWind: predictedWind.map((key, hours) => MapEntry(key, hourRangesFromSet(hours))));
+    return WindStatus(predictedWind: predictedWind.map((key, hours) => MapEntry(key, ActiveHours(hours))));
   }
 }
 
