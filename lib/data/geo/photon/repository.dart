@@ -48,7 +48,7 @@ class PhotonGeocoderRepository extends GeocoderRepository {
               return NamedCoordinate(
                 name: name,
                 // Try to grab as many of these properties as possible, then combine them to make an approximate address
-                address: ["street", "district", "city", "country"].map((property) => properties[property] as String?).whereType<String>().join(", "),
+                address: ["street", "district", "city", "state", "country"].map((property) => properties[property] as String?).whereType<String>().join(", "),
                 coordinate: Coordinate(
                   lat: coords[1] as double,
                   long: coords[0] as double,
