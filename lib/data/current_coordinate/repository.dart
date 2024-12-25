@@ -1,14 +1,14 @@
 import 'package:geolocator/geolocator.dart';
 import 'package:turnip_rundown/data/units.dart';
 
-abstract class LocationRepository {
-  Future<Coordinate> getLocation();
-  Future<void> openExternalLocationSettings();
+abstract class CurrentCoordinateRepository {
+  Future<Coordinate> getCoordinate();
+  Future<void> openExternalSettings();
 }
 
-class GeolocatorLocationRepository extends LocationRepository {
+class GeolocatorCurrentCoordinateRepository extends CurrentCoordinateRepository {
   @override
-  Future<Coordinate> getLocation() async {
+  Future<Coordinate> getCoordinate() async {
     bool serviceEnabled;
     LocationPermission permission;
 
@@ -50,7 +50,7 @@ class GeolocatorLocationRepository extends LocationRepository {
   }
 
   @override
-  Future<void> openExternalLocationSettings() async {
+  Future<void> openExternalSettings() async {
     await Geolocator.openLocationSettings();
   }
 }

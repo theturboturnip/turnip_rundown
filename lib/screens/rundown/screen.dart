@@ -9,11 +9,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:turnip_rundown/data.dart';
 import 'package:turnip_rundown/data/geo/repository.dart';
-import 'package:turnip_rundown/data/location/repository.dart';
-import 'package:turnip_rundown/data/units.dart';
-import 'package:turnip_rundown/data/weather/repository.dart';
-import 'package:turnip_rundown/screens/rundown/bloc.dart';
+import 'package:turnip_rundown/screens/rundown/location_list_bloc.dart';
 import 'package:turnip_rundown/screens/rundown/location_suggest_bloc.dart';
+import 'package:turnip_rundown/screens/rundown/weather_prediction_bloc.dart';
 
 Color nthWeatherResultColor(int index) {
   const colors = [
@@ -40,13 +38,13 @@ class RundownScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       // Create two blocs and glue them together:
-      // the 'RundownBloc' TODO RENAME which gathers locations to generate a rundown for,
-      // and the 'WeatherPredictBloc' which re-predicts the weather based on state changes from the RundownBloc
+      // the 'LocationListBloc' which gathers locations to generate a rundown for,
+      // and the 'WeatherPredictBloc' which re-predicts the weather based on state changes from the LocationListBloc
       providers: [
         BlocProvider(
-          create: (context) => RundownBloc(
-            RepositoryProvider.of<LocationRepository>(context),
-          )..add(const RefreshCurrentLocation()),
+          create: (context) => LocationListBloc(
+            RepositoryProvider.of<CurrentCoordinateRepository>(context),
+          )..add(const RefreshCurrentCoordinate()),
         ),
         BlocProvider(
           create: (context) => WeatherPredictBloc(
@@ -71,14 +69,14 @@ class RundownScreen extends StatelessWidget {
                 ),
               ),
               // _buildCurrentWeather(context),
-              // Whenever the RundownBloc changes,
+              // Whenever the LocationListBloc changes,
               // 1. rebuild the UI
               // 2. refresh the predicted weather based on that change
-              BlocListener<RundownBloc, RundownState>(
+              BlocListener<LocationListBloc, LocationListState>(
                 listener: (context, state) => context.read<WeatherPredictBloc>().add(
                       RefreshPredictedWeather(locations: state.coordinates),
                     ),
-                child: BlocBuilder<RundownBloc, RundownState>(
+                child: BlocBuilder<LocationListBloc, LocationListState>(
                   builder: (context, state) {
                     return Column(children: _buildLocationsDisplay(context, state));
                   },
@@ -103,76 +101,56 @@ class RundownScreen extends StatelessWidget {
     return const SizedBox(width: 10, height: 10, child: ColoredBox(color: Colors.red));
   }
 
-  List<Widget> _buildLocationsDisplay(BuildContext context, RundownState state) {
-    String formattedCurrentLocation;
-    if (state.currentLocationError != null) {
-      formattedCurrentLocation = state.currentLocationError!;
-    } else if (state.currentLocation != null) {
-      formattedCurrentLocation = state.currentLocation!.toString();
+  List<Widget> _buildLocationsDisplay(BuildContext context, LocationListState state) {
+    String formattedCurrentCoordinate;
+    if (state.currentCoordinateError != null) {
+      formattedCurrentCoordinate = state.currentCoordinateError!;
+    } else if (state.currentCoordinate != null) {
+      formattedCurrentCoordinate = state.currentCoordinate!.toString();
     } else {
-      formattedCurrentLocation = "...";
+      formattedCurrentCoordinate = "...";
     }
 
-    final currentLocationStyle = TextStyle(decoration: (state.includeCurrentLocationInInsights) ? null : TextDecoration.lineThrough);
+    final currentCoordinateStyle = TextStyle(decoration: (state.includeCurrentCoordinateInInsights) ? null : TextDecoration.lineThrough);
 
+    // The current coordinate formatted as a location, with a faux address and name
     final currentLocation = ListTile(
       leading: IconButton(
-        icon: Icon((state.includeCurrentLocationInInsights) ? Icons.near_me : Icons.near_me_disabled),
+        icon: Icon((state.includeCurrentCoordinateInInsights) ? Icons.near_me : Icons.near_me_disabled),
         onPressed: () {
           // Invert the current include-location state
-          if (state.includeCurrentLocationInInsights) {
-            context.read<RundownBloc>().add(const MarkCurrentLocationAsExcluded());
+          if (state.includeCurrentCoordinateInInsights) {
+            context.read<LocationListBloc>().add(const MarkCurrentCoordinateAsExcluded());
           } else {
-            context.read<RundownBloc>().add(const MarkCurrentLocationAsIncluded());
+            context.read<LocationListBloc>().add(const MarkCurrentCoordinateAsIncluded());
           }
         },
       ),
-      title: Text("My Location", style: currentLocationStyle),
-      subtitle: Text(formattedCurrentLocation, style: currentLocationStyle),
+      title: Text("My Location", style: currentCoordinateStyle),
+      subtitle: Text(formattedCurrentCoordinate, style: currentCoordinateStyle),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () {
-              context.read<RundownBloc>().add(const RefreshCurrentLocation());
+              context.read<LocationListBloc>().add(const RefreshCurrentCoordinate());
             },
           ),
           if (!kIsWeb && (Platform.isAndroid || Platform.isWindows))
             IconButton(
               icon: const Icon(Icons.settings),
               onPressed: () {
-                RepositoryProvider.of<LocationRepository>(context).openExternalLocationSettings();
+                RepositoryProvider.of<CurrentCoordinateRepository>(context).openExternalSettings();
               },
             ),
           Container(
             width: 20,
             height: 20,
-            color: state.includeCurrentLocationInInsights && (state.currentLocation != null) ? nthWeatherResultColor(0) : Colors.transparent,
+            color: state.includeCurrentCoordinateInInsights && (state.currentCoordinate != null) ? nthWeatherResultColor(0) : Colors.transparent,
           ),
         ],
       ),
-
-      // if (state.currentLocationError != null) Text("Cannot retrieve location: ${state.currentLocationError}"),
-      // if (state.currentLocationError == null && state.currentLocation == null)
-      //   const SizedBox(
-      //     width: 100,
-      //     child: LinearProgressIndicator(),
-      //   ),
-      // if (state.currentLocation != null) Text("Location: ${state.currentLocation!.lat} ${state.currentLocation!.long} ${state.currentLocation!.elevation ?? '??'}m"),
-
-      // Checkbox(value: state.includeCurrentLocationInInsights, onChanged: (newValue) {
-      //   switch (newValue) {
-      //     case true:
-      //       context.read<RundownBloc>().add(const MarkCurrentLocationAsIncluded());
-      //       break;
-      //     case false:
-      //       context.read<RundownBloc>().add(const MarkCurrentLocationAsExcluded());
-      //       break;
-      //     default:
-      //       break;
-      //   }
-      // },),
     );
 
     final otherLocations = state.otherNamedLocations.mapIndexed((index, namedLocation) {
@@ -180,7 +158,7 @@ class RundownScreen extends StatelessWidget {
         leading: IconButton(
           icon: const Icon(Icons.remove),
           onPressed: () {
-            context.read<RundownBloc>().add(RemoveOtherLocation(index: index));
+            context.read<LocationListBloc>().add(RemoveOtherLocation(index: index));
           },
         ),
         title: Text(namedLocation.name),
@@ -191,59 +169,14 @@ class RundownScreen extends StatelessWidget {
             Container(
               width: 20,
               height: 20,
-              color: nthWeatherResultColor(index + (state.includeCurrentLocationInInsights && (state.currentLocation != null) ? 1 : 0)),
+              color: nthWeatherResultColor(index + (state.includeCurrentCoordinateInInsights && (state.currentCoordinate != null) ? 1 : 0)),
             ),
           ],
         ),
       );
     });
 
-    // final newLocationSearch = SearchAnchor(
-    //   builder: (BuildContext context, SearchController controller) {
-    //     return BlocProvider.value(
-    //       value: BlocProvider.of<RundownBloc>(context),
-    //       child: SearchBar(
-    //         controller: controller,
-    //         hintText: "Add a location...",
-    //         padding: const WidgetStatePropertyAll<EdgeInsets>(
-    //           EdgeInsets.symmetric(horizontal: 16.0),
-    //         ),
-    //         trailing: const [
-    //           Icon(Icons.search),
-    //         ],
-    //         textInputAction: TextInputAction.search,
-    //         onTap: () {
-    //           controller.openView();
-    //         },
-    //         onChanged: (newQuery) {
-    //           controller.openView();
-    //         },
-    //       ),
-    //     );
-    //   },
-    //   suggestionsBuilder: (context, controller) async {
-    //     final geocoder = RepositoryProvider.of<GeocoderRepository>(context);
-    //     final suggested = await geocoder.suggestLocations(controller.text, near: null /* TODO */).onError((e, s) async {
-    //       return [];
-    //     });
-    //     return suggested.map(
-    //       (namedLocation) => ListTile(
-    //         title: Text(namedLocation.name),
-    //         subtitle: Text(namedLocation.location.roundedTo(2, elevationDp: 0).toString()),
-    //         trailing: const Icon(Icons.add),
-    //         onTap: () {
-    //           if (context.mounted) {
-    //             context.read<RundownBloc>().add(AppendOtherLocation(otherLocation: namedLocation));
-    //             controller.clear();
-    //             controller.closeView(null);
-    //           }
-    //         },
-    //       ),
-    //     );
-    //   },
-    // );
-
-    final currentLocationCoord = state.currentLocation;
+    final currentCoordinate = state.currentCoordinate;
 
     final newLocationSearch = IconButton(
       icon: const Icon(Icons.add),
@@ -279,7 +212,7 @@ class RundownScreen extends StatelessWidget {
                             onChanged: (newQuery) => context.read<LocationSuggestBloc>().add(
                                   UpdateLocationQuery(
                                     newQuery: newQuery,
-                                    near: currentLocationCoord,
+                                    near: currentCoordinate,
                                   ),
                                 ),
                             decoration: const InputDecoration(
@@ -299,8 +232,8 @@ class RundownScreen extends StatelessWidget {
             );
           },
         );
-        if (context.mounted && locationToAdd is NamedCoordinate) {
-          context.read<RundownBloc>().add(AppendOtherLocation(otherLocation: locationToAdd));
+        if (context.mounted && locationToAdd is Location) {
+          context.read<LocationListBloc>().add(AppendOtherLocation(otherLocation: locationToAdd));
         }
       },
     );

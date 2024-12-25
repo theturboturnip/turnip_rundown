@@ -10,7 +10,7 @@ import 'package:sqflite_common_ffi_web/sqflite_ffi_web.dart';
 import 'package:turnip_rundown/data/api_cache.dart';
 import 'package:turnip_rundown/data/geo/photon/repository.dart';
 import 'package:turnip_rundown/data/geo/repository.dart';
-import 'package:turnip_rundown/data/location/repository.dart';
+import 'package:turnip_rundown/data/current_coordinate/repository.dart';
 import 'package:turnip_rundown/data/weather/repository.dart';
 import 'package:turnip_rundown/nav.dart';
 
@@ -50,7 +50,7 @@ class MyApp extends StatelessWidget {
     return MultiRepositoryProvider(
       providers: [
         RepositoryProvider<ApiCacheRepository>(create: (context) => cacheRepo),
-        RepositoryProvider<LocationRepository>(create: (context) => GeolocatorLocationRepository()),
+        RepositoryProvider<CurrentCoordinateRepository>(create: (context) => GeolocatorCurrentCoordinateRepository()),
         RepositoryProvider<WeatherRepository>(
           create: (context) => OpenMeteoWeatherRepository(
             cache: RepositoryProvider.of<ApiCacheRepository>(context),

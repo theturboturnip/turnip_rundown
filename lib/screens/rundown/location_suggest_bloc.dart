@@ -8,7 +8,7 @@ class LocationSuggestState {
   LocationSuggestState({required this.query, required this.suggested});
 
   final String query;
-  final List<NamedCoordinate>? suggested;
+  final List<Location>? suggested;
 }
 
 class UpdateLocationQuery {

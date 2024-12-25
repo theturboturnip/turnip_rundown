@@ -12,7 +12,7 @@ class PhotonGeocoderRepository extends GeocoderRepository {
   final ApiCacheRepository cache;
 
   @override
-  Future<List<NamedCoordinate>> suggestLocations(String query, {Coordinate? near, int nSuggestions = 5}) async {
+  Future<List<Location>> suggestLocations(String query, {Coordinate? near, int nSuggestions = 5}) async {
     final results = await cache.makeHttpRequest(
       Uri(
         scheme: "https",
@@ -45,7 +45,7 @@ class PhotonGeocoderRepository extends GeocoderRepository {
 
               // Weird moment: long then lat?
               // see https://datatracker.ietf.org/doc/html/rfc7946#section-3.1.1
-              return NamedCoordinate(
+              return Location(
                 name: name,
                 // Try to grab as many of these properties as possible, then combine them to make an approximate address
                 address: ["street", "district", "city", "state", "country"].map((property) => properties[property] as String?).whereType<String>().join(", "),
@@ -58,7 +58,7 @@ class PhotonGeocoderRepository extends GeocoderRepository {
           }
           return null;
         })
-        .whereType<NamedCoordinate>()
+        .whereType<Location>()
         .toList();
   }
 }
