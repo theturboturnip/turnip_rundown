@@ -7,7 +7,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
-import 'package:snapping_sheet/snapping_sheet.dart';
 import 'package:turnip_rundown/data.dart';
 import 'package:turnip_rundown/data/geo/repository.dart';
 import 'package:turnip_rundown/screens/rundown/location_list_bloc.dart';
@@ -55,51 +54,38 @@ class RundownScreen extends StatelessWidget {
         ),
       ],
       child: Scaffold(
-        body: SnappingSheet(
-          grabbing: BlocBuilder<LocationListBloc, LocationListState>(
-            builder: (context, state) => GrabbingWidget(legend: state.legend),
-          ),
-          grabbingHeight: 85,
-          sheetBelow: SnappingSheetContent(
-            draggable: true,
+        body: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
             child: BlocBuilder<LocationListBloc, LocationListState>(
-              builder: (context, state) {
-                return Container(
-                  color: Colors.white,
-                  child: ListView(
-                    children: _buildLocationsDisplay(context, state),
-                  ),
-                );
-              },
-            ),
-          ),
-          child: SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: BlocListener<LocationListBloc, LocationListState>(
+              builder: (context, locationState) {
                 // Whenever the LocationListBloc changes, refresh the predicted weather based on that change
-                listener: (context, state) => context.read<WeatherPredictBloc>().add(
-                      RefreshPredictedWeather(legend: state.legend),
-                    ),
-                child: BlocBuilder<WeatherPredictBloc, WeatherPredictState>(
-                  builder: (context, state) {
+                context.read<WeatherPredictBloc>().add(RefreshPredictedWeather(legend: locationState.legend));
+                return BlocBuilder<WeatherPredictBloc, WeatherPredictState>(
+                  builder: (context, weatherState) {
                     return BlocBuilder<SettingsCubit, SettingsState>(
                       builder: (context, settings) {
                         return Column(
                           children: [
-                            ..._buildWeatherInsights(context, state, settings),
-                            ..._buildWeatherGraphs(context, state, settings),
-                            // Bottom padding for the base of the grabbable thing
-                            const SizedBox(
-                              height: 75,
+                            ..._buildWeatherInsights(context, weatherState, settings),
+                            Container(
+                              margin: const EdgeInsets.symmetric(vertical: 10),
+                              decoration: const BoxDecoration(
+                                border: Border.symmetric(horizontal: BorderSide()),
+                              ),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: _buildLocationsDisplay(context, locationState),
+                              ),
                             ),
+                            ..._buildWeatherGraphs(context, weatherState, settings),
                           ],
                         );
                       },
                     );
                   },
-                ),
-              ),
+                );
+              },
             ),
           ),
         ),
@@ -262,32 +248,32 @@ class RundownScreen extends StatelessWidget {
     return [
       if (state.weatherPredictError != null) Text("Cannot retrieve weather: ${state.weatherPredictError}"),
       if (state.weathers.isNotEmpty) ...[
-        Wrap(
-          crossAxisAlignment: WrapCrossAlignment.center,
-          spacing: 10.0,
-          runSpacing: 10.0,
-          children: state.legend
-              .mapIndexed(
-                (index, legendElem) => Chip(
-                  avatar: Container(
-                    width: 10,
-                    height: 10,
-                    padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
-                    color: nthWeatherResultColor(index),
-                  ),
-                  label: Text(legendElem.location.name),
-                  backgroundColor: Colors.transparent,
-                ),
-                // if (legendElem.isYourCoordinate)
-                //   Icon(
-                //     Icons.near_me,
-                //     size: 15,
-                //     color: Colors.grey[700]!,
-                //   ),
-                // ],
-              )
-              .toList(),
-        ),
+        // Wrap(
+        //   crossAxisAlignment: WrapCrossAlignment.center,
+        //   spacing: 10.0,
+        //   runSpacing: 10.0,
+        //   children: state.legend
+        //       .mapIndexed(
+        //         (index, legendElem) => Chip(
+        //           avatar: Container(
+        //             width: 10,
+        //             height: 10,
+        //             padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+        //             color: nthWeatherResultColor(index),
+        //           ),
+        //           label: Text(legendElem.location.name),
+        //           backgroundColor: Colors.transparent,
+        //         ),
+        //         // if (legendElem.isYourCoordinate)
+        //         //   Icon(
+        //         //     Icons.near_me,
+        //         //     size: 15,
+        //         //     color: Colors.grey[700]!,
+        //         //   ),
+        //         // ],
+        //       )
+        //       .toList(),
+        // ),
         chartOf(
           "Dry Bulb Temperature",
           state.weathers.map((weather) => weather.dryBulbTemp),
@@ -410,9 +396,25 @@ class RundownScreen extends StatelessWidget {
 
   List<Widget> _buildWeatherInsights(BuildContext context, WeatherPredictState state, SettingsState settings) {
     if (state.insights == null) {
-      return [];
+      return [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10.0),
+          child: Wrap(
+            alignment: WrapAlignment.spaceEvenly,
+            spacing: 30.0,
+            children: settings.temperatureUnit.displayUnits().map(
+              (unit) {
+                return Text(
+                  "...–...${unit.display}",
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 50),
+                );
+              },
+            ).toList(),
+          ),
+        ),
+      ];
     } else {
-      final listOfLocations = state.legend.map((legendElem) => legendElem.location.name).toList();
+      final listOfLocations = state.legend.map((legendElem) => legendElem.isYourCoordinate ? "your location" : legendElem.location.name).toList();
       final DateTime utcHourInLocalTime = DateTime.timestamp().copyWith(minute: 0, second: 0, millisecond: 0, microsecond: 0).toLocal();
       // Generate 25 hours because full 24-hour range is between (currentTime) and (currentTime+24) => 25 entries in the list
       final dateTimesForEachHour = List.generate(25, (index) => utcHourInLocalTime.add(Duration(hours: index)));

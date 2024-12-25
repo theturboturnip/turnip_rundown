@@ -187,8 +187,8 @@ final class WeatherInsights {
   final List<HumidStatus> humidityAt;
   final List<WindStatus> windAt;
 
-  factory WeatherInsights.fromAnalysis(List<HourlyPredictedWeather> weathers, {int maxLookahead = 24}) {
-    assert(weathers.isNotEmpty);
+  static WeatherInsights? fromAnalysis(List<HourlyPredictedWeather> weathers, {int maxLookahead = 24}) {
+    if (weathers.isEmpty) return null;
     List<(double, double)> minMaxTempC = weathers.map((weather) => weather.estimatedWetBulbGlobeTemp.valuesAs(Temp.celsius).take(maxLookahead).minMax as (double, double)).toList();
     (double, int) minCAt = (minMaxTempC[0].$1, 0);
     (double, int) maxCAt = (minMaxTempC[0].$2, 0);

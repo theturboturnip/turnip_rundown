@@ -110,9 +110,8 @@ Length lengthUnitFromOpenMeteo(String? str, {required Length expected}) {
       return Length.cm;
     case "mm":
       return Length.mm;
-    // TODO
-    // case "inch":
-    //   return Length.inch;
+    case "inch":
+      return Length.inch;
     default:
       print("Unexpected length unit from openmeteo: '$str'");
       return expected;
