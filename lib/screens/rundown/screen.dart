@@ -431,8 +431,6 @@ class RundownScreen extends StatelessWidget {
   }
 
   List<Widget> _buildWeatherInsights(BuildContext context, WeatherPredictState state, Settings settings) {
-    // TODO add "numHoursLookedAhead" to summary UI
-
     if (state.insights == null) {
       return [
         Padding(
