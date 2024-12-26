@@ -218,7 +218,7 @@ enum Length implements Unit<Length> {
       case (Length.inch, Length.cm):
         return data * 2.54;
       case (Length.inch, Length.mm):
-        return data * 0.254;
+        return data * 25.4;
     }
   }
 
