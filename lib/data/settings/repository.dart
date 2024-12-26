@@ -124,7 +124,6 @@ class Settings {
 
   @JsonKey(defaultValue: TempDisplay.both)
   final TempDisplay temperatureUnit;
-  // TODO actually use this
   @JsonKey(defaultValue: Rainfall.mm)
   final Rainfall rainfallUnit;
 

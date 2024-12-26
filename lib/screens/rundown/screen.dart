@@ -282,42 +282,56 @@ class RundownScreen extends StatelessWidget {
         //       )
         //       .toList(),
         // ),
+        if (!settings.weatherConfig.useEstimatedWetBulbTemp)
+          chartOf(
+            context,
+            "Dry Bulb Temperature",
+            state.weathers.map((weather) => weather.dryBulbTemp),
+            settings.temperatureUnit.displayUnits().first,
+            dateTimesForEachHour,
+            defaultMin: const Data(5, Temp.celsius),
+            baseline: const Data(15, Temp.celsius),
+            defaultMax: const Data(25, Temp.celsius),
+            hoursLookedAhead: state.insights!.hoursLookedAhead,
+            otherUnit: (settings.temperatureUnit == TempDisplay.both ? Temp.farenheit : null),
+          ),
+        if (settings.weatherConfig.useEstimatedWetBulbTemp)
+          chartOf(
+            context,
+            "Wet Bulb Globe Temperature (est.)",
+            state.weathers.map((weather) => weather.estimatedWetBulbGlobeTemp),
+            settings.temperatureUnit.displayUnits().first,
+            dateTimesForEachHour,
+            defaultMin: const Data(5, Temp.celsius),
+            baseline: const Data(15, Temp.celsius),
+            defaultMax: const Data(25, Temp.celsius),
+            hoursLookedAhead: state.insights!.hoursLookedAhead,
+            otherUnit: (settings.temperatureUnit == TempDisplay.both ? Temp.farenheit : null),
+          ),
         chartOf(
-          "Dry Bulb Temperature",
-          state.weathers.map((weather) => weather.dryBulbTemp),
-          Temp.celsius,
-          dateTimesForEachHour,
-          defaultMin: const Data(5, Temp.celsius),
-          baseline: const Data(15, Temp.celsius),
-          defaultMax: const Data(25, Temp.celsius),
-          hoursLookedAhead: state.insights!.hoursLookedAhead,
-        ),
-        chartOf(
-          "Wet Bulb Globe Temperature (est.)",
-          state.weathers.map((weather) => weather.estimatedWetBulbGlobeTemp),
-          Temp.celsius,
-          dateTimesForEachHour,
-          defaultMin: const Data(5, Temp.celsius),
-          baseline: const Data(15, Temp.celsius),
-          defaultMax: const Data(25, Temp.celsius),
-          hoursLookedAhead: state.insights!.hoursLookedAhead,
-        ),
-        chartOf(
-          "Prior precipitation",
+          context,
+          "Prior Precipitation",
           state.weathers.map((weather) => weather.precipitationUpToNow),
-          Rainfall.mm,
+          settings.rainfallUnit,
           dateTimesForPriorHours,
-          hoursLookedAhead: state.insights!.hoursLookedAhead,
+          defaultMin: const Data(0, Length.mm),
+          defaultMax: const Data(10, Length.mm),
+          numDataPoints: state.weathers.first.precipitationUpToNow.length,
+          hoursLookedAhead: state.weathers.first.precipitationUpToNow.length,
         ),
         chartOf(
+          context,
           "Precipitation",
           state.weathers.map((weather) => weather.precipitation),
-          Rainfall.mm,
+          settings.rainfallUnit,
           dateTimesForEachHour,
+          defaultMin: const Data(0, Length.mm),
+          defaultMax: const Data(10, Length.mm),
           hoursLookedAhead: state.insights!.hoursLookedAhead,
         ),
         chartOf(
-          "Precipitation Chance (%)",
+          context,
+          "Precipitation Chance",
           state.weathers.map((weather) => weather.precipitationProb),
           Percent.outOf100,
           dateTimesForEachHour,
@@ -326,7 +340,8 @@ class RundownScreen extends StatelessWidget {
           hoursLookedAhead: state.insights!.hoursLookedAhead,
         ),
         chartOf(
-          "Humidity (%)",
+          context,
+          "Humidity",
           state.weathers.map((weather) => weather.relHumidity),
           Percent.outOf100,
           dateTimesForEachHour,
@@ -335,7 +350,8 @@ class RundownScreen extends StatelessWidget {
           hoursLookedAhead: state.insights!.hoursLookedAhead,
         ),
         chartOf(
-          "Wind Speed (mph)",
+          context,
+          "Wind Speed",
           state.weathers.map((weather) => weather.windspeed),
           Speed.milesPerHour,
           dateTimesForEachHour,
@@ -508,14 +524,27 @@ class RundownScreen extends StatelessWidget {
     }
   }
 
-  Widget chartOf<TUnit extends Unit<TUnit>>(String title, Iterable<DataSeries<TUnit>> datas, TUnit asUnit, List<DateTime> dateTimesForEachHour,
-      {required int hoursLookedAhead, Data<TUnit>? defaultMin, Data<TUnit>? baseline, Data<TUnit>? defaultMax}) {
+  Widget chartOf<TUnit extends Unit<TUnit>>(
+    BuildContext context,
+    String title,
+    Iterable<DataSeries<TUnit>> datas,
+    TUnit asUnit,
+    List<DateTime> dateTimesForEachHour, {
+    required int hoursLookedAhead,
+    int? numDataPoints,
+    Data<TUnit>? defaultMin,
+    Data<TUnit>? baseline,
+    Data<TUnit>? defaultMax,
+    TUnit? otherUnit,
+  }) {
     List<List<double>> dataPointss = datas.map((series) => series.valuesAs(asUnit).toList()).toList();
     final (dataMin, dataMax) = dataPointss.flattened.minMax as (double, double);
     final overallMin = (defaultMin == null) ? dataMin : min(dataMin, defaultMin.valueAs(asUnit));
     final overallMax = (defaultMax == null) ? dataMax : max(dataMax, defaultMax.valueAs(asUnit));
 
-    final numDataPoints = (hoursLookedAhead >= 12) ? 24 : 12;
+    numDataPoints ??= (hoursLookedAhead >= 12) ? 24 : 12;
+
+    final usingTwoUnits = (otherUnit != null) && (otherUnit != asUnit);
 
     return SizedBox(
       height: 200,
@@ -523,7 +552,7 @@ class RundownScreen extends StatelessWidget {
         LineChartData(
           lineBarsData: dataPointss
               .mapIndexed((index, dataPoints) => LineChartBarData(
-                    spots: dataPoints.indexed.take(numDataPoints).map((item) => FlSpot(item.$1.toDouble(), item.$2)).toList(),
+                    spots: dataPoints.indexed.take(numDataPoints!).map((item) => FlSpot(item.$1.toDouble(), item.$2)).toList(),
                     isCurved: true,
                     preventCurveOverShooting: true,
                     dotData: const FlDotData(show: false),
@@ -531,7 +560,41 @@ class RundownScreen extends StatelessWidget {
                   ))
               .toList(),
           titlesData: FlTitlesData(
-            topTitles: AxisTitles(axisNameWidget: Text(title), axisNameSize: 20, sideTitles: const SideTitles(showTitles: false)),
+            topTitles: AxisTitles(
+              axisNameWidget: Text(title + (usingTwoUnits ? "" : " (${asUnit.display})")),
+              axisNameSize: 20,
+              sideTitles: const SideTitles(showTitles: false),
+            ),
+            leftTitles: AxisTitles(
+              // axisNameWidget: usingTwoUnits ? Text(asUnit.display) : null,
+              sideTitles: SideTitles(
+                reservedSize: 55,
+                showTitles: true,
+                getTitlesWidget: (value, meta) {
+                  return SideTitleWidget(
+                    axisSide: meta.axisSide,
+                    child: Text(
+                      meta.formattedValue + (usingTwoUnits ? asUnit.display : ""),
+                    ),
+                  );
+                },
+              ),
+            ),
+            rightTitles: AxisTitles(
+              // axisNameWidget: usingTwoUnits ? Text(otherUnit.display) : null,
+              sideTitles: SideTitles(
+                reservedSize: 55,
+                showTitles: true,
+                getTitlesWidget: (value, meta) {
+                  return SideTitleWidget(
+                    axisSide: meta.axisSide,
+                    child: Text(
+                      usingTwoUnits ? "${Data(value, asUnit).valueAs(otherUnit).toStringAsFixed(0)}${otherUnit.display}" : meta.formattedValue,
+                    ),
+                  );
+                },
+              ),
+            ),
             bottomTitles: AxisTitles(
               sideTitles: SideTitles(
                 showTitles: true,
@@ -552,11 +615,10 @@ class RundownScreen extends StatelessWidget {
                     ),
                   );
                 },
-                interval: 4,
+                // Make sure the time text doesn't overlap
+                interval: (MediaQuery.of(context).size.width < 600 && numDataPoints > 12) ? 8 : 4,
               ),
             ),
-            leftTitles: const AxisTitles(sideTitles: SideTitles(reservedSize: 44, showTitles: true)),
-            rightTitles: const AxisTitles(sideTitles: SideTitles(reservedSize: 44, showTitles: true)),
           ),
           minY: (overallMin / 5).floorToDouble() * 5,
           maxY: (overallMax / 5).ceilToDouble() * 5,
@@ -569,7 +631,23 @@ class RundownScreen extends StatelessWidget {
                   fontWeight: FontWeight.bold,
                   fontSize: 14,
                 );
-                return LineTooltipItem(spot.y.toStringAsFixed(1), textStyle);
+
+                final hour = spot.x.floor();
+                final remainder = spot.x - hour;
+                final dateTimeForPoint = DateFormat.jm().format(
+                  dateTimesForEachHour[hour].add(
+                    Duration(
+                      seconds: (3600 * remainder).round(),
+                    ),
+                  ),
+                );
+
+                return LineTooltipItem(
+                  "${spot.barIndex == 0 ? "$dateTimeForPoint\n" : ""}"
+                  "${spot.y.toStringAsFixed(1)}${asUnit.display}"
+                  "${usingTwoUnits ? "/${Data(spot.y, asUnit).valueAs(otherUnit).toStringAsFixed(1)}${otherUnit.display}" : ""}",
+                  textStyle,
+                );
               }).toList(),
             ),
           ),
@@ -581,6 +659,12 @@ class RundownScreen extends StatelessWidget {
                 color: Colors.grey.withOpacity(0.5),
               ),
           ]),
+          gridData: const FlGridData(
+            drawHorizontalLine: true,
+            horizontalInterval: null,
+            drawVerticalLine: true,
+            verticalInterval: 1,
+          ),
         ),
       ),
     );
