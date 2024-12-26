@@ -4,7 +4,7 @@ import 'dart:convert';
 
 import 'package:collection/collection.dart';
 import 'package:json_annotation/json_annotation.dart';
-import 'package:turnip_rundown/data/api_cache.dart';
+import 'package:turnip_rundown/data/api_cache_repository.dart';
 import 'package:turnip_rundown/data/units.dart';
 import 'package:turnip_rundown/data/weather/model.dart';
 import 'package:turnip_rundown/data/weather/repository.dart';

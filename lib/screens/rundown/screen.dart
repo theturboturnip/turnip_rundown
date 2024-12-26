@@ -9,6 +9,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:turnip_rundown/data.dart';
 import 'package:turnip_rundown/data/geo/repository.dart';
+import 'package:turnip_rundown/data/settings/repository.dart';
 import 'package:turnip_rundown/screens/rundown/location_list_bloc.dart';
 import 'package:turnip_rundown/screens/rundown/location_suggest_bloc.dart';
 import 'package:turnip_rundown/screens/rundown/weather_prediction_bloc.dart';

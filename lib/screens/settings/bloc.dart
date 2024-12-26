@@ -1,59 +1,8 @@
-import 'dart:convert';
-
 import 'package:bloc/bloc.dart';
 import 'package:bloc_concurrency/bloc_concurrency.dart';
-import 'package:hive/hive.dart';
-import 'package:json_annotation/json_annotation.dart';
+import 'package:turnip_rundown/data/settings/repository.dart';
 import 'package:turnip_rundown/data/units.dart';
 import 'package:turnip_rundown/data/weather/insights.dart';
-
-part 'bloc.g.dart';
-
-@JsonEnum()
-enum TempDisplay {
-  celsius,
-  farenheit,
-  both;
-
-  Iterable<Temp> displayUnits() {
-    switch (this) {
-      case TempDisplay.celsius:
-        return [Temp.celsius];
-      case TempDisplay.farenheit:
-        return [Temp.farenheit];
-      case TempDisplay.both:
-        return [Temp.celsius, Temp.farenheit];
-    }
-  }
-}
-
-@JsonSerializable()
-class Settings {
-  Settings({required this.temperatureUnit, required this.rainfallUnit, required this.weatherConfig});
-
-  @JsonKey(defaultValue: TempDisplay.both)
-  final TempDisplay temperatureUnit;
-  // TODO actually use this
-  @JsonKey(defaultValue: Rainfall.mm)
-  final Rainfall rainfallUnit;
-
-  // TODO round current location preference
-  // TODO preferences for autodetecting the number of hours to analyse
-
-  @JsonKey(defaultValue: WeatherInsightConfig.initial)
-  final WeatherInsightConfig weatherConfig;
-
-  factory Settings.fromBox(Box box) {
-    return Settings.fromJson(jsonDecode(box.get("asJson", defaultValue: "{}")));
-  }
-
-  factory Settings.fromJson(Map<String, dynamic> json) => _$SettingsFromJson(json);
-  Map<String, dynamic> toJson() => _$SettingsToJson(this);
-
-  Future<void> applyToBox(Box box) {
-    return box.put("asJson", jsonEncode(toJson()));
-  }
-}
 
 final class SettingsEvent {
   SettingsEvent({
@@ -129,16 +78,14 @@ final class SettingsEvent {
 }
 
 class SettingsBloc extends Bloc<SettingsEvent, Settings> {
-  SettingsBloc(this.box) : super(Settings.fromBox(box)) {
+  SettingsBloc(SettingsRepository repo) : super(repo.settings) {
     on<SettingsEvent>(
       (event, emit) async {
         final newState = event.copyOf(state);
         emit(newState);
-        await newState.applyToBox(box);
+        await repo.storeSettings(newState);
       },
       transformer: sequential(),
     );
   }
-
-  final Box box;
 }

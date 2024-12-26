@@ -1,46 +1,43 @@
+import 'dart:convert';
+
 import 'package:sqflite/sqflite.dart';
 import 'package:http/http.dart' as http;
 
-class HostStats {
-  HostStats({required this.cacheHits, required this.cacheMisses});
+import 'package:turnip_rundown/data/api_cache_repository.dart';
+import 'package:turnip_rundown/data/settings/repository.dart';
 
-  final int cacheHits;
-  final int cacheMisses;
-}
-
-class ApiStats {
-  ApiStats({required this.hostStats});
-
-  final Map<String, HostStats> hostStats;
-}
-
-abstract class ApiCacheRepository {
-  /// The Future will emit a [ClientException] if the http request is attempted and fails
-  Future<String> makeHttpRequest(Uri uri, {bool forceRefreshCache = false, Duration timeout = const Duration(minutes: 15)});
-  Future<void> clearTimedOutEntries();
-  Future<void> resetStats();
-  Future<ApiStats> getStats();
-}
-
-class SqfliteApiCacheRepository extends ApiCacheRepository {
-  SqfliteApiCacheRepository(this.db);
+// A class that implements both ApiCache and Settings repositories on top of a single sqlite database.
+// On Android the cache and settings dbs are in separate files, because the platform requests it.
+// Both repositories are capable of both behaviours, we just don't use them.
+// On web, it's one DB.
+class SqfliteApiCacheAndSettingsRepository implements ApiCacheRepository, SettingsRepository {
+  SqfliteApiCacheAndSettingsRepository(this.db, this._settings);
 
   final Database db;
+  Settings _settings;
 
-  static Future<SqfliteApiCacheRepository> getRepository(String databasePath) async {
+  static Future<SqfliteApiCacheAndSettingsRepository> getRepository(String databasePath) async {
     final db = await openDatabase(
       databasePath,
-      version: 1,
+      version: 2,
       onUpgrade: (db, oldVersion, newVersion) async {
         if (oldVersion == 0) {
           await db.execute("CREATE TABLE cache(uri TEXT UNIQUE, response TEXT, timeoutAfter TEXT)");
           await db.execute("CREATE TABLE stats(host TEXT UNIQUE, cacheHits INTEGER, cacheMisses INTEGER)");
           oldVersion = 1;
         }
+        if (oldVersion == 1) {
+          await db.execute("CREATE TABLE keyval(key TEXT UNIQUE, val TEXT)");
+          await db.insert("keyval", {"key": "settingsJson", "val": "{}"});
+          oldVersion = 2;
+        }
       },
     );
-    final repo = SqfliteApiCacheRepository(db);
+    final settingsJson = await db.query("keyval", columns: ["val"], where: "key like 'settingsJson'");
+    final settings = Settings.fromJson(jsonDecode(settingsJson.first["val"]! as String));
+    final repo = SqfliteApiCacheAndSettingsRepository(db, settings);
     await repo.clearTimedOutEntries();
+
     return repo;
   }
 
@@ -109,5 +106,14 @@ class SqfliteApiCacheRepository extends ApiCacheRepository {
   @override
   Future<void> resetStats() async {
     await db.delete("stats");
+  }
+
+  @override
+  Settings get settings => _settings;
+
+  @override
+  Future<void> storeSettings(Settings settings) async {
+    await db.update("keyval", {"val": jsonEncode(settings.toJson())}, where: "key like 'settingsJson'");
+    _settings = settings;
   }
 }

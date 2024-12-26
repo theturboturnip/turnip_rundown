@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:turnip_rundown/data/api_cache.dart';
+import 'package:turnip_rundown/data/api_cache_repository.dart';
 import 'package:turnip_rundown/data/geo/repository.dart';
 import 'package:turnip_rundown/data/units.dart';
 
