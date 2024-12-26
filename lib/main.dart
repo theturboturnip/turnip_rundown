@@ -42,11 +42,12 @@ void main() async {
     // Create separate repositories in the relevant directories for different purposes.
     // The repositories will both be capable of storing the other kind of data,
     // they just won't.
-    cacheRepo = await SqfliteApiCacheAndSettingsRepository.getRepository(join(
-      (await getApplicationCacheDirectory()).path,
-      "turnip_rundown_cache.db",
-    ));
-    settingsRepo = await SqfliteApiCacheAndSettingsRepository.getRepository(join(
+    // NOPE DONT DO THAT I DONT THINK SQFLITE SUPPORTS THAT
+    // cacheRepo = await SqfliteApiCacheAndSettingsRepository.getRepository(join(
+    //   (await getApplicationCacheDirectory()).path,
+    //   "turnip_rundown_cache.db",
+    // ));
+    cacheRepo = settingsRepo = await SqfliteApiCacheAndSettingsRepository.getRepository(join(
       await (Platform.isAndroid ? getDatabasesPath() : getLibraryDirectory().toString()),
       "turnip_rundown.db",
     ));
