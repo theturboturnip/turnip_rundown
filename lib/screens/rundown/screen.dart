@@ -59,12 +59,13 @@ class RundownScreen extends StatelessWidget {
             padding: const EdgeInsets.all(16),
             child: BlocBuilder<LocationListBloc, LocationListState>(
               builder: (context, locationState) {
-                // Whenever the LocationListBloc changes, refresh the predicted weather based on that change
-                context.read<WeatherPredictBloc>().add(RefreshPredictedWeather(legend: locationState.legend));
-                return BlocBuilder<WeatherPredictBloc, WeatherPredictState>(
-                  builder: (context, weatherState) {
-                    return BlocBuilder<SettingsCubit, SettingsState>(
-                      builder: (context, settings) {
+                return BlocBuilder<SettingsBloc, Settings>(
+                  builder: (context, settings) {
+                    // Whenever the LocationListBloc changes, refresh the predicted weather based on that change
+                    // TODO autodetection/slider of how many hours are relevant to you
+                    context.read<WeatherPredictBloc>().add(RefreshPredictedWeather(legend: locationState.legend, config: settings.weatherConfig));
+                    return BlocBuilder<WeatherPredictBloc, WeatherPredictState>(
+                      builder: (context, weatherState) {
                         return Column(
                           children: [
                             ..._buildWeatherInsights(context, weatherState, settings),
@@ -241,7 +242,7 @@ class RundownScreen extends StatelessWidget {
     ];
   }
 
-  List<Widget> _buildWeatherGraphs(BuildContext context, WeatherPredictState state, SettingsState settings) {
+  List<Widget> _buildWeatherGraphs(BuildContext context, WeatherPredictState state, Settings settings) {
     final DateTime utcHourInLocalTime = DateTime.timestamp().copyWith(minute: 0, second: 0, millisecond: 0, microsecond: 0).toLocal();
     final dateTimesForEachHour = List.generate(24, (index) => utcHourInLocalTime.add(Duration(hours: index)));
     final dateTimesForPriorHours = List.generate(24, (index) => utcHourInLocalTime.subtract(Duration(hours: 24 - index)));
@@ -394,7 +395,7 @@ class RundownScreen extends StatelessWidget {
         .toList();
   }
 
-  List<Widget> _buildWeatherInsights(BuildContext context, WeatherPredictState state, SettingsState settings) {
+  List<Widget> _buildWeatherInsights(BuildContext context, WeatherPredictState state, Settings settings) {
     if (state.insights == null) {
       return [
         Padding(
@@ -445,9 +446,9 @@ class RundownScreen extends StatelessWidget {
         ..._buildWeatherWarningInsight(
           state.insights!.rainAt.map((rainStatus) => rainStatus.predictedRain),
           {
-            PredictedRain.light: ("Light rain", Icons.cloudy_snowing /* rainy, rainy_light */),
-            PredictedRain.medium: ("Medium rain", Icons.cloudy_snowing /* rainy, rainy_heavy */),
-            PredictedRain.heavy: ("Heavy rain", Icons.cloudy_snowing /* rainy, rainy_heavy */),
+            PredictedRain.light: ("Light rain", Icons.cloudy_snowing /* TODO rainy, rainy_light */),
+            PredictedRain.medium: ("Medium rain", Icons.cloudy_snowing /* TODO rainy, rainy_heavy */),
+            PredictedRain.heavy: ("Heavy rain", Icons.cloudy_snowing /* TODO rainy, rainy_heavy */),
           },
           listOfLocations,
           dateTimesForEachHour,
@@ -465,9 +466,9 @@ class RundownScreen extends StatelessWidget {
         ..._buildWeatherWarningInsight(
           state.insights!.humidityAt.map((humidStatus) => humidStatus.predictedHumitity),
           {
-            PredictedHighHumidity.sweaty: ("Sweaty", Icons.thermostat /* humidity_high */),
-            PredictedHighHumidity.uncomfortable: ("Uncomfortably humid", Icons.thermostat /* humidity_mid */),
-            PredictedHighHumidity.coolMist: ("Misty", Icons.cloud_outlined /* mist */),
+            PredictedHighHumidity.sweaty: ("Sweaty", Icons.thermostat /* TODO humidity_high */),
+            PredictedHighHumidity.uncomfortable: ("Uncomfortably humid", Icons.thermostat /* TODO humidity_mid */),
+            PredictedHighHumidity.coolMist: ("Misty", Icons.cloud_outlined /* TODO mist */),
           },
           listOfLocations,
           dateTimesForEachHour,

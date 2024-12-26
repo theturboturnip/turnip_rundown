@@ -1,6 +1,96 @@
 import 'package:collection/collection.dart';
+import 'package:json_annotation/json_annotation.dart';
 import 'package:turnip_rundown/data/units.dart';
 import 'package:turnip_rundown/data/weather/model.dart';
+
+part 'insights.g.dart';
+
+@JsonSerializable()
+class WeatherInsightConfig {
+  const WeatherInsightConfig({
+    required this.useEstimatedWetBulbTemp,
+    required this.numberOfHoursPriorRainThreshold,
+    required this.priorRainThreshold,
+    required this.rainProbabilityThreshold,
+    required this.mediumRainThreshold,
+    required this.heavyRainThreshold,
+    required this.highHumidityThreshold,
+    required this.maxTemperatureForHighHumidityMist,
+    required this.minTemperatureForHighHumiditySweat,
+    required this.minimumBreezyWindspeed,
+    required this.minimumWindyWindspeed,
+    required this.minimumGaleyWindspeed,
+  });
+
+  final bool useEstimatedWetBulbTemp;
+
+  final int numberOfHoursPriorRainThreshold;
+  final Data<Rainfall> priorRainThreshold;
+
+  final Data<Percent> rainProbabilityThreshold;
+  final Data<Rainfall> mediumRainThreshold;
+  final Data<Rainfall> heavyRainThreshold;
+
+  final Data<Percent> highHumidityThreshold;
+  final Data<Temp> maxTemperatureForHighHumidityMist;
+  final Data<Temp> minTemperatureForHighHumiditySweat;
+
+  final Data<Speed> minimumBreezyWindspeed;
+  final Data<Speed> minimumWindyWindspeed;
+  final Data<Speed> minimumGaleyWindspeed;
+
+  factory WeatherInsightConfig.initial() => const WeatherInsightConfig(
+        useEstimatedWetBulbTemp: true,
+        // Guessed
+        numberOfHoursPriorRainThreshold: 8,
+        priorRainThreshold: Data(2.5, Length.mm),
+        rainProbabilityThreshold: Data(15, Percent.outOf100),
+        // From https://en.wikipedia.org/wiki/Rain#Intensity
+        mediumRainThreshold: Data(2.5, Length.mm),
+        heavyRainThreshold: Data(7.6, Length.mm),
+        // Guessed
+        highHumidityThreshold: Data(80, Percent.outOf100),
+        maxTemperatureForHighHumidityMist: Data(10, Temp.celsius),
+        minTemperatureForHighHumiditySweat: Data(17, Temp.celsius),
+        // https://www.weather.gov/pqr/wind
+        minimumBreezyWindspeed: Data(4, Speed.milesPerHour),
+        minimumWindyWindspeed: Data(13, Speed.milesPerHour),
+        minimumGaleyWindspeed: Data(32, Speed.milesPerHour),
+      );
+  // }
+
+  factory WeatherInsightConfig.fromJson(Map<String, dynamic> json) => _$WeatherInsightConfigFromJson(json);
+  Map<String, dynamic> toJson() => _$WeatherInsightConfigToJson(this);
+
+  WeatherInsightConfig copyWith({
+    bool? useEstimatedWetBulbTemp,
+    int? numberOfHoursPriorRainThreshold,
+    Data<Rainfall>? priorRainThreshold,
+    Data<Percent>? rainProbabilityThreshold,
+    Data<Rainfall>? mediumRainThreshold,
+    Data<Rainfall>? heavyRainThreshold,
+    Data<Percent>? highHumidityThreshold,
+    Data<Temp>? maxTemperatureForHighHumidityMist,
+    Data<Temp>? minTemperatureForHighHumiditySweat,
+    Data<Speed>? minimumBreezyWindspeed,
+    Data<Speed>? minimumWindyWindspeed,
+    Data<Speed>? minimumGaleyWindspeed,
+  }) =>
+      WeatherInsightConfig(
+        useEstimatedWetBulbTemp: useEstimatedWetBulbTemp ?? this.useEstimatedWetBulbTemp,
+        numberOfHoursPriorRainThreshold: numberOfHoursPriorRainThreshold ?? this.numberOfHoursPriorRainThreshold,
+        priorRainThreshold: priorRainThreshold ?? this.priorRainThreshold,
+        rainProbabilityThreshold: rainProbabilityThreshold ?? this.rainProbabilityThreshold,
+        mediumRainThreshold: mediumRainThreshold ?? this.mediumRainThreshold,
+        heavyRainThreshold: heavyRainThreshold ?? this.heavyRainThreshold,
+        highHumidityThreshold: highHumidityThreshold ?? this.highHumidityThreshold,
+        maxTemperatureForHighHumidityMist: maxTemperatureForHighHumidityMist ?? this.maxTemperatureForHighHumidityMist,
+        minTemperatureForHighHumiditySweat: minTemperatureForHighHumiditySweat ?? this.minTemperatureForHighHumiditySweat,
+        minimumBreezyWindspeed: minimumBreezyWindspeed ?? this.minimumBreezyWindspeed,
+        minimumWindyWindspeed: minimumWindyWindspeed ?? this.minimumWindyWindspeed,
+        minimumGaleyWindspeed: minimumGaleyWindspeed ?? this.minimumGaleyWindspeed,
+      );
+}
 
 class ActiveHours {
   ActiveHours(this._hours);
@@ -35,11 +125,10 @@ class ActiveHours {
   }
 }
 
-// From https://en.wikipedia.org/wiki/Rain#Intensity
 enum PredictedRain implements Comparable<PredictedRain> {
-  light, // x < 2.5mm
-  medium, // 2.5mm < x < 7.6mm
-  heavy; // 7.6mm < x
+  light,
+  medium,
+  heavy;
 
   @override
   int compareTo(PredictedRain other) {
@@ -47,39 +136,34 @@ enum PredictedRain implements Comparable<PredictedRain> {
   }
 }
 
-// bool hourMakesConditionsDryer(Data<Temp> temperature, Data<Percent> relHumidity, Data<SolarRadiation> solarRadiation, PredictedRain rainfall) {
-//   if (rainfall != PredictedRain.none) {
-//     return false;
-//   }
-//   // Pulled this out of my ass :)
-//   return (relHumidity.valueAs(Percent.outOf100) < 60) && (solarRadiation.valueAs(SolarRadiation.wPerM2) >= 1000) || (temperature.valueAs(Temp.celsius) > 15);
-// }
-
 class RainStatus {
-  RainStatus({required this.preRain, required this.predictedRain});
+  RainStatus({required this.preRain, required this.preRainMeansSlippery, required this.predictedRain});
 
-  // sum of rainfall in the 8 preceding hours
+  // sum of rainfall in the preceding hours
   final Data<Length> preRain;
+  // if that sum of rainfall in preceding hours > the "slippery" threshold
+  final bool preRainMeansSlippery;
   // foreach level of predicted rain, the ranges of hours for which that rainfall is predicted (prediction > 15%)
   final Map<PredictedRain, ActiveHours> predictedRain;
 
-  factory RainStatus.fromAnalysis(HourlyPredictedWeather weather, int maxLookahead) {
-    final preRainMM = weather.precipitationSince24hrAgo.valuesAs(Length.mm).skip(16).sum;
+  factory RainStatus.fromAnalysis(HourlyPredictedWeather weather, WeatherInsightConfig config, int maxLookahead) {
+    final preRainMM = weather.precipitationSince24hrAgo.valuesAs(Length.mm).skip(24 - config.numberOfHoursPriorRainThreshold).sum;
     var predictedRain = <PredictedRain, Set<int>>{
       PredictedRain.light: {},
       PredictedRain.medium: {},
       PredictedRain.heavy: {},
     };
     for (int i = 0; i < weather.precipitation.length && i < maxLookahead; i++) {
-      if (weather.precipitationProb[i].valueAs(Percent.outOf100) > 15) {
-        var key = PredictedRain.light;
-        final length = weather.precipitation[i].valueAs(Length.mm);
-        if (length > 7.6) {
+      if (weather.precipitationProb[i].valueAs(Percent.outOf100) > config.rainProbabilityThreshold.valueAs(Percent.outOf100)) {
+        final lengthMm = weather.precipitation[i].valueAs(Length.mm);
+
+        late final PredictedRain key;
+        if (lengthMm > config.heavyRainThreshold.valueAs(Length.mm)) {
           key = PredictedRain.heavy;
-        } else if (length > 2.5) {
+        } else if (lengthMm > config.mediumRainThreshold.valueAs(Length.mm)) {
           key = PredictedRain.medium;
         } else {
-          // key already = PredictedRain.light
+          key = PredictedRain.light;
         }
         predictedRain[key]!.add(i);
       }
@@ -87,6 +171,7 @@ class RainStatus {
 
     return RainStatus(
       preRain: Data(preRainMM, Length.mm),
+      preRainMeansSlippery: (preRainMM >= config.priorRainThreshold.valueAs(Length.mm)),
       predictedRain: predictedRain.map((key, hours) => MapEntry(key, ActiveHours(hours))),
     );
   }
@@ -94,7 +179,6 @@ class RainStatus {
 
 enum PredictedHighHumidity {
   sweaty, // hot 17+C
-  // TODO is 80+ humidity at 10 really uncomfortable?
   uncomfortable, // medium 10-17C
   coolMist; // cold <10C
 }
@@ -105,19 +189,25 @@ class HumidStatus {
   // foreach level of high humidity, the set of hours for which that humidity is predicted
   final Map<PredictedHighHumidity, ActiveHours> predictedHumitity;
 
-  factory HumidStatus.fromAnalysis(HourlyPredictedWeather weather, int maxLookahead) {
+  factory HumidStatus.fromAnalysis(HourlyPredictedWeather weather, WeatherInsightConfig config, int maxLookahead) {
     var predictedHumitity = <PredictedHighHumidity, Set<int>>{
       PredictedHighHumidity.sweaty: {},
       PredictedHighHumidity.uncomfortable: {},
       PredictedHighHumidity.coolMist: {},
     };
     for (int i = 0; i < weather.relHumidity.length && i < maxLookahead; i++) {
-      if (weather.relHumidity[i].valueAs(Percent.outOf100) > 80) {
-        var key = PredictedHighHumidity.coolMist;
-        final tempC = weather.estimatedWetBulbGlobeTemp[i].valueAs(Temp.celsius);
-        if (tempC > 17) {
+      if (weather.relHumidity[i].valueAs(Percent.outOf100) > config.highHumidityThreshold.valueAs(Percent.outOf100)) {
+        late final double tempC;
+        if (config.useEstimatedWetBulbTemp) {
+          tempC = weather.estimatedWetBulbGlobeTemp[i].valueAs(Temp.celsius);
+        } else {
+          tempC = weather.dryBulbTemp[i].valueAs(Temp.celsius);
+        }
+
+        late final PredictedHighHumidity key;
+        if (tempC > config.minTemperatureForHighHumiditySweat.valueAs(Temp.celsius)) {
           key = PredictedHighHumidity.sweaty;
-        } else if (tempC > 10) {
+        } else if (tempC > config.maxTemperatureForHighHumidityMist.valueAs(Temp.celsius)) {
           key = PredictedHighHumidity.uncomfortable;
         } else {
           key = PredictedHighHumidity.coolMist;
@@ -129,11 +219,10 @@ class HumidStatus {
   }
 }
 
-// https://www.weather.gov/pqr/wind
 enum PredictedWind implements Comparable<PredictedWind> {
-  breezy, // 4mph < x < 13mph
-  windy, // 13mph < x < 32mph
-  galey; // 32+mph
+  breezy,
+  windy,
+  galey;
 
   @override
   int compareTo(PredictedWind other) {
@@ -147,7 +236,7 @@ class WindStatus {
   // foreach level of wind, the set of hours for which that level is predicted
   final Map<PredictedWind, ActiveHours> predictedWind;
 
-  factory WindStatus.fromAnalysis(HourlyPredictedWeather weather, int maxLookahead) {
+  factory WindStatus.fromAnalysis(HourlyPredictedWeather weather, WeatherInsightConfig config, int maxLookahead) {
     var predictedWind = <PredictedWind, Set<int>>{
       PredictedWind.breezy: {},
       PredictedWind.windy: {},
@@ -157,11 +246,11 @@ class WindStatus {
       final windSpeedMph = weather.windspeed[i].valueAs(Speed.milesPerHour);
 
       PredictedWind? key;
-      if (windSpeedMph > 32) {
+      if (windSpeedMph > config.minimumGaleyWindspeed.valueAs(Speed.milesPerHour)) {
         key = PredictedWind.galey;
-      } else if (windSpeedMph > 13) {
+      } else if (windSpeedMph > config.minimumWindyWindspeed.valueAs(Speed.milesPerHour)) {
         key = PredictedWind.windy;
-      } else if (windSpeedMph > 4) {
+      } else if (windSpeedMph > config.minimumBreezyWindspeed.valueAs(Speed.milesPerHour)) {
         key = PredictedWind.breezy;
       }
 
@@ -187,9 +276,14 @@ final class WeatherInsights {
   final List<HumidStatus> humidityAt;
   final List<WindStatus> windAt;
 
-  static WeatherInsights? fromAnalysis(List<HourlyPredictedWeather> weathers, {int maxLookahead = 24}) {
+  static WeatherInsights? fromAnalysis(List<HourlyPredictedWeather> weathers, WeatherInsightConfig config, {int maxLookahead = 24}) {
     if (weathers.isEmpty) return null;
-    List<(double, double)> minMaxTempC = weathers.map((weather) => weather.estimatedWetBulbGlobeTemp.valuesAs(Temp.celsius).take(maxLookahead).minMax as (double, double)).toList();
+    List<(double, double)> minMaxTempC;
+    if (config.useEstimatedWetBulbTemp) {
+      minMaxTempC = weathers.map((weather) => weather.estimatedWetBulbGlobeTemp.valuesAs(Temp.celsius).take(maxLookahead).minMax as (double, double)).toList();
+    } else {
+      minMaxTempC = weathers.map((weather) => weather.dryBulbTemp.valuesAs(Temp.celsius).take(maxLookahead).minMax as (double, double)).toList();
+    }
     (double, int) minCAt = (minMaxTempC[0].$1, 0);
     (double, int) maxCAt = (minMaxTempC[0].$2, 0);
     for (final (index, (min, max)) in minMaxTempC.indexed) {
@@ -204,9 +298,9 @@ final class WeatherInsights {
     return WeatherInsights(
       minTempAt: (Data(minCAt.$1, Temp.celsius), minCAt.$2),
       maxTempAt: (Data(maxCAt.$1, Temp.celsius), maxCAt.$2),
-      rainAt: weathers.map((weather) => RainStatus.fromAnalysis(weather, maxLookahead)).toList(),
-      humidityAt: weathers.map((weather) => HumidStatus.fromAnalysis(weather, maxLookahead)).toList(),
-      windAt: weathers.map((weather) => WindStatus.fromAnalysis(weather, maxLookahead)).toList(),
+      rainAt: weathers.map((weather) => RainStatus.fromAnalysis(weather, config, maxLookahead)).toList(),
+      humidityAt: weathers.map((weather) => HumidStatus.fromAnalysis(weather, config, maxLookahead)).toList(),
+      windAt: weathers.map((weather) => WindStatus.fromAnalysis(weather, config, maxLookahead)).toList(),
     );
   }
 }

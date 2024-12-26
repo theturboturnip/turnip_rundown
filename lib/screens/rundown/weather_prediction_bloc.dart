@@ -22,9 +22,10 @@ final class WeatherPredictState extends Equatable {
 }
 
 final class RefreshPredictedWeather {
-  const RefreshPredictedWeather({required this.legend});
+  const RefreshPredictedWeather({required this.legend, required this.config});
 
   final List<LegendElement> legend;
+  final WeatherInsightConfig config;
 }
 
 class WeatherPredictBloc extends Bloc<RefreshPredictedWeather, WeatherPredictState> {
@@ -36,7 +37,7 @@ class WeatherPredictBloc extends Bloc<RefreshPredictedWeather, WeatherPredictSta
           emit(WeatherPredictState(
             legend: event.legend,
             weathers: predictions,
-            insights: WeatherInsights.fromAnalysis(predictions),
+            insights: WeatherInsights.fromAnalysis(predictions, event.config),
           ));
         }).onError((e, s) async {
           print("error $e $s");

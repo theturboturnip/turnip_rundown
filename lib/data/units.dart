@@ -1,11 +1,19 @@
+import 'package:collection/collection.dart';
 import 'package:equatable/equatable.dart';
 import 'dart:math' as math;
+
+import 'package:json_annotation/json_annotation.dart';
+
+part 'units.g.dart';
 
 abstract interface class Unit<T> {
   double convertDataTo(double data, T to);
   String get display;
+  Map<T, String> get toJson;
+  List<T> get enumValues;
 }
 
+@JsonEnum(alwaysCreate: true)
 enum Temp implements Unit<Temp> {
   farenheit,
   celsius,
@@ -40,8 +48,15 @@ enum Temp implements Unit<Temp> {
         Temp.celsius => "°C",
         Temp.kelvin => "°K",
       };
+
+  @override
+  Map<Temp, String> get toJson => _$TempEnumMap;
+
+  @override
+  List<Temp> get enumValues => values;
 }
 
+@JsonEnum(alwaysCreate: true)
 enum Speed implements Unit<Speed> {
   kmPerH,
   mPerS,
@@ -56,9 +71,9 @@ enum Speed implements Unit<Speed> {
         return data;
 
       case (Speed.kmPerH, Speed.mPerS):
-        return data * 3.6;
-      case (Speed.mPerS, Speed.kmPerH):
         return data / 3.6;
+      case (Speed.mPerS, Speed.kmPerH):
+        return data * 3.6;
 
       case (Speed.milesPerHour, Speed.kmPerH):
         return data * 1.609;
@@ -78,8 +93,15 @@ enum Speed implements Unit<Speed> {
         Speed.mPerS => "m/s",
         Speed.milesPerHour => "mph",
       };
+
+  @override
+  Map<Speed, String> get toJson => _$SpeedEnumMap;
+
+  @override
+  List<Speed> get enumValues => values;
 }
 
+@JsonEnum(alwaysCreate: true)
 enum Percent implements Unit<Percent> {
   outOf1,
   outOf100;
@@ -102,8 +124,15 @@ enum Percent implements Unit<Percent> {
         Percent.outOf1 => "/1.0",
         Percent.outOf100 => "%",
       };
+
+  @override
+  Map<Percent, String> get toJson => _$PercentEnumMap;
+
+  @override
+  List<Percent> get enumValues => values;
 }
 
+@JsonEnum(alwaysCreate: true)
 enum Pressure implements Unit<Pressure> {
   millibars,
   hectopascals;
@@ -119,8 +148,15 @@ enum Pressure implements Unit<Pressure> {
         Pressure.millibars => "mbar",
         Pressure.hectopascals => "hPa",
       };
+
+  @override
+  Map<Pressure, String> get toJson => _$PressureEnumMap;
+
+  @override
+  List<Pressure> get enumValues => values;
 }
 
+@JsonEnum(alwaysCreate: true)
 enum SolarRadiation implements Unit<SolarRadiation> {
   wPerM2;
 
@@ -132,8 +168,15 @@ enum SolarRadiation implements Unit<SolarRadiation> {
 
   @override
   String get display => "W/m²";
+
+  @override
+  Map<SolarRadiation, String> get toJson => _$SolarRadiationEnumMap;
+
+  @override
+  List<SolarRadiation> get enumValues => values;
 }
 
+@JsonEnum(alwaysCreate: true)
 enum Length implements Unit<Length> {
   m,
   cm,
@@ -186,15 +229,78 @@ enum Length implements Unit<Length> {
         Length.mm => "mm",
         Length.inch => "in",
       };
+
+  @override
+  Map<Length, String> get toJson => _$LengthEnumMap;
+
+  @override
+  List<Length> get enumValues => values;
 }
 
 typedef Rainfall = Length;
 
+// Helper class for converting a generic type T-extends-Unit to and from JSON.
+// Introspects on the generic type (fixed to one of a set of possible values)
+// to figure out which decoder map to use.
+// https://stackoverflow.com/a/71812430
+class UnitConverter<T extends Unit> implements JsonConverter<T, Object?> {
+  const UnitConverter();
+
+  TA _$enumDecode<TA>(
+    Map<TA, dynamic> enumValues,
+    dynamic source, {
+    TA? unknownValue,
+  }) {
+    if (source == null) {
+      throw ArgumentError('A value must be provided. Supported values: '
+          '${enumValues.values.join(', ')}');
+    }
+
+    final value = enumValues.entries.singleWhereOrNull((e) => e.value == source)?.key;
+
+    if (value == null && unknownValue == null) {
+      throw ArgumentError('`$source` is not one of the supported values: '
+          '${enumValues.values.join(', ')}');
+    }
+    return (value ?? unknownValue)!;
+  }
+
+  @override
+  T fromJson(Object? json) {
+    switch (T) {
+      case const (Temp):
+        return _$enumDecode(_$TempEnumMap, json) as T;
+      case const (Speed):
+        return _$enumDecode(_$SpeedEnumMap, json) as T;
+      case const (Percent):
+        return _$enumDecode(_$PercentEnumMap, json) as T;
+      case const (Pressure):
+        return _$enumDecode(_$PressureEnumMap, json) as T;
+      case const (SolarRadiation):
+        return _$enumDecode(_$SolarRadiationEnumMap, json) as T;
+      case const (Length):
+        return _$enumDecode(_$LengthEnumMap, json) as T;
+      default:
+        throw UnsupportedError('Unsupported type: $T');
+    }
+  }
+
+  @override
+  Object? toJson(T object) => object.toJson[object];
+}
+
+@JsonSerializable()
 class Data<TUnit extends Unit<TUnit>> extends Equatable {
   const Data(this._value, this._unit);
 
+  @JsonKey(name: "value", includeFromJson: true, includeToJson: true)
   final double _value;
+  @JsonKey(name: "unit", includeFromJson: true, includeToJson: true)
+  @UnitConverter()
   final TUnit _unit;
+
+  factory Data.fromJson(Map<String, dynamic> json) => _$DataFromJson<TUnit>(json);
+  Map<String, dynamic> toJson() => _$DataToJson(this);
 
   @override
   List<Object?> get props => [_value, _unit];
@@ -206,6 +312,8 @@ class Data<TUnit extends Unit<TUnit>> extends Equatable {
   double valueAs(TUnit newUnit) {
     return _unit.convertDataTo(_value, newUnit);
   }
+
+  TUnit get unit => _unit;
 }
 
 // 0-indexed series of data, all under one unit.

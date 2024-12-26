@@ -70,7 +70,7 @@ class MyApp extends StatelessWidget {
         ),
       ],
       child: BlocProvider(
-        create: (context) => SettingsCubit(settingsBox),
+        create: (context) => SettingsBloc(settingsBox),
         child: MaterialApp.router(
           title: 'Turnip Rundown',
           theme: ThemeData(
