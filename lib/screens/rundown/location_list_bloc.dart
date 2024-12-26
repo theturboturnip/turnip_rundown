@@ -3,6 +3,7 @@ import 'package:bloc_concurrency/bloc_concurrency.dart';
 import 'package:equatable/equatable.dart';
 import 'package:turnip_rundown/data.dart';
 import 'package:turnip_rundown/data/geo/repository.dart';
+import 'package:turnip_rundown/data/settings/repository.dart';
 
 final class LocationListState extends Equatable {
   const LocationListState({
@@ -47,6 +48,11 @@ final class LocationListState extends Equatable {
     }
     legend.addAll(otherNamedLocations.map((location) => LegendElement(isYourCoordinate: false, location: location)));
     return legend;
+  }
+
+  int getNumHoursToLookahead(Settings settings) {
+    final localTime = DateTime.now();
+    return settings.wakingHours.numHoursToLookahead(localTime.hour);
   }
 }
 

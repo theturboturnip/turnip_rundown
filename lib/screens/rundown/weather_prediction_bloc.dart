@@ -22,9 +22,14 @@ final class WeatherPredictState extends Equatable {
 }
 
 final class RefreshPredictedWeather {
-  const RefreshPredictedWeather({required this.legend, required this.config});
+  const RefreshPredictedWeather({
+    required this.legend,
+    required this.hoursToLookAhead,
+    required this.config,
+  });
 
   final List<LegendElement> legend;
+  final int hoursToLookAhead;
   final WeatherInsightConfig config;
 }
 
@@ -37,7 +42,7 @@ class WeatherPredictBloc extends Bloc<RefreshPredictedWeather, WeatherPredictSta
           emit(WeatherPredictState(
             legend: event.legend,
             weathers: predictions,
-            insights: WeatherInsights.fromAnalysis(predictions, event.config),
+            insights: WeatherInsights.fromAnalysis(predictions, event.config, maxLookahead: event.hoursToLookAhead),
           ));
         }).onError((e, s) async {
           print("error $e $s");

@@ -63,8 +63,14 @@ class RundownScreen extends StatelessWidget {
                 return BlocBuilder<SettingsBloc, Settings>(
                   builder: (context, settings) {
                     // Whenever the LocationListBloc changes, refresh the predicted weather based on that change
-                    // TODO autodetection/slider of how many hours are relevant to you
-                    context.read<WeatherPredictBloc>().add(RefreshPredictedWeather(legend: locationState.legend, config: settings.weatherConfig));
+                    // TODO UI for manually setting lookahead hours
+                    context.read<WeatherPredictBloc>().add(
+                          RefreshPredictedWeather(
+                            legend: locationState.legend,
+                            hoursToLookAhead: locationState.getNumHoursToLookahead(settings),
+                            config: settings.weatherConfig,
+                          ),
+                        );
                     return BlocBuilder<WeatherPredictBloc, WeatherPredictState>(
                       builder: (context, weatherState) {
                         return Column(
@@ -284,6 +290,7 @@ class RundownScreen extends StatelessWidget {
           defaultMin: const Data(5, Temp.celsius),
           baseline: const Data(15, Temp.celsius),
           defaultMax: const Data(25, Temp.celsius),
+          hoursLookedAhead: state.insights!.hoursLookedAhead,
         ),
         chartOf(
           "Wet Bulb Globe Temperature (est.)",
@@ -293,18 +300,21 @@ class RundownScreen extends StatelessWidget {
           defaultMin: const Data(5, Temp.celsius),
           baseline: const Data(15, Temp.celsius),
           defaultMax: const Data(25, Temp.celsius),
+          hoursLookedAhead: state.insights!.hoursLookedAhead,
         ),
         chartOf(
           "Prior precipitation",
           state.weathers.map((weather) => weather.precipitationUpToNow),
           Rainfall.mm,
           dateTimesForPriorHours,
+          hoursLookedAhead: state.insights!.hoursLookedAhead,
         ),
         chartOf(
           "Precipitation",
           state.weathers.map((weather) => weather.precipitation),
           Rainfall.mm,
           dateTimesForEachHour,
+          hoursLookedAhead: state.insights!.hoursLookedAhead,
         ),
         chartOf(
           "Precipitation Chance (%)",
@@ -313,6 +323,7 @@ class RundownScreen extends StatelessWidget {
           dateTimesForEachHour,
           defaultMin: const Data(0, Percent.outOf100),
           defaultMax: const Data(100, Percent.outOf100),
+          hoursLookedAhead: state.insights!.hoursLookedAhead,
         ),
         chartOf(
           "Humidity (%)",
@@ -321,6 +332,7 @@ class RundownScreen extends StatelessWidget {
           dateTimesForEachHour,
           defaultMin: const Data(0, Percent.outOf100),
           defaultMax: const Data(100, Percent.outOf100),
+          hoursLookedAhead: state.insights!.hoursLookedAhead,
         ),
         chartOf(
           "Wind Speed (mph)",
@@ -328,6 +340,7 @@ class RundownScreen extends StatelessWidget {
           Speed.milesPerHour,
           dateTimesForEachHour,
           defaultMin: const Data(0, Speed.milesPerHour),
+          hoursLookedAhead: state.insights!.hoursLookedAhead,
         ),
       ]
     ];
@@ -350,9 +363,9 @@ class RundownScreen extends StatelessWidget {
   String _renderActiveHours(
     ActiveHours hours,
     List<DateTime> dateTimesForEachHour,
+    int hoursLookedAhead,
   ) {
-    // TODO make threshold relative to number of hours examined
-    if (hours.numActiveHours > 12) {
+    if (hours.numActiveHours > (hoursLookedAhead / 2)) {
       return "throughout";
     } else {
       return hours.asRanges.map((range) => _renderTimeRange(range, dateTimesForEachHour)).join(", ");
@@ -364,6 +377,7 @@ class RundownScreen extends StatelessWidget {
     Map<TWarning, (String, IconData)> nameOfWarning,
     List<String> listOfLocations,
     List<DateTime> dateTimesForEachHour,
+    int hoursLookedAhead,
   ) {
     // if there are no warnings that apply for any hours in any location, return null.
     // if there is exactly one warning that applies for any hours in exactly one location, show a simple warning
@@ -388,7 +402,11 @@ class RundownScreen extends StatelessWidget {
             final locationIndex = entry.key;
             final locationHours = entry.value;
             var title = "$warning ${listOfLocations.length > 1 ? "at ${listOfLocations[locationIndex]} " : ""}";
-            var subtitle = _renderActiveHours(locationHours, dateTimesForEachHour);
+            var subtitle = _renderActiveHours(
+              locationHours,
+              dateTimesForEachHour,
+              hoursLookedAhead,
+            );
             return ListTile(leading: warningIcon, title: Text(title), subtitle: Text(subtitle));
           });
         })
@@ -397,6 +415,8 @@ class RundownScreen extends StatelessWidget {
   }
 
   List<Widget> _buildWeatherInsights(BuildContext context, WeatherPredictState state, Settings settings) {
+    // TODO add "numHoursLookedAhead" to summary UI
+
     if (state.insights == null) {
       return [
         Padding(
@@ -426,7 +446,7 @@ class RundownScreen extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 10.0),
           child: Wrap(
             alignment: WrapAlignment.spaceEvenly,
-            spacing: 30.0,
+            spacing: 40.0,
             children: settings.temperatureUnit.displayUnits().map(
               (unit) {
                 return Text(
@@ -435,6 +455,13 @@ class RundownScreen extends StatelessWidget {
                 );
               },
             ).toList(),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10.0),
+          child: Text(
+            _renderTimeRange((0, state.insights!.hoursLookedAhead - 1), dateTimesForEachHour),
+            style: const TextStyle(fontWeight: FontWeight.bold),
           ),
         ),
         ...state.insights!.rainAt.mapIndexed((locationIndex, rainStatus) {
@@ -453,6 +480,7 @@ class RundownScreen extends StatelessWidget {
           },
           listOfLocations,
           dateTimesForEachHour,
+          state.insights!.hoursLookedAhead,
         ),
         ..._buildWeatherWarningInsight(
           state.insights!.windAt.map((windStatus) => windStatus.predictedWind),
@@ -463,6 +491,7 @@ class RundownScreen extends StatelessWidget {
           },
           listOfLocations,
           dateTimesForEachHour,
+          state.insights!.hoursLookedAhead,
         ),
         ..._buildWeatherWarningInsight(
           state.insights!.humidityAt.map((humidStatus) => humidStatus.predictedHumitity),
@@ -473,24 +502,28 @@ class RundownScreen extends StatelessWidget {
           },
           listOfLocations,
           dateTimesForEachHour,
+          state.insights!.hoursLookedAhead,
         ),
       ].whereType<Widget>().toList();
     }
   }
 
   Widget chartOf<TUnit extends Unit<TUnit>>(String title, Iterable<DataSeries<TUnit>> datas, TUnit asUnit, List<DateTime> dateTimesForEachHour,
-      {Data<TUnit>? defaultMin, Data<TUnit>? baseline, Data<TUnit>? defaultMax}) {
+      {required int hoursLookedAhead, Data<TUnit>? defaultMin, Data<TUnit>? baseline, Data<TUnit>? defaultMax}) {
     List<List<double>> dataPointss = datas.map((series) => series.valuesAs(asUnit).toList()).toList();
     final (dataMin, dataMax) = dataPointss.flattened.minMax as (double, double);
     final overallMin = (defaultMin == null) ? dataMin : min(dataMin, defaultMin.valueAs(asUnit));
     final overallMax = (defaultMax == null) ? dataMax : max(dataMax, defaultMax.valueAs(asUnit));
+
+    final numDataPoints = (hoursLookedAhead >= 12) ? 24 : 12;
+
     return SizedBox(
       height: 200,
       child: LineChart(
         LineChartData(
           lineBarsData: dataPointss
               .mapIndexed((index, dataPoints) => LineChartBarData(
-                    spots: dataPoints.indexed.map((item) => FlSpot(item.$1.toDouble(), item.$2)).toList(),
+                    spots: dataPoints.indexed.take(numDataPoints).map((item) => FlSpot(item.$1.toDouble(), item.$2)).toList(),
                     isCurved: true,
                     preventCurveOverShooting: true,
                     dotData: const FlDotData(show: false),
@@ -540,6 +573,14 @@ class RundownScreen extends StatelessWidget {
               }).toList(),
             ),
           ),
+          rangeAnnotations: RangeAnnotations(verticalRangeAnnotations: [
+            if (hoursLookedAhead != numDataPoints)
+              VerticalRangeAnnotation(
+                x1: hoursLookedAhead.toDouble(),
+                x2: numDataPoints.toDouble() - 1,
+                color: Colors.grey.withOpacity(0.5),
+              ),
+          ]),
         ),
       ),
     );
