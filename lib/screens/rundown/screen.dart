@@ -11,6 +11,7 @@ import 'package:material_symbols_icons/symbols.dart';
 import 'package:turnip_rundown/data.dart';
 import 'package:turnip_rundown/data/geo/repository.dart';
 import 'package:turnip_rundown/data/settings/repository.dart';
+import 'package:turnip_rundown/screens/rundown/hours_lookahead_bloc.dart';
 import 'package:turnip_rundown/screens/rundown/location_list_bloc.dart';
 import 'package:turnip_rundown/screens/rundown/location_suggest_bloc.dart';
 import 'package:turnip_rundown/screens/rundown/weather_prediction_bloc.dart';
@@ -54,6 +55,11 @@ class RundownScreen extends StatelessWidget {
             RepositoryProvider.of<WeatherRepository>(context),
           ),
         ),
+        BlocProvider(
+          create: (context) => HoursLookaheadBloc(
+            RepositoryProvider.of<SettingsRepository>(context),
+          ),
+        ),
       ],
       child: Scaffold(
         body: SingleChildScrollView(
@@ -63,32 +69,47 @@ class RundownScreen extends StatelessWidget {
               builder: (context, locationState) {
                 return BlocBuilder<SettingsBloc, Settings>(
                   builder: (context, settings) {
-                    // Whenever the LocationListBloc changes, refresh the predicted weather based on that change
-                    // TODO UI for manually setting lookahead hours
-                    context.read<WeatherPredictBloc>().add(
-                          RefreshPredictedWeather(
-                            legend: locationState.legend,
-                            hoursToLookAhead: locationState.getNumHoursToLookahead(settings),
-                            config: settings.weatherConfig,
-                          ),
-                        );
-                    return BlocBuilder<WeatherPredictBloc, WeatherPredictState>(
-                      builder: (context, weatherState) {
-                        return Column(
-                          children: [
-                            ..._buildWeatherInsights(context, weatherState, settings),
-                            Container(
-                              margin: const EdgeInsets.symmetric(vertical: 10),
-                              decoration: const BoxDecoration(
-                                border: Border.symmetric(horizontal: BorderSide()),
+                    return BlocBuilder<HoursLookaheadBloc, HoursLookaheadState>(
+                      builder: (context, hoursLookaheadState) {
+                        // Whenever the LocationListBloc or the settings change, refresh the predicted weather based on that change
+                        context.read<WeatherPredictBloc>().add(
+                              RefreshPredictedWeather(
+                                legend: locationState.legend,
+                                hoursToLookAhead: settings.wakingHours.numHoursToLookahead(hoursLookaheadState.lockedUtcLookaheadTo),
+                                config: settings.weatherConfig,
                               ),
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: _buildLocationsDisplay(context, locationState),
-                              ),
-                            ),
-                            ..._buildWeatherGraphs(context, weatherState, settings),
-                          ],
+                            );
+                        return BlocBuilder<WeatherPredictBloc, WeatherPredictState>(
+                          builder: (context, weatherState) {
+                            final DateTime utcHourInLocalTime = DateTime.timestamp()
+                                .copyWith(
+                                  minute: 0,
+                                  second: 0,
+                                  millisecond: 0,
+                                  microsecond: 0,
+                                )
+                                .toLocal();
+                            final dateTimesForEachHour = List.generate(24, (index) => utcHourInLocalTime.add(Duration(hours: index)));
+                            final dateTimesForPriorHours = List.generate(24, (index) => utcHourInLocalTime.subtract(Duration(hours: 24 - index)));
+
+                            return Column(
+                              children: [
+                                ..._buildWeatherSummary(context, hoursLookaheadState, weatherState, settings, dateTimesForEachHour),
+                                ..._buildWeatherInsights(context, weatherState, settings, dateTimesForEachHour),
+                                Container(
+                                  margin: const EdgeInsets.symmetric(vertical: 10),
+                                  decoration: const BoxDecoration(
+                                    border: Border.symmetric(horizontal: BorderSide()),
+                                  ),
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: _buildLocationsDisplay(context, locationState),
+                                  ),
+                                ),
+                                ..._buildWeatherGraphs(context, weatherState, settings, dateTimesForEachHour: dateTimesForEachHour, dateTimesForPriorHours: dateTimesForPriorHours),
+                              ],
+                            );
+                          },
                         );
                       },
                     );
@@ -102,8 +123,70 @@ class RundownScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildCurrentWeather(BuildContext context) {
-    return const SizedBox(width: 10, height: 10, child: ColoredBox(color: Colors.red));
+  List<Widget> _buildWeatherSummary(
+    BuildContext context,
+    HoursLookaheadState hoursLookaheadState,
+    WeatherPredictState weather,
+    Settings settings,
+    List<DateTime> dateTimesForEachHour,
+  ) {
+    final currentNumLookaheadHours = settings.wakingHours.numHoursToLookahead(hoursLookaheadState.lockedUtcLookaheadTo);
+    return [
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10.0),
+        child: Wrap(
+          alignment: WrapAlignment.spaceEvenly,
+          spacing: 40.0,
+          children: settings.temperatureUnit.displayUnits().map(
+            (unit) {
+              final minString = weather.insights?.minTempAt.$1.valueAs(unit).toStringAsFixed(1) ?? "...";
+              final maxString = weather.insights?.maxTempAt.$1.valueAs(unit).toStringAsFixed(1) ?? "...";
+              return Text(
+                "$minString–$maxString${unit.display}",
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 50),
+              );
+            },
+          ).toList(),
+        ),
+      ),
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10.0),
+        child: Wrap(
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.remove),
+              onPressed: () {
+                context.read<HoursLookaheadBloc>().add(
+                      DecrementLockedLookaheadEvent(
+                        currentNumLookaheadHours: currentNumLookaheadHours,
+                      ),
+                    );
+              },
+            ),
+            Text(
+              _renderTimeRange((0, currentNumLookaheadHours - 1), dateTimesForEachHour),
+              style: const TextStyle(fontWeight: FontWeight.bold),
+              // have a button which when pressed triggers an action IncrementPlannedHoursLookedAhead.
+              // if the weatherConfigState indicates the hoursLookedAhead is locked, have a button which when pressed DecrementPlannedHoursLookedAhead
+              // which may decrement it past now, in which case it resets and is not locked.
+              // TODO have a timer? which periodically triggers CheckLockedPlannedHoursLookedAhead
+              // which compares the current time to the locked time and resets to not-locked if current time > locked time.
+            ),
+            IconButton(
+              icon: const Icon(Icons.add),
+              onPressed: () {
+                context.read<HoursLookaheadBloc>().add(
+                      IncrementLockedLookaheadEvent(
+                        currentNumLookaheadHours: currentNumLookaheadHours,
+                      ),
+                    );
+              },
+            ),
+          ],
+        ),
+      ),
+    ];
   }
 
   List<Widget> _buildLocationsDisplay(BuildContext context, LocationListState state) {
@@ -250,10 +333,13 @@ class RundownScreen extends StatelessWidget {
     ];
   }
 
-  List<Widget> _buildWeatherGraphs(BuildContext context, WeatherPredictState state, Settings settings) {
-    final DateTime utcHourInLocalTime = DateTime.timestamp().copyWith(minute: 0, second: 0, millisecond: 0, microsecond: 0).toLocal();
-    final dateTimesForEachHour = List.generate(24, (index) => utcHourInLocalTime.add(Duration(hours: index)));
-    final dateTimesForPriorHours = List.generate(24, (index) => utcHourInLocalTime.subtract(Duration(hours: 24 - index)));
+  List<Widget> _buildWeatherGraphs(
+    BuildContext context,
+    WeatherPredictState state,
+    Settings settings, {
+    required List<DateTime> dateTimesForEachHour,
+    required List<DateTime> dateTimesForPriorHours,
+  }) {
     return [
       if (state.weatherPredictError != null) Text("Cannot retrieve weather: ${state.weatherPredictError}"),
       if (state.weathers.isNotEmpty) ...[
@@ -431,54 +517,18 @@ class RundownScreen extends StatelessWidget {
         .toList();
   }
 
-  List<Widget> _buildWeatherInsights(BuildContext context, WeatherPredictState state, Settings settings) {
+  List<Widget> _buildWeatherInsights(
+    BuildContext context,
+    WeatherPredictState state,
+    Settings settings,
+    List<DateTime> dateTimesForEachHour,
+  ) {
     if (state.insights == null) {
-      return [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10.0),
-          child: Wrap(
-            alignment: WrapAlignment.spaceEvenly,
-            spacing: 30.0,
-            children: settings.temperatureUnit.displayUnits().map(
-              (unit) {
-                return Text(
-                  "...–...${unit.display}",
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 50),
-                );
-              },
-            ).toList(),
-          ),
-        ),
-      ];
+      return [];
     } else {
       final listOfLocations = state.legend.map((legendElem) => legendElem.isYourCoordinate ? "your location" : legendElem.location.name).toList();
-      final DateTime utcHourInLocalTime = DateTime.timestamp().copyWith(minute: 0, second: 0, millisecond: 0, microsecond: 0).toLocal();
-      // Generate 25 hours because full 24-hour range is between (currentTime) and (currentTime+24) => 25 entries in the list
-      final dateTimesForEachHour = List.generate(25, (index) => utcHourInLocalTime.add(Duration(hours: index)));
 
       return [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10.0),
-          child: Wrap(
-            alignment: WrapAlignment.spaceEvenly,
-            spacing: 40.0,
-            children: settings.temperatureUnit.displayUnits().map(
-              (unit) {
-                return Text(
-                  "${state.insights!.minTempAt.$1.valueAs(unit).toStringAsFixed(1)}–${state.insights!.maxTempAt.$1.valueAs(unit).toStringAsFixed(1)}${unit.display}",
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 50),
-                );
-              },
-            ).toList(),
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10.0),
-          child: Text(
-            _renderTimeRange((0, state.insights!.hoursLookedAhead - 1), dateTimesForEachHour),
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
-        ),
         ...state.insights!.rainAt.mapIndexed((locationIndex, rainStatus) {
           if (rainStatus.preRain.valueAs(Length.mm) > 2.5) {
             return Text("Slippery ${listOfLocations.length > 1 ? "at ${listOfLocations[locationIndex]} " : ""}due to prior rain.");

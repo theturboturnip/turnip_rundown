@@ -11,15 +11,16 @@ import 'package:turnip_rundown/data/settings/repository.dart';
 // Both repositories are capable of both behaviours, we just don't use them.
 // On web, it's one DB.
 class SqfliteApiCacheAndSettingsRepository implements ApiCacheRepository, SettingsRepository {
-  SqfliteApiCacheAndSettingsRepository(this.db, this._settings);
+  SqfliteApiCacheAndSettingsRepository(this.db, this._settings, this._lockedUtcLookaheadTo);
 
   final Database db;
   Settings _settings;
+  DateTime? _lockedUtcLookaheadTo;
 
   static Future<SqfliteApiCacheAndSettingsRepository> getRepository(String databasePath) async {
     final db = await openDatabase(
       databasePath,
-      version: 2,
+      version: 3,
       onUpgrade: (db, oldVersion, newVersion) async {
         if (oldVersion == 0) {
           await db.execute("CREATE TABLE cache(uri TEXT UNIQUE, response TEXT, timeoutAfter TEXT)");
@@ -31,11 +32,19 @@ class SqfliteApiCacheAndSettingsRepository implements ApiCacheRepository, Settin
           await db.insert("keyval", {"key": "settingsJson", "val": "{}"});
           oldVersion = 2;
         }
+        if (oldVersion == 2) {
+          await db.insert("keyval", {"key": "lockedUtcLookaheadTo", "val": ""});
+          oldVersion = 3;
+        }
       },
     );
-    final settingsJson = await db.query("keyval", columns: ["val"], where: "key like 'settingsJson'");
-    final settings = Settings.fromJson(jsonDecode(settingsJson.first["val"]! as String));
-    final repo = SqfliteApiCacheAndSettingsRepository(db, settings);
+    final keyvalRows = await db.query("keyval", columns: ["key", "val"]);
+    final keyvals = <String, String>{
+      for (final row in keyvalRows) row["key"] as String: row["val"] as String,
+    };
+    final settings = Settings.fromJson(jsonDecode(keyvals["settingsJson"]!));
+    final lockedUtcLookaheadTo = DateTime.tryParse(keyvals["lockedUtcLookaheadTo"]!);
+    final repo = SqfliteApiCacheAndSettingsRepository(db, settings, lockedUtcLookaheadTo);
     await repo.clearTimedOutEntries();
 
     return repo;
@@ -115,5 +124,18 @@ class SqfliteApiCacheAndSettingsRepository implements ApiCacheRepository, Settin
   Future<void> storeSettings(Settings settings) async {
     await db.update("keyval", {"val": jsonEncode(settings.toJson())}, where: "key like 'settingsJson'");
     _settings = settings;
+  }
+
+  @override
+  DateTime? get lockedUtcLookaheadTo => _lockedUtcLookaheadTo;
+
+  @override
+  Future<void> storeLockedUtcLookaheadTo(DateTime? lockedUtcLookaheadTo) async {
+    if (lockedUtcLookaheadTo == null) {
+      await db.update("keyval", {"val": ""}, where: "key like 'lockedUtcLookaheadTo'");
+    } else {
+      await db.update("keyval", {"val": lockedUtcLookaheadTo.toIso8601String()}, where: "key like 'lockedUtcLookaheadTo'");
+    }
+    _lockedUtcLookaheadTo = lockedUtcLookaheadTo;
   }
 }

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math' as math;
 
 import 'package:json_annotation/json_annotation.dart';
 import 'package:turnip_rundown/data/units.dart';
@@ -55,7 +56,7 @@ class WakingHours {
     );
   }
 
-  int numHoursToLookahead(int currentHourLocalTime) {
+  int numHoursToLookaheadWhenUnlocked(int currentHourLocalTime) {
     if (end == start) return 24;
     if (end > start) {
       final hoursAsleep = 24 - (end - start);
@@ -111,6 +112,16 @@ class WakingHours {
       }
     }
   }
+
+  int numHoursToLookahead(DateTime? lockedUtcLookaheadTo) {
+    final utcTime = DateTime.timestamp();
+
+    if (lockedUtcLookaheadTo != null && utcTime.isBefore(lockedUtcLookaheadTo)) {
+      return math.min(24, (lockedUtcLookaheadTo.difference(utcTime).inMinutes / 60).ceil());
+    }
+
+    return numHoursToLookaheadWhenUnlocked(utcTime.toLocal().hour);
+  }
 }
 
 @JsonSerializable()
@@ -144,4 +155,6 @@ class Settings {
 abstract interface class SettingsRepository {
   Settings get settings;
   Future<void> storeSettings(Settings settings);
+  DateTime? get lockedUtcLookaheadTo;
+  Future<void> storeLockedUtcLookaheadTo(DateTime? lockedUtcLookaheadTo);
 }
