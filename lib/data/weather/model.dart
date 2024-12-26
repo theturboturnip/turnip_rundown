@@ -28,7 +28,7 @@ class CurrentWeather {
 
 class HourlyPredictedWeather {
   const HourlyPredictedWeather({
-    required this.precipitationSince24hrAgo,
+    required this.precipitationUpToNow,
     required this.dateTimesForPredictions,
     required this.precipitation,
     required this.precipitationProb,
@@ -38,7 +38,7 @@ class HourlyPredictedWeather {
     required this.relHumidity,
   });
 
-  final DataSeries<Rainfall> precipitationSince24hrAgo;
+  final DataSeries<Rainfall> precipitationUpToNow;
 
   final List<DateTime> dateTimesForPredictions;
 

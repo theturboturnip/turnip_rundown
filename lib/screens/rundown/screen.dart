@@ -296,7 +296,7 @@ class RundownScreen extends StatelessWidget {
         ),
         chartOf(
           "Prior precipitation",
-          state.weathers.map((weather) => weather.precipitationSince24hrAgo),
+          state.weathers.map((weather) => weather.precipitationUpToNow),
           Rainfall.mm,
           dateTimesForPriorHours,
         ),

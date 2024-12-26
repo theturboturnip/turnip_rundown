@@ -359,6 +359,19 @@ extension ConvertToDataSeries<TUnit extends Unit<TUnit>> on Iterable<Data<TUnit>
   }
 }
 
+extension TakeLast<T> on Iterable<T> {
+  // Creates an [Iterable] that provides the last [n] elements.
+  // If [this] has fewer than [n] elements, provides all elements in [this].
+  Iterable<T> takeLast(int n) {
+    final cachedLength = length;
+    if (cachedLength <= n) {
+      return skip(0);
+    } else {
+      return skip(cachedLength - n);
+    }
+  }
+}
+
 extension RoundTo on double {
   double roundTo(int places) {
     final factor = math.pow(10, places);

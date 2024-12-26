@@ -235,7 +235,7 @@ class OpenMeteoWeatherRepository extends WeatherRepository {
     // Capture the range [indexInTimeSeriesForRightNow:indexInTimeSeriesForRightNow + 23] for next 24hr
 
     return HourlyPredictedWeather(
-      precipitationSince24hrAgo: precipitation_3day.slice(indexInTimeSeriesForRightNow - 24, indexInTimeSeriesForRightNow - 1),
+      precipitationUpToNow: precipitation_3day.slice(indexInTimeSeriesForRightNow - 24, indexInTimeSeriesForRightNow - 1),
       // sublist() uses non-inclusive end
       dateTimesForPredictions: datapointDateTimes.sublist(indexInTimeSeriesForRightNow, indexInTimeSeriesForRightNow + 24),
       precipitation: precipitation_3day.slice(indexInTimeSeriesForRightNow, indexInTimeSeriesForRightNow + 23),

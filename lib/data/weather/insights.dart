@@ -147,7 +147,7 @@ class RainStatus {
   final Map<PredictedRain, ActiveHours> predictedRain;
 
   factory RainStatus.fromAnalysis(HourlyPredictedWeather weather, WeatherInsightConfig config, int maxLookahead) {
-    final preRainMM = weather.precipitationSince24hrAgo.valuesAs(Length.mm).skip(24 - config.numberOfHoursPriorRainThreshold).sum;
+    final preRainMM = weather.precipitationUpToNow.valuesAs(Length.mm).takeLast(config.numberOfHoursPriorRainThreshold).sum;
     var predictedRain = <PredictedRain, Set<int>>{
       PredictedRain.light: {},
       PredictedRain.medium: {},
