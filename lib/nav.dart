@@ -24,16 +24,9 @@ final router = GoRouter(
               label: 'Settings',
               icon: Icon(Icons.settings),
             ),
-            // NavigationDestination(
-            //   label: 'About',
-            //   icon: Icon(Icons.info),
-            // ),
           ],
           appBar: AppBar(title: const Text('Turnip Rundown')),
           onSelectedIndexChange: (index) async {
-            // if there's a drawer, close it
-            // if (_drawerSize) Navigator.pop(context);
-
             switch (index) {
               case 0:
                 context.go('/rundown');
