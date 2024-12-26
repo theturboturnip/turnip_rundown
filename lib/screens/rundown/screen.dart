@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
+import 'package:material_symbols_icons/symbols.dart';
 import 'package:turnip_rundown/data.dart';
 import 'package:turnip_rundown/data/geo/repository.dart';
 import 'package:turnip_rundown/data/settings/repository.dart';
@@ -488,9 +489,9 @@ class RundownScreen extends StatelessWidget {
         ..._buildWeatherWarningInsight(
           state.insights!.rainAt.map((rainStatus) => rainStatus.predictedRain),
           {
-            PredictedRain.light: ("Light rain", Icons.cloudy_snowing /* TODO rainy, rainy_light */),
-            PredictedRain.medium: ("Medium rain", Icons.cloudy_snowing /* TODO rainy, rainy_heavy */),
-            PredictedRain.heavy: ("Heavy rain", Icons.cloudy_snowing /* TODO rainy, rainy_heavy */),
+            PredictedRain.light: ("Light rain", Symbols.rainy_light),
+            PredictedRain.medium: ("Medium rain", Symbols.rainy_heavy),
+            PredictedRain.heavy: ("Heavy rain", Symbols.rainy_heavy),
           },
           listOfLocations,
           dateTimesForEachHour,
@@ -510,9 +511,9 @@ class RundownScreen extends StatelessWidget {
         ..._buildWeatherWarningInsight(
           state.insights!.humidityAt.map((humidStatus) => humidStatus.predictedHumitity),
           {
-            PredictedHighHumidity.sweaty: ("Sweaty", Icons.thermostat /* TODO humidity_high */),
-            PredictedHighHumidity.uncomfortable: ("Uncomfortably humid", Icons.thermostat /* TODO humidity_mid */),
-            PredictedHighHumidity.coolMist: ("Misty", Icons.cloud_outlined /* TODO mist */),
+            PredictedHighHumidity.sweaty: ("Sweaty", Icons.thermostat),
+            PredictedHighHumidity.uncomfortable: ("Uncomfortably humid", Symbols.humidity_mid),
+            PredictedHighHumidity.coolMist: ("Misty", Symbols.mist),
           },
           listOfLocations,
           dateTimesForEachHour,
