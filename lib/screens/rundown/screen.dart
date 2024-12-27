@@ -58,7 +58,7 @@ class RundownScreen extends StatelessWidget {
         BlocProvider(
           create: (context) => HoursLookaheadBloc(
             RepositoryProvider.of<SettingsRepository>(context),
-          ),
+          )..add(const CheckLockedLookaheadEvent()),
         ),
       ],
       child: Scaffold(
@@ -155,7 +155,7 @@ class RundownScreen extends StatelessWidget {
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
             IconButton(
-              icon: Icon((currentNumLookaheadHours > 1) ? Icons.remove : Icons.replay),
+              icon: Icon((hoursLookaheadState.decrementWillResultInReset) ? Icons.remove : Icons.replay),
               onPressed: () {
                 context.read<HoursLookaheadBloc>().add(
                       DecrementLockedLookaheadEvent(

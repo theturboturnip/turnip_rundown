@@ -7,20 +7,26 @@ import 'package:equatable/equatable.dart';
 import 'package:turnip_rundown/data/settings/repository.dart';
 
 class HoursLookaheadState extends Equatable {
-  const HoursLookaheadState({required this.lockedUtcLookaheadTo});
+  const HoursLookaheadState({required this.lockedUtcLookaheadTo, required this.decrementWillResultInReset});
 
   final DateTime? lockedUtcLookaheadTo;
+  // If the locked time is close enough to the current time, decrementing it will result in it resetting entirely.
+  final bool decrementWillResultInReset;
 
   @override
   List<Object?> get props => [lockedUtcLookaheadTo];
 }
 
-sealed class ChangeLockedLookaheadEvent {}
+sealed class ChangeLockedLookaheadEvent {
+  const ChangeLockedLookaheadEvent();
+}
 
-final class CheckLockedLookaheadEvent extends ChangeLockedLookaheadEvent {}
+final class CheckLockedLookaheadEvent extends ChangeLockedLookaheadEvent {
+  const CheckLockedLookaheadEvent();
+}
 
 final class IncrementLockedLookaheadEvent extends ChangeLockedLookaheadEvent {
-  IncrementLockedLookaheadEvent({
+  const IncrementLockedLookaheadEvent({
     required this.hour0InLocalTime,
     required this.currentNumLookaheadHours,
   });
@@ -30,7 +36,7 @@ final class IncrementLockedLookaheadEvent extends ChangeLockedLookaheadEvent {
 }
 
 final class DecrementLockedLookaheadEvent extends ChangeLockedLookaheadEvent {
-  DecrementLockedLookaheadEvent({
+  const DecrementLockedLookaheadEvent({
     required this.hour0InLocalTime,
     required this.currentNumLookaheadHours,
   });
@@ -47,7 +53,7 @@ class HoursLookaheadBloc extends Bloc<ChangeLockedLookaheadEvent, HoursLookahead
 
   HoursLookaheadBloc(SettingsRepository repo)
       : _refreshStream = Stream.periodic(const Duration(minutes: 1), (x) => x),
-        super(HoursLookaheadState(lockedUtcLookaheadTo: repo.lockedUtcLookaheadTo)) {
+        super(HoursLookaheadState(lockedUtcLookaheadTo: repo.lockedUtcLookaheadTo, decrementWillResultInReset: false)) {
     on<ChangeLockedLookaheadEvent>(
       (event, emit) async {
         var lockedUtcLookaheadTo = state.lockedUtcLookaheadTo;
@@ -76,7 +82,12 @@ class HoursLookaheadBloc extends Bloc<ChangeLockedLookaheadEvent, HoursLookahead
         if (lockedUtcLookaheadTo != null && timestamp.isAfter(lockedUtcLookaheadTo)) {
           lockedUtcLookaheadTo = null;
         }
-        emit(HoursLookaheadState(lockedUtcLookaheadTo: lockedUtcLookaheadTo));
+        emit(
+          HoursLookaheadState(
+            lockedUtcLookaheadTo: lockedUtcLookaheadTo,
+            decrementWillResultInReset: (lockedUtcLookaheadTo != null && lockedUtcLookaheadTo.subtract(const Duration(hours: 1)).isAfter(timestamp)),
+          ),
+        );
         await repo.storeLockedUtcLookaheadTo(lockedUtcLookaheadTo);
       },
       transformer: sequential(),
