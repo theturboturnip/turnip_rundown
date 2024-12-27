@@ -172,10 +172,10 @@ class RundownScreen extends StatelessWidget {
           spacing: 40.0,
           children: settings.temperatureUnit.displayUnits().map(
             (unit) {
-              final minString = (weather is SuccessfulWeatherPrediction) ? weather.insights.minTempAt.$1.valueAs(unit).toStringAsFixed(1) : "...";
-              final maxString = (weather is SuccessfulWeatherPrediction) ? weather.insights.maxTempAt.$1.valueAs(unit).toStringAsFixed(1) : "...";
+              final minString = (weather is SuccessfulWeatherPrediction) ? weather.insights.minTempAt?.$1.valueAs(unit).toStringAsFixed(1) : null;
+              final maxString = (weather is SuccessfulWeatherPrediction) ? weather.insights.maxTempAt?.$1.valueAs(unit).toStringAsFixed(1) : null;
               return Text(
-                "$minString–$maxString${unit.display}",
+                "${minString ?? "..."}–${maxString ?? "..."}${unit.display}",
                 style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 50),
               );
             },
@@ -385,6 +385,7 @@ class RundownScreen extends StatelessWidget {
   }) {
     return [
       if (state is FailedWeatherPrediction) Text("Cannot retrieve weather: ${state.error}"),
+      if (state is SuccessfulWeatherPrediction && state.weathers.isEmpty) const Text("No locations selected!"),
       if (state is SuccessfulWeatherPrediction && state.weathers.isNotEmpty) ...[
         // Wrap(
         //   crossAxisAlignment: WrapCrossAlignment.center,

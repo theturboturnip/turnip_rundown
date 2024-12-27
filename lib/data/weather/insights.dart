@@ -272,8 +272,8 @@ final class WeatherInsights {
     required this.humidityAt,
     required this.windAt,
   });
-  final (Data<Temp>, int) minTempAt;
-  final (Data<Temp>, int) maxTempAt;
+  final (Data<Temp>, int)? minTempAt;
+  final (Data<Temp>, int)? maxTempAt;
   final List<RainStatus> rainAt;
   final List<HumidStatus> humidityAt;
   final List<WindStatus> windAt;
@@ -283,27 +283,34 @@ final class WeatherInsights {
       maxLookahead = 24;
     }
 
-    if (weathers.isEmpty) throw "No locations selected";
-    List<(double, double)> minMaxTempC;
-    if (config.useEstimatedWetBulbTemp) {
-      minMaxTempC = weathers.map((weather) => weather.estimatedWetBulbGlobeTemp.valuesAs(Temp.celsius).take(maxLookahead).minMax as (double, double)).toList();
+    late final (Data<Temp>, int)? minTempAt, maxTempAt;
+    if (weathers.isEmpty) {
+      minTempAt = null;
+      maxTempAt = null;
     } else {
-      minMaxTempC = weathers.map((weather) => weather.dryBulbTemp.valuesAs(Temp.celsius).take(maxLookahead).minMax as (double, double)).toList();
-    }
-    (double, int) minCAt = (minMaxTempC[0].$1, 0);
-    (double, int) maxCAt = (minMaxTempC[0].$2, 0);
-    for (final (index, (min, max)) in minMaxTempC.indexed) {
-      if (min < minCAt.$1) {
-        minCAt = (min, index);
+      List<(double, double)> minMaxTempC;
+      if (config.useEstimatedWetBulbTemp) {
+        minMaxTempC = weathers.map((weather) => weather.estimatedWetBulbGlobeTemp.valuesAs(Temp.celsius).take(maxLookahead).minMax as (double, double)).toList();
+      } else {
+        minMaxTempC = weathers.map((weather) => weather.dryBulbTemp.valuesAs(Temp.celsius).take(maxLookahead).minMax as (double, double)).toList();
       }
-      if (max > maxCAt.$1) {
-        maxCAt = (max, index);
+      (double, int) minCAt = (minMaxTempC[0].$1, 0);
+      (double, int) maxCAt = (minMaxTempC[0].$2, 0);
+      for (final (index, (min, max)) in minMaxTempC.indexed) {
+        if (min < minCAt.$1) {
+          minCAt = (min, index);
+        }
+        if (max > maxCAt.$1) {
+          maxCAt = (max, index);
+        }
       }
+      minTempAt = (Data(minCAt.$1, Temp.celsius), minCAt.$2);
+      maxTempAt = (Data(maxCAt.$1, Temp.celsius), maxCAt.$2);
     }
 
     return WeatherInsights(
-      minTempAt: (Data(minCAt.$1, Temp.celsius), minCAt.$2),
-      maxTempAt: (Data(maxCAt.$1, Temp.celsius), maxCAt.$2),
+      minTempAt: minTempAt,
+      maxTempAt: maxTempAt,
       rainAt: weathers.map((weather) => RainStatus.fromAnalysis(weather, config, maxLookahead)).toList(),
       humidityAt: weathers.map((weather) => HumidStatus.fromAnalysis(weather, config, maxLookahead)).toList(),
       windAt: weathers.map((weather) => WindStatus.fromAnalysis(weather, config, maxLookahead)).toList(),
