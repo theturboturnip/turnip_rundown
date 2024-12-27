@@ -155,29 +155,37 @@ class RundownScreen extends StatelessWidget {
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
             IconButton(
-              icon: const Icon(Icons.remove),
+              icon: Icon((currentNumLookaheadHours > 1) ? Icons.remove : Icons.replay),
               onPressed: () {
                 context.read<HoursLookaheadBloc>().add(
                       DecrementLockedLookaheadEvent(
+                        hour0InLocalTime: dateTimesForEachHour[0],
                         currentNumLookaheadHours: currentNumLookaheadHours,
                       ),
                     );
               },
             ),
-            Text(
-              _renderTimeRange((0, currentNumLookaheadHours - 1), dateTimesForEachHour),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10.0),
+              child: Text(
+                (hoursLookaheadState.lockedUtcLookaheadTo != null)
+                    ? "from now to ${DateFormat.jm().format(hoursLookaheadState.lockedUtcLookaheadTo!)}"
+                    : _renderTimeRange((0, currentNumLookaheadHours - 1), dateTimesForEachHour),
               style: const TextStyle(fontWeight: FontWeight.bold),
+                // The plan:
               // have a button which when pressed triggers an action IncrementPlannedHoursLookedAhead.
               // if the weatherConfigState indicates the hoursLookedAhead is locked, have a button which when pressed DecrementPlannedHoursLookedAhead
               // which may decrement it past now, in which case it resets and is not locked.
-              // TODO have a timer? which periodically triggers CheckLockedPlannedHoursLookedAhead
+                // the bloc has a timer which periodically triggers CheckLockedPlannedHoursLookedAhead
               // which compares the current time to the locked time and resets to not-locked if current time > locked time.
+              ),
             ),
             IconButton(
               icon: const Icon(Icons.add),
               onPressed: () {
                 context.read<HoursLookaheadBloc>().add(
                       IncrementLockedLookaheadEvent(
+                        hour0InLocalTime: dateTimesForEachHour[0],
                         currentNumLookaheadHours: currentNumLookaheadHours,
                       ),
                     );

@@ -20,14 +20,22 @@ sealed class ChangeLockedLookaheadEvent {}
 final class CheckLockedLookaheadEvent extends ChangeLockedLookaheadEvent {}
 
 final class IncrementLockedLookaheadEvent extends ChangeLockedLookaheadEvent {
-  IncrementLockedLookaheadEvent({required this.currentNumLookaheadHours});
+  IncrementLockedLookaheadEvent({
+    required this.hour0InLocalTime,
+    required this.currentNumLookaheadHours,
+  });
 
+  final DateTime hour0InLocalTime;
   final int currentNumLookaheadHours;
 }
 
 final class DecrementLockedLookaheadEvent extends ChangeLockedLookaheadEvent {
-  DecrementLockedLookaheadEvent({required this.currentNumLookaheadHours});
+  DecrementLockedLookaheadEvent({
+    required this.hour0InLocalTime,
+    required this.currentNumLookaheadHours,
+  });
 
+  final DateTime hour0InLocalTime;
   final int currentNumLookaheadHours;
 }
 
@@ -50,9 +58,9 @@ class HoursLookaheadBloc extends Bloc<ChangeLockedLookaheadEvent, HoursLookahead
             break;
           case IncrementLockedLookaheadEvent():
             if (lockedUtcLookaheadTo == null) {
-              lockedUtcLookaheadTo = timestamp.add(Duration(hours: math.min(event.currentNumLookaheadHours + 1, 24)));
+              lockedUtcLookaheadTo = (event.hour0InLocalTime.toUtc()).add(Duration(hours: math.min(event.currentNumLookaheadHours + 1, 23)));
             } else {
-              final cap = timestamp.add(const Duration(hours: 24));
+              final cap = (event.hour0InLocalTime.toUtc()).add(const Duration(hours: 23));
               lockedUtcLookaheadTo = lockedUtcLookaheadTo.add(const Duration(hours: 1));
               if (lockedUtcLookaheadTo.isAfter(cap)) {
                 lockedUtcLookaheadTo = cap;
@@ -60,7 +68,7 @@ class HoursLookaheadBloc extends Bloc<ChangeLockedLookaheadEvent, HoursLookahead
             }
           case DecrementLockedLookaheadEvent():
             if (lockedUtcLookaheadTo == null) {
-              lockedUtcLookaheadTo = timestamp.add(Duration(hours: math.min(event.currentNumLookaheadHours - 1, 24)));
+              lockedUtcLookaheadTo = (event.hour0InLocalTime.toUtc()).add(Duration(hours: math.min(event.currentNumLookaheadHours - 1, 23)));
             } else {
               lockedUtcLookaheadTo = lockedUtcLookaheadTo.subtract(const Duration(hours: 1));
             }
