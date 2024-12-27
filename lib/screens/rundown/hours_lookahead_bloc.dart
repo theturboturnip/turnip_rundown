@@ -60,7 +60,7 @@ class HoursLookaheadBloc extends Bloc<ChangeLockedLookaheadEvent, HoursLookahead
         final timestamp = DateTime.timestamp();
         switch (event) {
           case CheckLockedLookaheadEvent():
-            print("checking");
+            print("checking locked-lookahead $lockedUtcLookaheadTo");
             break;
           case IncrementLockedLookaheadEvent():
             if (lockedUtcLookaheadTo == null) {
