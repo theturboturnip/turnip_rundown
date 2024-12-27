@@ -10,6 +10,9 @@ setup-web:
 dbg-web:
     flutter run -d Chrome --web-port 50427
 
+rel-web:
+    flutter build web --release --source-maps
+
 dbg-windows:
     flutter run -d Windows
 
