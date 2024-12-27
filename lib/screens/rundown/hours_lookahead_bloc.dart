@@ -14,7 +14,7 @@ class HoursLookaheadState extends Equatable {
   final bool decrementWillResultInReset;
 
   @override
-  List<Object?> get props => [lockedUtcLookaheadTo];
+  List<Object?> get props => [lockedUtcLookaheadTo, decrementWillResultInReset];
 }
 
 sealed class ChangeLockedLookaheadEvent {
@@ -82,16 +82,20 @@ class HoursLookaheadBloc extends Bloc<ChangeLockedLookaheadEvent, HoursLookahead
         if (lockedUtcLookaheadTo != null && timestamp.isAfter(lockedUtcLookaheadTo)) {
           lockedUtcLookaheadTo = null;
         }
+
+        if (lockedUtcLookaheadTo != state.lockedUtcLookaheadTo) {
+          await repo.storeLockedUtcLookaheadTo(lockedUtcLookaheadTo);
+        }
+
         emit(
           HoursLookaheadState(
             lockedUtcLookaheadTo: lockedUtcLookaheadTo,
-            decrementWillResultInReset: (lockedUtcLookaheadTo != null && lockedUtcLookaheadTo.subtract(const Duration(hours: 1)).isAfter(timestamp)),
+            decrementWillResultInReset: (lockedUtcLookaheadTo != null && lockedUtcLookaheadTo.subtract(const Duration(hours: 1)).isBefore(timestamp)),
           ),
         );
-        await repo.storeLockedUtcLookaheadTo(lockedUtcLookaheadTo);
       },
       transformer: sequential(),
     );
-    _streamSubscription = _refreshStream.listen((_) => add(CheckLockedLookaheadEvent()));
+    _streamSubscription = _refreshStream.listen((_) => add(const CheckLockedLookaheadEvent()));
   }
 }

@@ -188,7 +188,8 @@ class RundownScreen extends StatelessWidget {
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
             IconButton(
-              icon: Icon((hoursLookaheadState.decrementWillResultInReset) ? Icons.remove : Icons.replay),
+              icon: Icon((hoursLookaheadState.decrementWillResultInReset) ? Icons.replay : Icons.remove),
+              color: hoursLookaheadState.lockedUtcLookaheadTo == null ? Colors.grey : Colors.grey[700],
               onPressed: () {
                 context.read<HoursLookaheadBloc>().add(
                       DecrementLockedLookaheadEvent(
@@ -215,6 +216,7 @@ class RundownScreen extends StatelessWidget {
             ),
             IconButton(
               icon: const Icon(Icons.add),
+              color: hoursLookaheadState.lockedUtcLookaheadTo == null ? Colors.grey : Colors.grey[700],
               onPressed: () {
                 context.read<HoursLookaheadBloc>().add(
                       IncrementLockedLookaheadEvent(
