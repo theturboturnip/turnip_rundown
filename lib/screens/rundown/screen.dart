@@ -62,64 +62,95 @@ class RundownScreen extends StatelessWidget {
           )..add(const CheckLockedLookaheadEvent()),
         ),
       ],
-      // TODO PULL TO REFRESH EVERYTHING
       child: Scaffold(
-        body: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: BlocBuilder<LocationListBloc, LocationListState>(
-              builder: (context, locationState) {
-                return BlocBuilder<SettingsBloc, Settings>(
-                  builder: (context, settings) {
-                    return BlocBuilder<HoursLookaheadBloc, HoursLookaheadState>(
-                      builder: (context, hoursLookaheadState) {
-                        // Whenever the LocationListBloc or the settings change, refresh the predicted weather based on that change
-                        context.read<WeatherPredictBloc>().add(
-                              RefreshPredictedWeather(
-                                legend: locationState.legend,
-                                hoursToLookAhead: settings.wakingHours.numHoursToLookahead(hoursLookaheadState.lockedUtcLookaheadTo),
-                                config: settings.weatherConfig,
-                              ),
-                            );
-                        return BlocBuilder<WeatherPredictBloc, WeatherPredictState>(
-                          builder: (context, weatherState) {
-                            final DateTime utcHourInLocalTime = DateTime.timestamp()
-                                .copyWith(
-                                  minute: 0,
-                                  second: 0,
-                                  millisecond: 0,
-                                  microsecond: 0,
-                                )
-                                .toLocal();
-                            final dateTimesForEachHour = List.generate(24, (index) => utcHourInLocalTime.add(Duration(hours: index)));
-                            final dateTimesForPriorHours = List.generate(24, (index) => utcHourInLocalTime.subtract(Duration(hours: 24 - index)));
+        body: BlocBuilder<LocationListBloc, LocationListState>(
+          builder: (context, locationState) {
+            return BlocBuilder<SettingsBloc, Settings>(
+              builder: (context, settings) {
+                return BlocBuilder<HoursLookaheadBloc, HoursLookaheadState>(
+                  builder: (context, hoursLookaheadState) {
+                    // Whenever the LocationListBloc or the settings change, refresh the predicted weather based on that change
+                    context.read<WeatherPredictBloc>().add(
+                          RefreshPredictedWeather(
+                            config: WeatherPredictConfig(
+                              legend: locationState.legend,
+                              hoursToLookAhead: settings.wakingHours.numHoursToLookahead(hoursLookaheadState.lockedUtcLookaheadTo),
+                              insightConfig: settings.weatherConfig,
+                            ),
+                          ),
+                        );
+                    return BlocBuilder<WeatherPredictBloc, WeatherPredictState>(
+                      builder: (context, weatherState) {
+                        final DateTime utcHourInLocalTime = DateTime.timestamp()
+                            .copyWith(
+                              minute: 0,
+                              second: 0,
+                              millisecond: 0,
+                              microsecond: 0,
+                            )
+                            .toLocal();
+                        final dateTimesForEachHour = List.generate(
+                          24,
+                          (index) => utcHourInLocalTime.add(Duration(hours: index)),
+                        );
+                        final dateTimesForPriorHours = List.generate(
+                          24,
+                          (index) => utcHourInLocalTime.subtract(Duration(hours: 24 - index)),
+                        );
 
-                            return Column(
-                              children: [
-                                ..._buildWeatherSummary(context, hoursLookaheadState, weatherState, settings, dateTimesForEachHour),
-                                ..._buildWeatherInsights(context, weatherState, settings, dateTimesForEachHour),
-                                Container(
-                                  margin: const EdgeInsets.symmetric(vertical: 10),
-                                  decoration: const BoxDecoration(
-                                    border: Border.symmetric(horizontal: BorderSide()),
-                                  ),
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: _buildLocationsDisplay(context, locationState),
-                                  ),
-                                ),
-                                ..._buildWeatherGraphs(context, weatherState, settings, dateTimesForEachHour: dateTimesForEachHour, dateTimesForPriorHours: dateTimesForPriorHours),
-                              ],
-                            );
+                        return RefreshIndicator(
+                          onRefresh: () async {
+                            context.read<LocationListBloc>().add(const RefreshCurrentCoordinate());
+                            context.read<HoursLookaheadBloc>().add(const CheckLockedLookaheadEvent());
+                            context.read<WeatherPredictBloc>().add(const RefreshPredictedWeather(config: null));
                           },
+                          child: SingleChildScrollView(
+                            child: Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Column(
+                                children: [
+                                  ..._buildWeatherSummary(
+                                    context,
+                                    hoursLookaheadState,
+                                    weatherState,
+                                    settings,
+                                    dateTimesForEachHour,
+                                  ),
+                                  ..._buildWeatherInsights(
+                                    context,
+                                    weatherState,
+                                    settings,
+                                    dateTimesForEachHour,
+                                  ),
+                                  Container(
+                                    margin: const EdgeInsets.symmetric(vertical: 10),
+                                    decoration: const BoxDecoration(
+                                      border: Border.symmetric(horizontal: BorderSide()),
+                                    ),
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: _buildLocationsDisplay(context, locationState),
+                                    ),
+                                  ),
+                                  ..._buildWeatherGraphs(
+                                    context,
+                                    weatherState,
+                                    settings,
+                                    dateTimesForEachHour: dateTimesForEachHour,
+                                    dateTimesForPriorHours: dateTimesForPriorHours,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
                         );
                       },
                     );
                   },
                 );
               },
-            ),
-          ),
+            );
+          },
         ),
       ),
     );
@@ -141,8 +172,8 @@ class RundownScreen extends StatelessWidget {
           spacing: 40.0,
           children: settings.temperatureUnit.displayUnits().map(
             (unit) {
-              final minString = weather.insights?.minTempAt.$1.valueAs(unit).toStringAsFixed(1) ?? "...";
-              final maxString = weather.insights?.maxTempAt.$1.valueAs(unit).toStringAsFixed(1) ?? "...";
+              final minString = (weather is SuccessfulWeatherPrediction) ? weather.insights.minTempAt.$1.valueAs(unit).toStringAsFixed(1) : "...";
+              final maxString = (weather is SuccessfulWeatherPrediction) ? weather.insights.maxTempAt.$1.valueAs(unit).toStringAsFixed(1) : "...";
               return Text(
                 "$minString–$maxString${unit.display}",
                 style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 50),
@@ -351,8 +382,8 @@ class RundownScreen extends StatelessWidget {
     required List<DateTime> dateTimesForPriorHours,
   }) {
     return [
-      if (state.weatherPredictError != null) Text("Cannot retrieve weather: ${state.weatherPredictError}"),
-      if (state.weathers.isNotEmpty) ...[
+      if (state is FailedWeatherPrediction) Text("Cannot retrieve weather: ${state.error}"),
+      if (state is SuccessfulWeatherPrediction && state.weathers.isNotEmpty) ...[
         // Wrap(
         //   crossAxisAlignment: WrapCrossAlignment.center,
         //   spacing: 10.0,
@@ -389,7 +420,7 @@ class RundownScreen extends StatelessWidget {
             defaultMin: const Data(5, Temp.celsius),
             baseline: const Data(15, Temp.celsius),
             defaultMax: const Data(25, Temp.celsius),
-            hoursLookedAhead: state.insights!.hoursLookedAhead,
+            hoursLookedAhead: state.config.hoursToLookAhead,
             otherUnit: (settings.temperatureUnit == TempDisplay.both ? Temp.farenheit : null),
           ),
         if (settings.weatherConfig.useEstimatedWetBulbTemp)
@@ -402,7 +433,7 @@ class RundownScreen extends StatelessWidget {
             defaultMin: const Data(5, Temp.celsius),
             baseline: const Data(15, Temp.celsius),
             defaultMax: const Data(25, Temp.celsius),
-            hoursLookedAhead: state.insights!.hoursLookedAhead,
+            hoursLookedAhead: state.config.hoursToLookAhead,
             otherUnit: (settings.temperatureUnit == TempDisplay.both ? Temp.farenheit : null),
           ),
         chartOf(
@@ -413,7 +444,7 @@ class RundownScreen extends StatelessWidget {
           dateTimesForEachHour,
           defaultMin: const Data(0, Percent.outOf100),
           defaultMax: const Data(100, Percent.outOf100),
-          hoursLookedAhead: state.insights!.hoursLookedAhead,
+          hoursLookedAhead: state.config.hoursToLookAhead,
         ),
         chartOf(
           context,
@@ -422,7 +453,7 @@ class RundownScreen extends StatelessWidget {
           Speed.milesPerHour,
           dateTimesForEachHour,
           defaultMin: const Data(0, Speed.milesPerHour),
-          hoursLookedAhead: state.insights!.hoursLookedAhead,
+          hoursLookedAhead: state.config.hoursToLookAhead,
         ),
         chartOf(
           context,
@@ -432,7 +463,7 @@ class RundownScreen extends StatelessWidget {
           dateTimesForEachHour,
           defaultMin: const Data(0, Percent.outOf100),
           defaultMax: const Data(100, Percent.outOf100),
-          hoursLookedAhead: state.insights!.hoursLookedAhead,
+          hoursLookedAhead: state.config.hoursToLookAhead,
         ),
         chartOf(
           context,
@@ -442,7 +473,7 @@ class RundownScreen extends StatelessWidget {
           dateTimesForEachHour,
           defaultMin: const Data(0, Length.mm),
           defaultMax: const Data(10, Length.mm),
-          hoursLookedAhead: state.insights!.hoursLookedAhead,
+          hoursLookedAhead: state.config.hoursToLookAhead,
         ),
         chartOf(
           context,
@@ -533,13 +564,11 @@ class RundownScreen extends StatelessWidget {
     Settings settings,
     List<DateTime> dateTimesForEachHour,
   ) {
-    if (state.insights == null) {
-      return [];
-    } else {
-      final listOfLocations = state.legend.map((legendElem) => legendElem.isYourCoordinate ? "your location" : legendElem.location.name).toList();
+    if (state is SuccessfulWeatherPrediction) {
+      final listOfLocations = state.config.legend.map((legendElem) => legendElem.isYourCoordinate ? "your location" : legendElem.location.name).toList();
 
       return [
-        ...state.insights!.rainAt.mapIndexed((locationIndex, rainStatus) {
+        ...state.insights.rainAt.mapIndexed((locationIndex, rainStatus) {
           if (rainStatus.preRain.valueAs(Length.mm) > 2.5) {
             return Text("Slippery ${listOfLocations.length > 1 ? "at ${listOfLocations[locationIndex]} " : ""}due to prior rain.");
           } else {
@@ -547,7 +576,7 @@ class RundownScreen extends StatelessWidget {
           }
         }).whereType<Widget>(),
         ..._buildWeatherWarningInsight(
-          state.insights!.rainAt.map((rainStatus) => rainStatus.predictedRain),
+          state.insights.rainAt.map((rainStatus) => rainStatus.predictedRain),
           {
             PredictedRain.light: ("Light rain", Symbols.rainy_light),
             PredictedRain.medium: ("Medium rain", Symbols.rainy_heavy),
@@ -555,10 +584,10 @@ class RundownScreen extends StatelessWidget {
           },
           listOfLocations,
           dateTimesForEachHour,
-          state.insights!.hoursLookedAhead,
+          state.config.hoursToLookAhead,
         ),
         ..._buildWeatherWarningInsight(
-          state.insights!.windAt.map((windStatus) => windStatus.predictedWind),
+          state.insights.windAt.map((windStatus) => windStatus.predictedWind),
           {
             PredictedWind.breezy: ("Breezy", Icons.air),
             PredictedWind.windy: ("Windy", Icons.air),
@@ -566,10 +595,10 @@ class RundownScreen extends StatelessWidget {
           },
           listOfLocations,
           dateTimesForEachHour,
-          state.insights!.hoursLookedAhead,
+          state.config.hoursToLookAhead,
         ),
         ..._buildWeatherWarningInsight(
-          state.insights!.humidityAt.map((humidStatus) => humidStatus.predictedHumitity),
+          state.insights.humidityAt.map((humidStatus) => humidStatus.predictedHumitity),
           {
             PredictedHighHumidity.sweaty: ("Sweaty", Icons.thermostat),
             PredictedHighHumidity.uncomfortable: ("Uncomfortably humid", Symbols.humidity_mid),
@@ -577,9 +606,11 @@ class RundownScreen extends StatelessWidget {
           },
           listOfLocations,
           dateTimesForEachHour,
-          state.insights!.hoursLookedAhead,
+          state.config.hoursToLookAhead,
         ),
       ].whereType<Widget>().toList();
+    } else {
+      return [];
     }
   }
 
