@@ -78,6 +78,8 @@ class SqfliteApiCacheAndSettingsRepository implements ApiCacheRepository, Settin
       await txn.rawUpdate("UPDATE stats SET cacheMisses = cacheMisses + 1 WHERE host = ?", [uri.host]);
     });
 
+    print("doing HTTP request $uri");
+
     final timeoutAfter = timestamp.add(timeout);
     final response = await http.read(uri);
 

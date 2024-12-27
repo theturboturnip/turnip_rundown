@@ -5,6 +5,8 @@ import 'package:turnip_rundown/data/weather/model.dart';
 
 part 'insights.g.dart';
 
+// TODO distinguish rain from snow
+
 @JsonSerializable()
 class WeatherInsightConfig {
   const WeatherInsightConfig({
@@ -264,26 +266,24 @@ class WindStatus {
 
 final class WeatherInsights {
   WeatherInsights({
-    required this.hoursLookedAhead,
     required this.minTempAt,
     required this.maxTempAt,
     required this.rainAt,
     required this.humidityAt,
     required this.windAt,
   });
-  final int hoursLookedAhead;
   final (Data<Temp>, int) minTempAt;
   final (Data<Temp>, int) maxTempAt;
   final List<RainStatus> rainAt;
   final List<HumidStatus> humidityAt;
   final List<WindStatus> windAt;
 
-  static WeatherInsights? fromAnalysis(List<HourlyPredictedWeather> weathers, WeatherInsightConfig config, {int maxLookahead = 24}) {
+  static WeatherInsights fromAnalysis(List<HourlyPredictedWeather> weathers, WeatherInsightConfig config, {int maxLookahead = 24}) {
     if (maxLookahead < 0 || maxLookahead > 24) {
       maxLookahead = 24;
     }
 
-    if (weathers.isEmpty) return null;
+    if (weathers.isEmpty) throw "No locations selected";
     List<(double, double)> minMaxTempC;
     if (config.useEstimatedWetBulbTemp) {
       minMaxTempC = weathers.map((weather) => weather.estimatedWetBulbGlobeTemp.valuesAs(Temp.celsius).take(maxLookahead).minMax as (double, double)).toList();
@@ -302,7 +302,6 @@ final class WeatherInsights {
     }
 
     return WeatherInsights(
-      hoursLookedAhead: maxLookahead,
       minTempAt: (Data(minCAt.$1, Temp.celsius), minCAt.$2),
       maxTempAt: (Data(maxCAt.$1, Temp.celsius), maxCAt.$2),
       rainAt: weathers.map((weather) => RainStatus.fromAnalysis(weather, config, maxLookahead)).toList(),

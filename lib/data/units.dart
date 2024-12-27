@@ -444,5 +444,5 @@ extension MinMax on Iterable<num> {
   /// If any element is [NaN](double.nan), the result is NaN.
   ///
   /// The iterable must not be empty.
-  (num, num) get minMax => minMaxOrNull ?? (throw StateError('No element'));
+  (num, num) get minMax => minMaxOrNull ?? (throw StateError('minMax on empty feature'));
 }
