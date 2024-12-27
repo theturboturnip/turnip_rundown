@@ -43,6 +43,7 @@ class RundownScreen extends StatelessWidget {
     return MultiBlocProvider(
       // Create two blocs and glue them together:
       // the 'LocationListBloc' which gathers locations to generate a rundown for,
+      // the 'HoursLookaheadBloc' which determines how many hours forward to look,
       // and the 'WeatherPredictBloc' which re-predicts the weather based on state changes from the LocationListBloc
       providers: [
         BlocProvider(
@@ -61,6 +62,7 @@ class RundownScreen extends StatelessWidget {
           )..add(const CheckLockedLookaheadEvent()),
         ),
       ],
+      // TODO PULL TO REFRESH EVERYTHING
       child: Scaffold(
         body: SingleChildScrollView(
           child: Padding(
@@ -171,13 +173,13 @@ class RundownScreen extends StatelessWidget {
                 (hoursLookaheadState.lockedUtcLookaheadTo != null)
                     ? "from now to ${DateFormat.jm().format(hoursLookaheadState.lockedUtcLookaheadTo!)}"
                     : _renderTimeRange((0, currentNumLookaheadHours - 1), dateTimesForEachHour),
-              style: const TextStyle(fontWeight: FontWeight.bold),
+                style: const TextStyle(fontWeight: FontWeight.bold),
                 // The plan:
-              // have a button which when pressed triggers an action IncrementPlannedHoursLookedAhead.
-              // if the weatherConfigState indicates the hoursLookedAhead is locked, have a button which when pressed DecrementPlannedHoursLookedAhead
-              // which may decrement it past now, in which case it resets and is not locked.
+                // have a button which when pressed triggers an action IncrementPlannedHoursLookedAhead.
+                // if the weatherConfigState indicates the hoursLookedAhead is locked, have a button which when pressed DecrementPlannedHoursLookedAhead
+                // which may decrement it past now, in which case it resets and is not locked.
                 // the bloc has a timer which periodically triggers CheckLockedPlannedHoursLookedAhead
-              // which compares the current time to the locked time and resets to not-locked if current time > locked time.
+                // which compares the current time to the locked time and resets to not-locked if current time > locked time.
               ),
             ),
             IconButton(
