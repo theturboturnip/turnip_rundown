@@ -20,6 +20,13 @@ dbg-windows:
 dbg-android:
     flutter run -d RZ8
 
+dbg-macos:
+    flutter run -d macos
+
+# doesn't run
+# dbg-ipad:
+#     flutter run -d mac-designed-for-ipad
+
 rel-android:
     flutter run -d RZ8 --release
 
