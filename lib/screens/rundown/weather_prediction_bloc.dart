@@ -75,13 +75,27 @@ class WeatherPredictBloc extends Bloc<RefreshPredictedWeather, WeatherPredictSta
     on<RefreshPredictedWeather>(
       (event, emit) async {
         final config = event.config ?? state.config;
-        final weathers =
-            Future.wait(config.legend.map((legendElem) => weather.getPredictedWeather(legendElem.location.coordinate, forceRefreshCache: event.config == null)).toList());
-        await weathers.then((predictions) {
+        print("${DateTime.timestamp()} start fetching weather");
+        final weathersFuture = Future.wait(
+          config.legend.map(
+            (legendElem) => weather.getPredictedWeather(
+              legendElem.location.coordinate,
+              forceRefreshCache: event.config == null,
+            ),
+          ),
+        );
+        await weathersFuture.then((weathers) {
+          print("${DateTime.timestamp()} computing insights");
+          final insights = WeatherInsights.fromAnalysis(
+            weathers,
+            config.insightConfig,
+            maxLookahead: config.hoursToLookAhead,
+          );
+          print("${DateTime.timestamp()} emitting");
           emit(SuccessfulWeatherPrediction(
             config: config,
-            weathers: predictions,
-            insights: WeatherInsights.fromAnalysis(predictions, config.insightConfig, maxLookahead: config.hoursToLookAhead),
+            weathers: weathers,
+            insights: insights,
           ));
         }).onError((e, s) async {
           print("error $e $s");
