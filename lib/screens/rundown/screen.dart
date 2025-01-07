@@ -571,41 +571,22 @@ class RundownScreen extends StatelessWidget {
       final listOfLocations = state.config.legend.map((legendElem) => legendElem.isYourCoordinate ? "your location" : legendElem.location.name).toList();
 
       return [
-        ...state.insights.rainAt.mapIndexed((locationIndex, rainStatus) {
-          if (rainStatus.preRain.valueAs(Length.mm) > 2.5) {
-            return Text("Slippery ${listOfLocations.length > 1 ? "at ${listOfLocations[locationIndex]} " : ""}due to prior rain.");
-          } else {
-            return null;
-          }
-        }).whereType<Widget>(),
         ..._buildWeatherWarningInsight(
-          state.insights.rainAt.map((rainStatus) => rainStatus.predictedRain),
+          state.insights.insightsByLocation,
           {
-            PredictedRain.light: ("Light rain", Symbols.rainy_light),
-            PredictedRain.medium: ("Medium rain", Symbols.rainy_heavy),
-            PredictedRain.heavy: ("Heavy rain", Symbols.rainy_heavy),
-          },
-          listOfLocations,
-          dateTimesForEachHour,
-          state.config.hoursToLookAhead,
-        ),
-        ..._buildWeatherWarningInsight(
-          state.insights.windAt.map((windStatus) => windStatus.predictedWind),
-          {
-            PredictedWind.breezy: ("Breezy", Icons.air),
-            PredictedWind.windy: ("Windy", Icons.air),
-            PredictedWind.galey: ("Gale-y", Icons.storm),
-          },
-          listOfLocations,
-          dateTimesForEachHour,
-          state.config.hoursToLookAhead,
-        ),
-        ..._buildWeatherWarningInsight(
-          state.insights.humidityAt.map((humidStatus) => humidStatus.predictedHumitity),
-          {
-            PredictedHighHumidity.sweaty: ("Sweaty", Icons.thermostat),
-            PredictedHighHumidity.uncomfortable: ("Uncomfortably humid", Symbols.humidity_mid),
-            PredictedHighHumidity.coolMist: ("Misty", Symbols.mist),
+            InsightType.lightRain: ("Light rain", Symbols.rainy_light),
+            InsightType.mediumRain: ("Medium rain", Symbols.rainy_heavy),
+            InsightType.heavyRain: ("Heavy rain", Symbols.rainy_heavy),
+            InsightType.slippery: ("Slippery", Symbols.do_not_step),
+            InsightType.sweaty: ("Sweaty", Icons.thermostat),
+            InsightType.uncomfortablyHumid: ("Uncomfortably humid", Symbols.humidity_mid),
+            InsightType.coolMist: ("Misty", Symbols.mist),
+            InsightType.boiling: ("Boiling hot", Symbols.emergency_heat),
+            InsightType.freezing: ("Freezing cold", Icons.severe_cold),
+            InsightType.sunny: ("Sunny", Icons.brightness_high),
+            InsightType.breezy: ("Breezy", Icons.air),
+            InsightType.windy: ("Windy", Icons.air),
+            InsightType.galey: ("Gale-y", Icons.storm),
           },
           listOfLocations,
           dateTimesForEachHour,

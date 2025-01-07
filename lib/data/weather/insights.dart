@@ -106,6 +106,10 @@ class ActiveHours {
 
   int get numActiveHours => _hours.length;
 
+  void add(int hour) {
+    _hours.add(hour);
+  }
+
   List<(int, int)> get asRanges {
     // From a set of numbers, starting from the lowest number find all contiguous ranges of numbers in the set
     // e.g. {1,2, 4, 6,7,8} => (1, 2), (4, 4), (6, 8)
@@ -127,156 +131,42 @@ class ActiveHours {
   }
 }
 
-enum PredictedRain implements Comparable<PredictedRain> {
-  light,
-  medium,
-  heavy;
+enum InsightType {
+  // rainy
+  lightRain,
+  mediumRain,
+  heavyRain,
 
-  @override
-  int compareTo(PredictedRain other) {
-    return index.compareTo(other.index);
-  }
-}
+  // slippery
+  slippery,
 
-class RainStatus {
-  RainStatus({required this.preRain, required this.preRainMeansSlippery, required this.predictedRain});
+  // Humidity
+  sweaty,
+  uncomfortablyHumid,
+  coolMist,
 
-  // sum of rainfall in the preceding hours
-  final Data<Length> preRain;
-  // if that sum of rainfall in preceding hours > the "slippery" threshold
-  final bool preRainMeansSlippery;
-  // foreach level of predicted rain, the ranges of hours for which that rainfall is predicted (prediction > 15%)
-  final Map<PredictedRain, ActiveHours> predictedRain;
+  // General temperature
+  boiling,
+  freezing,
 
-  factory RainStatus.fromAnalysis(HourlyPredictedWeather weather, WeatherInsightConfig config, int maxLookahead) {
-    final preRainMM = weather.precipitationUpToNow.valuesAs(Length.mm).takeLast(config.numberOfHoursPriorRainThreshold).sum;
-    var predictedRain = <PredictedRain, Set<int>>{
-      PredictedRain.light: {},
-      PredictedRain.medium: {},
-      PredictedRain.heavy: {},
-    };
-    for (int i = 0; i < weather.precipitation.length && i < maxLookahead; i++) {
-      if (weather.precipitationProb[i].valueAs(Percent.outOf100) > config.rainProbabilityThreshold.valueAs(Percent.outOf100)) {
-        final lengthMm = weather.precipitation[i].valueAs(Length.mm);
+  // TODO replace this with a separate "is-sunny" boolean?
+  sunny,
 
-        late final PredictedRain key;
-        if (lengthMm > config.heavyRainThreshold.valueAs(Length.mm)) {
-          key = PredictedRain.heavy;
-        } else if (lengthMm > config.mediumRainThreshold.valueAs(Length.mm)) {
-          key = PredictedRain.medium;
-        } else {
-          key = PredictedRain.light;
-        }
-        predictedRain[key]!.add(i);
-      }
-    }
-
-    return RainStatus(
-      preRain: Data(preRainMM, Length.mm),
-      preRainMeansSlippery: (preRainMM >= config.priorRainThreshold.valueAs(Length.mm)),
-      predictedRain: predictedRain.map((key, hours) => MapEntry(key, ActiveHours(hours))),
-    );
-  }
-}
-
-enum PredictedHighHumidity {
-  sweaty, // hot 17+C
-  uncomfortable, // medium 10-17C
-  coolMist; // cold <10C
-}
-
-class HumidStatus {
-  HumidStatus({required this.predictedHumitity});
-
-  // foreach level of high humidity, the set of hours for which that humidity is predicted
-  final Map<PredictedHighHumidity, ActiveHours> predictedHumitity;
-
-  factory HumidStatus.fromAnalysis(HourlyPredictedWeather weather, WeatherInsightConfig config, int maxLookahead) {
-    var predictedHumitity = <PredictedHighHumidity, Set<int>>{
-      PredictedHighHumidity.sweaty: {},
-      PredictedHighHumidity.uncomfortable: {},
-      PredictedHighHumidity.coolMist: {},
-    };
-    for (int i = 0; i < weather.relHumidity.length && i < maxLookahead; i++) {
-      if (weather.relHumidity[i].valueAs(Percent.outOf100) > config.highHumidityThreshold.valueAs(Percent.outOf100)) {
-        late final double tempC;
-        if (config.useEstimatedWetBulbTemp) {
-          tempC = weather.estimatedWetBulbGlobeTemp[i].valueAs(Temp.celsius);
-        } else {
-          tempC = weather.dryBulbTemp[i].valueAs(Temp.celsius);
-        }
-
-        late final PredictedHighHumidity key;
-        if (tempC > config.minTemperatureForHighHumiditySweat.valueAs(Temp.celsius)) {
-          key = PredictedHighHumidity.sweaty;
-        } else if (tempC > config.maxTemperatureForHighHumidityMist.valueAs(Temp.celsius)) {
-          key = PredictedHighHumidity.uncomfortable;
-        } else {
-          key = PredictedHighHumidity.coolMist;
-        }
-        predictedHumitity[key]!.add(i);
-      }
-    }
-    return HumidStatus(predictedHumitity: predictedHumitity.map((key, hours) => MapEntry(key, ActiveHours(hours))));
-  }
-}
-
-enum PredictedWind implements Comparable<PredictedWind> {
+  // wind
   breezy,
   windy,
   galey;
-
-  @override
-  int compareTo(PredictedWind other) {
-    return index.compareTo(other.index);
-  }
-}
-
-class WindStatus {
-  WindStatus({required this.predictedWind});
-
-  // foreach level of wind, the set of hours for which that level is predicted
-  final Map<PredictedWind, ActiveHours> predictedWind;
-
-  factory WindStatus.fromAnalysis(HourlyPredictedWeather weather, WeatherInsightConfig config, int maxLookahead) {
-    var predictedWind = <PredictedWind, Set<int>>{
-      PredictedWind.breezy: {},
-      PredictedWind.windy: {},
-      PredictedWind.galey: {},
-    };
-    for (int i = 0; i < weather.windspeed.length && i < maxLookahead; i++) {
-      final windSpeedMph = weather.windspeed[i].valueAs(Speed.milesPerHour);
-
-      PredictedWind? key;
-      if (windSpeedMph > config.minimumGaleyWindspeed.valueAs(Speed.milesPerHour)) {
-        key = PredictedWind.galey;
-      } else if (windSpeedMph > config.minimumWindyWindspeed.valueAs(Speed.milesPerHour)) {
-        key = PredictedWind.windy;
-      } else if (windSpeedMph > config.minimumBreezyWindspeed.valueAs(Speed.milesPerHour)) {
-        key = PredictedWind.breezy;
-      }
-
-      if (key != null) {
-        predictedWind[key]!.add(i);
-      }
-    }
-    return WindStatus(predictedWind: predictedWind.map((key, hours) => MapEntry(key, ActiveHours(hours))));
-  }
 }
 
 final class WeatherInsights {
   WeatherInsights({
     required this.minTempAt,
     required this.maxTempAt,
-    required this.rainAt,
-    required this.humidityAt,
-    required this.windAt,
+    required this.insightsByLocation,
   });
   final (Data<Temp>, int)? minTempAt;
   final (Data<Temp>, int)? maxTempAt;
-  final List<RainStatus> rainAt;
-  final List<HumidStatus> humidityAt;
-  final List<WindStatus> windAt;
+  final List<Map<InsightType, ActiveHours>> insightsByLocation;
 
   static WeatherInsights fromAnalysis(List<HourlyPredictedWeather> weathers, WeatherInsightConfig config, {int maxLookahead = 24}) {
     if (maxLookahead < 0 || maxLookahead > 24) {
@@ -285,8 +175,7 @@ final class WeatherInsights {
 
     late final (Data<Temp>, int)? minTempAt, maxTempAt;
     if (weathers.isEmpty) {
-      minTempAt = null;
-      maxTempAt = null;
+      return WeatherInsights(minTempAt: null, maxTempAt: null, insightsByLocation: []);
     } else {
       List<(double, double)> minMaxTempC;
       if (config.useEstimatedWetBulbTemp) {
@@ -306,14 +195,86 @@ final class WeatherInsights {
       }
       minTempAt = (Data(minCAt.$1, Temp.celsius), minCAt.$2);
       maxTempAt = (Data(maxCAt.$1, Temp.celsius), maxCAt.$2);
-    }
 
-    return WeatherInsights(
-      minTempAt: minTempAt,
-      maxTempAt: maxTempAt,
-      rainAt: weathers.map((weather) => RainStatus.fromAnalysis(weather, config, maxLookahead)).toList(),
-      humidityAt: weathers.map((weather) => HumidStatus.fromAnalysis(weather, config, maxLookahead)).toList(),
-      windAt: weathers.map((weather) => WindStatus.fromAnalysis(weather, config, maxLookahead)).toList(),
-    );
+      final insightsByLocation = weathers.map((weather) {
+        final allRainfallMMIncludingPast = weather.precipitationUpToNow.valuesAs(Length.mm).toList()
+          ..addAll(
+            weather.precipitation.valuesAs(Length.mm).mapIndexed(
+              (index, len) {
+                if (weather.precipitationProb[index].valueAs(Percent.outOf100) >= config.rainProbabilityThreshold.valueAs(Percent.outOf100)) {
+                  return len;
+                } else {
+                  return 0;
+                }
+              },
+            ),
+          );
+
+        final insights = {for (final t in InsightType.values) t: ActiveHours({})};
+
+        for (int hour = 0; hour < maxLookahead; hour++) {
+          int indexForRainfallMM = hour + weather.precipitationUpToNow.length;
+
+          // rain
+          final currentPrecipitationMM = allRainfallMMIncludingPast[indexForRainfallMM];
+          if (currentPrecipitationMM > config.heavyRainThreshold.valueAs(Length.mm)) {
+            insights[InsightType.heavyRain]!.add(hour);
+          } else if (currentPrecipitationMM > config.mediumRainThreshold.valueAs(Length.mm)) {
+            insights[InsightType.mediumRain]!.add(hour);
+          } else if (currentPrecipitationMM > 0) {
+            insights[InsightType.lightRain]!.add(hour);
+          }
+
+          // slippery
+          final startIndexForPreviousHoursPrecipitation = indexForRainfallMM - config.numberOfHoursPriorRainThreshold;
+          final previousHoursPrecipitations = (startIndexForPreviousHoursPrecipitation >= 0)
+              ? allRainfallMMIncludingPast.skip(startIndexForPreviousHoursPrecipitation).take(config.numberOfHoursPriorRainThreshold + 1)
+              : allRainfallMMIncludingPast.take(indexForRainfallMM + 1);
+          final previousHoursPrecipitationMM = previousHoursPrecipitations.sum;
+          if (previousHoursPrecipitationMM > config.priorRainThreshold.valueAs(Length.mm)) {
+            insights[InsightType.slippery]!.add(hour);
+          }
+
+          // humidity
+          {
+            if (weather.relHumidity[hour].valueAs(Percent.outOf100) > config.highHumidityThreshold.valueAs(Percent.outOf100)) {
+              late final double tempC;
+              if (config.useEstimatedWetBulbTemp) {
+                tempC = weather.estimatedWetBulbGlobeTemp[hour].valueAs(Temp.celsius);
+              } else {
+                tempC = weather.dryBulbTemp[hour].valueAs(Temp.celsius);
+              }
+
+              if (tempC > config.minTemperatureForHighHumiditySweat.valueAs(Temp.celsius)) {
+                insights[InsightType.sweaty]!.add(hour);
+              } else if (tempC > config.maxTemperatureForHighHumidityMist.valueAs(Temp.celsius)) {
+                insights[InsightType.uncomfortablyHumid]!.add(hour);
+              } else {
+                insights[InsightType.coolMist]!.add(hour);
+              }
+            }
+          }
+
+          // TODO boiling, freezing, sunny
+
+          // wind
+          final windSpeedMph = weather.windspeed[hour].valueAs(Speed.milesPerHour);
+          if (windSpeedMph > config.minimumGaleyWindspeed.valueAs(Speed.milesPerHour)) {
+            insights[InsightType.galey]!.add(hour);
+          } else if (windSpeedMph > config.minimumWindyWindspeed.valueAs(Speed.milesPerHour)) {
+            insights[InsightType.windy]!.add(hour);
+          } else if (windSpeedMph > config.minimumBreezyWindspeed.valueAs(Speed.milesPerHour)) {
+            insights[InsightType.breezy]!.add(hour);
+          }
+        }
+        return insights;
+      }).toList();
+
+      return WeatherInsights(
+        minTempAt: minTempAt,
+        maxTempAt: maxTempAt,
+        insightsByLocation: insightsByLocation,
+      );
+    }
   }
 }
