@@ -338,7 +338,7 @@ class DataSeries<TUnit extends Unit<TUnit>> {
     return DataSeries(_values.sublist(startIndexIncl, endIndexIncl + 1), _unit);
   }
 
-  operator [](int i) => Data(_values[i], _unit);
+  Data<TUnit> operator [](int i) => Data(_values[i], _unit);
 }
 
 extension ToDataSeries on Iterable<double> {
