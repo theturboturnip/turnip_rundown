@@ -60,6 +60,12 @@ OpenMeteoHourlyDatapoints _$OpenMeteoHourlyDatapointsFromJson(
       directRadiation: (json['direct_radiation_instant'] as List<dynamic>)
           .map((e) => (e as num).toDouble())
           .toList(),
+      snowfall: (json['snowfall'] as List<dynamic>)
+          .map((e) => (e as num).toDouble())
+          .toList(),
+      cloudCover: (json['cloud_cover'] as List<dynamic>)
+          .map((e) => (e as num).toDouble())
+          .toList(),
     );
 
 Map<String, dynamic> _$OpenMeteoHourlyDatapointsToJson(
@@ -73,4 +79,6 @@ Map<String, dynamic> _$OpenMeteoHourlyDatapointsToJson(
       'precipitation': instance.precipitation,
       'wind_speed_10m': instance.windspeed,
       'direct_radiation_instant': instance.directRadiation,
+      'snowfall': instance.snowfall,
+      'cloud_cover': instance.cloudCover,
     };

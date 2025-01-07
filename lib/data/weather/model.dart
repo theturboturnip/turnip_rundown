@@ -36,6 +36,9 @@ class HourlyPredictedWeather {
     required this.estimatedWetBulbGlobeTemp,
     required this.windspeed,
     required this.relHumidity,
+    required this.directRadiation,
+    required this.snowfall,
+    required this.cloudCover,
   });
 
   final DataSeries<Rainfall> precipitationUpToNow;
@@ -48,6 +51,9 @@ class HourlyPredictedWeather {
   final DataSeries<Temp> estimatedWetBulbGlobeTemp;
   final DataSeries<Speed> windspeed;
   final DataSeries<Percent> relHumidity;
+  final DataSeries<SolarRadiation> directRadiation;
+  final DataSeries<Length> snowfall;
+  final DataSeries<Percent> cloudCover;
 }
 
 /// Wet-bulb-globe-temp estimation based on

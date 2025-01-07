@@ -460,6 +460,26 @@ class RundownScreen extends StatelessWidget {
         ),
         chartOf(
           context,
+          "Direct Radiation",
+          state.weathers.map((weather) => weather.directRadiation),
+          SolarRadiation.wPerM2,
+          dateTimesForEachHour,
+          defaultMin: const Data(0, SolarRadiation.wPerM2),
+          defaultMax: const Data(1000, SolarRadiation.wPerM2),
+          hoursLookedAhead: state.config.hoursToLookAhead,
+        ),
+        chartOf(
+          context,
+          "Cloud Cover",
+          state.weathers.map((weather) => weather.cloudCover),
+          Percent.outOf100,
+          dateTimesForEachHour,
+          defaultMin: const Data(0, Percent.outOf100),
+          defaultMax: const Data(100, Percent.outOf100),
+          hoursLookedAhead: state.config.hoursToLookAhead,
+        ),
+        chartOf(
+          context,
           "Precipitation Chance",
           state.weathers.map((weather) => weather.precipitationProb),
           Percent.outOf100,
@@ -473,6 +493,16 @@ class RundownScreen extends StatelessWidget {
           "Precipitation",
           state.weathers.map((weather) => weather.precipitation),
           settings.rainfallUnit,
+          dateTimesForEachHour,
+          defaultMin: const Data(0, Length.mm),
+          defaultMax: const Data(10, Length.mm),
+          hoursLookedAhead: state.config.hoursToLookAhead,
+        ),
+        chartOf(
+          context,
+          "Snowfall",
+          state.weathers.map((weather) => weather.snowfall),
+          settings.rainfallUnit, // TODO
           dateTimesForEachHour,
           defaultMin: const Data(0, Length.mm),
           defaultMax: const Data(10, Length.mm),
@@ -561,6 +591,23 @@ class RundownScreen extends StatelessWidget {
         .toList();
   }
 
+  static const insightTypeMap = {
+    InsightType.lightRain: ("Light rain", Symbols.rainy_light),
+    InsightType.mediumRain: ("Medium rain", Symbols.rainy_heavy),
+    InsightType.heavyRain: ("Heavy rain", Symbols.rainy_heavy),
+    InsightType.slippery: ("Slippery", Symbols.do_not_step),
+    InsightType.sweaty: ("Sweaty", Icons.thermostat),
+    InsightType.uncomfortablyHumid: ("Uncomfortably humid", Symbols.humidity_mid),
+    InsightType.coolMist: ("Misty", Symbols.mist),
+    InsightType.boiling: ("Boiling hot", Symbols.emergency_heat),
+    InsightType.freezing: ("Freezing cold", Icons.severe_cold),
+    InsightType.sunny: ("Sunny", Icons.brightness_high),
+    InsightType.breezy: ("Breezy", Icons.air),
+    InsightType.windy: ("Windy", Icons.air),
+    InsightType.galey: ("Gale-y", Icons.storm),
+    InsightType.snow: ("Snow", Symbols.weather_snowy),
+  };
+
   List<Widget> _buildWeatherInsights(
     BuildContext context,
     WeatherPredictState state,
@@ -569,25 +616,11 @@ class RundownScreen extends StatelessWidget {
   ) {
     if (state is SuccessfulWeatherPrediction) {
       final listOfLocations = state.config.legend.map((legendElem) => legendElem.isYourCoordinate ? "your location" : legendElem.location.name).toList();
-
+      assert(insightTypeMap.keys.toSet().containsAll(InsightType.values));
       return [
         ..._buildWeatherWarningInsight(
           state.insights.insightsByLocation,
-          {
-            InsightType.lightRain: ("Light rain", Symbols.rainy_light),
-            InsightType.mediumRain: ("Medium rain", Symbols.rainy_heavy),
-            InsightType.heavyRain: ("Heavy rain", Symbols.rainy_heavy),
-            InsightType.slippery: ("Slippery", Symbols.do_not_step),
-            InsightType.sweaty: ("Sweaty", Icons.thermostat),
-            InsightType.uncomfortablyHumid: ("Uncomfortably humid", Symbols.humidity_mid),
-            InsightType.coolMist: ("Misty", Symbols.mist),
-            InsightType.boiling: ("Boiling hot", Symbols.emergency_heat),
-            InsightType.freezing: ("Freezing cold", Icons.severe_cold),
-            InsightType.sunny: ("Sunny", Icons.brightness_high),
-            InsightType.breezy: ("Breezy", Icons.air),
-            InsightType.windy: ("Windy", Icons.air),
-            InsightType.galey: ("Gale-y", Icons.storm),
-          },
+          insightTypeMap,
           listOfLocations,
           dateTimesForEachHour,
           state.config.hoursToLookAhead,

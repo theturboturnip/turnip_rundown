@@ -52,6 +52,8 @@ class OpenMeteoHourlyDatapoints {
     required this.precipitation,
     required this.windspeed,
     required this.directRadiation,
+    required this.snowfall,
+    required this.cloudCover,
   });
 
   @JsonKey(name: "time")
@@ -70,6 +72,10 @@ class OpenMeteoHourlyDatapoints {
   final List<double> windspeed;
   @JsonKey(name: "direct_radiation_instant")
   final List<double> directRadiation;
+  @JsonKey(name: "snowfall")
+  final List<double> snowfall;
+  @JsonKey(name: "cloud_cover")
+  final List<double> cloudCover;
 
   factory OpenMeteoHourlyDatapoints.fromJson(Map<String, dynamic> json) => _$OpenMeteoHourlyDatapointsFromJson(json);
 
@@ -157,7 +163,7 @@ class OpenMeteoWeatherRepository extends WeatherRepository {
           "latitude": coords.lat.toString(),
           "longitude": coords.long.toString(),
           if (coords.elevation != null) "elevation": coords.elevation.toString(),
-          "hourly": "temperature_2m,relative_humidity_2m,dew_point_2m,precipitation_probability,precipitation,wind_speed_10m,direct_radiation_instant",
+          "hourly": "temperature_2m,relative_humidity_2m,dew_point_2m,precipitation_probability,precipitation,wind_speed_10m,direct_radiation_instant,snowfall,cloud_cover",
           "temperature_unit": "celsius",
           "wind_speed_unit": "kmh",
           "precipitation_unit": "mm",
@@ -214,6 +220,18 @@ class OpenMeteoWeatherRepository extends WeatherRepository {
         expected: SolarRadiation.wPerM2,
       ),
     );
+    final snowfall_3day = response.hourly.snowfall.toDataSeries(
+      lengthUnitFromOpenMeteo(
+        response.hourly_units["snowfall"],
+        expected: Length.cm,
+      ),
+    );
+    final cloudCover_3day = response.hourly.cloudCover.toDataSeries(
+      percentUnitFromOpenMeteo(
+        response.hourly_units["cloud_cover"],
+        expected: Percent.outOf100,
+      ),
+    );
     final wetBulb_3day = estimateWetBulbGlobeTemps(
       dryBulbTemp: temperature_3day,
       windspeed: windspeed_3day,
@@ -244,6 +262,9 @@ class OpenMeteoWeatherRepository extends WeatherRepository {
       estimatedWetBulbGlobeTemp: wetBulb_3day.slice(indexInTimeSeriesForRightNow, indexInTimeSeriesForRightNow + 23),
       windspeed: windspeed_3day.slice(indexInTimeSeriesForRightNow, indexInTimeSeriesForRightNow + 23),
       relHumidity: relHumidity_3day.slice(indexInTimeSeriesForRightNow, indexInTimeSeriesForRightNow + 23),
+      directRadiation: directRadiation_3day.slice(indexInTimeSeriesForRightNow, indexInTimeSeriesForRightNow + 23),
+      snowfall: snowfall_3day.slice(indexInTimeSeriesForRightNow, indexInTimeSeriesForRightNow + 23),
+      cloudCover: cloudCover_3day.slice(indexInTimeSeriesForRightNow, indexInTimeSeriesForRightNow + 23),
     );
   }
 }

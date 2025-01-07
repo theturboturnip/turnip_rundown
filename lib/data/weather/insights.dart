@@ -5,8 +5,6 @@ import 'package:turnip_rundown/data/weather/model.dart';
 
 part 'insights.g.dart';
 
-// TODO distinguish rain from snow
-
 @JsonSerializable()
 class WeatherInsightConfig {
   const WeatherInsightConfig({
@@ -96,6 +94,7 @@ class WeatherInsightConfig {
 
 class ActiveHours {
   ActiveHours(this._hours);
+  ActiveHours.empty() : _hours = {};
 
   final Set<int> _hours;
 
@@ -109,6 +108,8 @@ class ActiveHours {
   void add(int hour) {
     _hours.add(hour);
   }
+
+  bool contains(int hour) => _hours.contains(hour);
 
   List<(int, int)> get asRanges {
     // From a set of numbers, starting from the lowest number find all contiguous ranges of numbers in the set
@@ -140,16 +141,21 @@ enum InsightType {
   // slippery
   slippery,
 
+  // snowy
+  // TODO heavySnow?
+  snow,
+  // TODO hail,
+
   // Humidity
   sweaty,
   uncomfortablyHumid,
-  coolMist,
+  coolMist, // TODO this isn't really relevant
 
   // General temperature
   boiling,
   freezing,
 
-  // TODO replace this with a separate "is-sunny" boolean?
+  // TODO replace this with a separate "is-sunny" boolean? exact time ranges matter less?
   sunny,
 
   // wind
@@ -215,14 +221,27 @@ final class WeatherInsights {
         for (int hour = 0; hour < maxLookahead; hour++) {
           int indexForRainfallMM = hour + weather.precipitationUpToNow.length;
 
+          // TODO MAKE THIS CONFIGURABLE
+          const boilingMinTempC = 20;
+          const freezingMaxTempC = 5;
+          const minSunnyDirectRadidationWm2 = 650;
+          const maxSunnyCloudCoverOutOf100 = 50;
+          const minSnowySnowfallMM = 10;
+
           // rain
           final currentPrecipitationMM = allRainfallMMIncludingPast[indexForRainfallMM];
-          if (currentPrecipitationMM > config.heavyRainThreshold.valueAs(Length.mm)) {
-            insights[InsightType.heavyRain]!.add(hour);
-          } else if (currentPrecipitationMM > config.mediumRainThreshold.valueAs(Length.mm)) {
-            insights[InsightType.mediumRain]!.add(hour);
-          } else if (currentPrecipitationMM > 0) {
-            insights[InsightType.lightRain]!.add(hour);
+          final currentSnowMM = weather.snowfall[hour].valueAs(Length.mm);
+          if (currentSnowMM > minSnowySnowfallMM) {
+            insights[InsightType.snow]!.add(hour);
+          }
+          if (currentPrecipitationMM > currentSnowMM) {
+            if (currentPrecipitationMM > config.heavyRainThreshold.valueAs(Length.mm)) {
+              insights[InsightType.heavyRain]!.add(hour);
+            } else if (currentPrecipitationMM > config.mediumRainThreshold.valueAs(Length.mm)) {
+              insights[InsightType.mediumRain]!.add(hour);
+            } else if (currentPrecipitationMM > 0) {
+              insights[InsightType.lightRain]!.add(hour);
+            }
           }
 
           // slippery
@@ -235,16 +254,24 @@ final class WeatherInsights {
             insights[InsightType.slippery]!.add(hour);
           }
 
+          // // hail
+          // TODO can't reliably retrieve hail from weather? it works if we specify a UK models but returns null if we just specify a location *in* the UK.
+          // if (weather.hail != null) {
+          //   if (weather.hail![hour].valueAs(Length.mm) > 0.000001) {
+          //     insights[InsightType.hail]!.add(hour);
+          //   }
+          // }
+
+          late final double tempC;
+          if (config.useEstimatedWetBulbTemp) {
+            tempC = weather.estimatedWetBulbGlobeTemp[hour].valueAs(Temp.celsius);
+          } else {
+            tempC = weather.dryBulbTemp[hour].valueAs(Temp.celsius);
+          }
+
           // humidity
           {
             if (weather.relHumidity[hour].valueAs(Percent.outOf100) > config.highHumidityThreshold.valueAs(Percent.outOf100)) {
-              late final double tempC;
-              if (config.useEstimatedWetBulbTemp) {
-                tempC = weather.estimatedWetBulbGlobeTemp[hour].valueAs(Temp.celsius);
-              } else {
-                tempC = weather.dryBulbTemp[hour].valueAs(Temp.celsius);
-              }
-
               if (tempC > config.minTemperatureForHighHumiditySweat.valueAs(Temp.celsius)) {
                 insights[InsightType.sweaty]!.add(hour);
               } else if (tempC > config.maxTemperatureForHighHumidityMist.valueAs(Temp.celsius)) {
@@ -255,7 +282,21 @@ final class WeatherInsights {
             }
           }
 
-          // TODO boiling, freezing, sunny
+          // If it's over the min boiling temp, put a boiling warning.
+          // TODO If sweaty entirely implies boiling, and it is sweaty, don't bother?
+          if (tempC > boilingMinTempC) {
+            insights[InsightType.boiling]!.add(hour);
+          }
+          // If it's under the min freezing temp, put a freezing warning
+          if (tempC < freezingMaxTempC) {
+            insights[InsightType.freezing]!.add(hour);
+          }
+
+          // >650W/m2 with <50% cloud cover
+          if (weather.directRadiation[hour].valueAs(SolarRadiation.wPerM2) >= minSunnyDirectRadidationWm2 &&
+              weather.cloudCover[hour].valueAs(Percent.outOf100) < maxSunnyCloudCoverOutOf100) {
+            insights[InsightType.sunny]!.add(hour);
+          }
 
           // wind
           final windSpeedMph = weather.windspeed[hour].valueAs(Speed.milesPerHour);
