@@ -3,8 +3,9 @@ set windows-shell := ["powershell.exe", "-NoLogo", "-Command"]
 default:
     @just --list
 
-setup-web:
-    dart run sqflite_common_ffi_web:setup
+# We don't use SQlite on the web anymore
+# setup-web:
+#     dart run sqflite_common_ffi_web:setup
 
 # Always use the same port so that we keep the same cache
 dbg-web:
