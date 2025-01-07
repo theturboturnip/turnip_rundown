@@ -314,6 +314,10 @@ class Data<TUnit extends Unit<TUnit>> extends Equatable {
   }
 
   TUnit get unit => _unit;
+
+  String toDisplayString() {
+    return "$_value${_unit.display}";
+  }
 }
 
 // 0-indexed series of data, all under one unit.
