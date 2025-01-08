@@ -2,11 +2,11 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:intl/intl.dart';
 import 'package:turnip_rundown/data/api_cache_repository.dart';
 import 'package:turnip_rundown/data/settings/repository.dart';
 import 'package:turnip_rundown/data/units.dart';
 import 'package:turnip_rundown/screens/settings/bloc.dart';
+import 'package:turnip_rundown/util.dart';
 
 class DataPickerWidget<T extends Unit<T>> extends StatefulWidget {
   const DataPickerWidget({super.key, required this.initial, required this.onChanged, this.textWidth = 60, this.unitWidth = 90});
@@ -200,7 +200,7 @@ class SettingsScreen extends StatelessWidget {
                     description: const Text(
                         "The time you typically wake up. When you open the app between your wake-up and bed times, it will automatically show you the weather for now til bedtime. Whole hours only, minutes are ignored."),
                     input: TextButton(
-                      child: Text(DateFormat.jm().format(DateTime(1970, 1, 1, state.wakingHours.start))),
+                      child: Text(jmLocalTime(DateTime(2000, 1, 1, state.wakingHours.start))),
                       onPressed: () async {
                         final selectedTime = await showTimePicker(context: context, initialTime: TimeOfDay(hour: state.wakingHours.start, minute: 0));
                         if (selectedTime != null && context.mounted) {
@@ -213,7 +213,7 @@ class SettingsScreen extends StatelessWidget {
                     title: const Text("Bedtime"),
                     description: const Text("The time you typically go to bed. Whole hours only, minutes are ignored."),
                     input: TextButton(
-                      child: Text(DateFormat.jm().format(DateTime(1970, 1, 1, state.wakingHours.end))),
+                      child: Text(jmLocalTime(DateTime(2000, 1, 1, state.wakingHours.end))),
                       onPressed: () async {
                         final selectedTime = await showTimePicker(context: context, initialTime: TimeOfDay(hour: state.wakingHours.end, minute: 0));
                         if (selectedTime != null && context.mounted) {

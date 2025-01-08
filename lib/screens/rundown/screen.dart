@@ -6,7 +6,6 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:intl/intl.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:turnip_rundown/data.dart';
 import 'package:turnip_rundown/data/geo/repository.dart';
@@ -16,6 +15,7 @@ import 'package:turnip_rundown/screens/rundown/location_list_bloc.dart';
 import 'package:turnip_rundown/screens/rundown/location_suggest_bloc.dart';
 import 'package:turnip_rundown/screens/rundown/weather_prediction_bloc.dart';
 import 'package:turnip_rundown/screens/settings/bloc.dart';
+import 'package:turnip_rundown/util.dart';
 
 Color nthWeatherResultColor(int index) {
   const colors = [
@@ -203,7 +203,7 @@ class RundownScreen extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 10.0),
               child: Text(
                 (hoursLookaheadState.lockedUtcLookaheadTo != null)
-                    ? "from now to ${DateFormat.jm().format(hoursLookaheadState.lockedUtcLookaheadTo!)}"
+                    ? "from now to ${jmLocalTime(hoursLookaheadState.lockedUtcLookaheadTo!)}"
                     : _renderTimeRange((0, currentNumLookaheadHours - 1), dateTimesForEachHour),
                 style: const TextStyle(fontWeight: FontWeight.bold),
                 // The plan:
@@ -531,9 +531,9 @@ class RundownScreen extends StatelessWidget {
     // e.g. (1, 2) is the two-hour range for (the hour starting at 1) and (the hour starting at 2)
     // therefore is actually 1AM-3AM
     if (range.$1 == 0) {
-      return "from now to ${DateFormat.jm().format(dateTimesForEachHour[range.$2 + 1])}";
+      return "from now to ${jmLocalTime(dateTimesForEachHour[range.$2 + 1])}";
     }
-    return "${DateFormat.jm().format(dateTimesForEachHour[range.$1])}-${DateFormat.jm().format(dateTimesForEachHour[range.$2 + 1])}";
+    return "${jmLocalTime(dateTimesForEachHour[range.$1])}-${jmLocalTime(dateTimesForEachHour[range.$2 + 1])}";
     // }
   }
 
@@ -712,7 +712,7 @@ class RundownScreen extends StatelessWidget {
                   return SideTitleWidget(
                     axisSide: meta.axisSide,
                     child: Text(
-                      DateFormat.jm().format(
+                      jmLocalTime(
                         dateTimesForEachHour[hour].add(
                           Duration(
                             seconds: (3600 * remainder).round(),
@@ -741,7 +741,7 @@ class RundownScreen extends StatelessWidget {
 
                 final hour = spot.x.floor();
                 final remainder = spot.x - hour;
-                final dateTimeForPoint = DateFormat.jm().format(
+                final dateTimeForPoint = jmLocalTime(
                   dateTimesForEachHour[hour].add(
                     Duration(
                       seconds: (3600 * remainder).round(),

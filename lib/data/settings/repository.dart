@@ -71,9 +71,9 @@ class WakingHours {
           // => lookahead for the *next* day i.e. until the end time
           return end - currentHourLocalTime;
         }
-      } else if (currentHourLocalTime <= end) {
+      } else if (currentHourLocalTime < end) {
         // we're in the mid-time, make the weather prediction look ahead until the end hour
-        return end - currentHourLocalTime;
+        return (end - currentHourLocalTime) + 1;
       } else {
         // we're in the post-end time
         if ((currentHourLocalTime - end) <= hoursAsleep / 2) {
@@ -94,7 +94,7 @@ class WakingHours {
         // we're awake, at the start of the day
         // => lookahead until the end of the day
         return end + 24 - currentHourLocalTime;
-      } else if (currentHourLocalTime <= end) {
+      } else if (currentHourLocalTime < end) {
         // we're awake, before the end of the day
         // => lookahead until the end of the day
         return end - currentHourLocalTime;
