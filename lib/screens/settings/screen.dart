@@ -9,8 +9,68 @@ import 'package:turnip_rundown/data/weather/met/repository.dart';
 import 'package:turnip_rundown/screens/settings/bloc.dart';
 import 'package:turnip_rundown/util.dart';
 
+// Interface to a single-selection-of-list widget.
+// Can be backed by a segmented button or a dropdown menu.
+class SimpleDataSelectorWidget<T> extends StatelessWidget {
+  final T selected;
+  final List<DropdownMenuEntry<T>> entries;
+  final void Function(T) onSelected;
+  final bool useSegmentedButton;
+
+  const SimpleDataSelectorWidget({
+    super.key,
+    required this.selected,
+    required this.entries,
+    required this.onSelected,
+    this.useSegmentedButton = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (useSegmentedButton) {
+      return SegmentedButton<T>(
+        segments: entries
+            .map(
+              (entry) => ButtonSegment(
+                value: entry.value,
+                label: Text(entry.label),
+                enabled: entry.enabled,
+              ),
+            )
+            .toList(),
+        selected: {selected},
+        emptySelectionAllowed: false,
+        multiSelectionEnabled: false,
+        onSelectionChanged: (selected) {
+          assert(selected.length == 1);
+          onSelected(selected.first);
+        },
+      );
+    } else {
+      return DropdownMenu<T>(
+        dropdownMenuEntries: entries,
+        initialSelection: selected,
+        enableSearch: false,
+        enableFilter: false,
+        textAlign: TextAlign.end,
+        onSelected: (t) {
+          if (t != null) {
+            onSelected(t);
+          }
+        },
+      );
+    }
+  }
+}
+
 class DataPickerWidget<T extends Unit<T>> extends StatefulWidget {
-  const DataPickerWidget({super.key, required this.initial, required this.onChanged, this.textWidth = 60, this.unitWidth = 90});
+  const DataPickerWidget({
+    super.key,
+    required this.initial,
+    required this.onChanged,
+    this.textWidth = 60,
+    this.unitWidth = 90,
+  });
 
   final Data<T> initial;
   final void Function(Data<T>) onChanged;
@@ -83,8 +143,14 @@ class DataPickerWidgetState<T extends Unit<T>> extends State<DataPickerWidget<T>
               });
             }
           },
-          inputDecorationTheme: const InputDecorationTheme(
+          inputDecorationTheme: InputDecorationTheme(
             isDense: true,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+            constraints: BoxConstraints.tight(const Size.fromHeight(48)),
+
+            // border: OutlineInputBorder(
+            //   borderRadius: BorderRadius.circular(8),
+            // ),
           ),
         ),
       ],
@@ -109,12 +175,70 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 
-  Widget _settingsTile({required Widget title, Widget? description, required Widget input}) {
-    return ListTile(
-      title: title,
-      subtitle: description,
-      trailing: input,
+  Widget _settingsTile(BuildContext context, {required Widget title, Widget? description, required Widget input}) {
+    // if (description == null) {
+    //   return ListTile(
+    //     title: title,
+    //     trailing: input,
+    //     minTileHeight: 70,
+    //   );
+    // } else {
+    // return ListTile(
+    //   title: title,
+    //   trailing: input,
+    //   minTileHeight: 70,
+    // );
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: 16,
+        vertical: 8,
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                DefaultTextStyle(
+                  style: Theme.of(context).textTheme.bodyLarge!,
+                  textAlign: TextAlign.start,
+                  child: title,
+                ),
+                if (description != null) description,
+              ],
+            ),
+          ),
+          // IconButton(onPressed: () {}, icon: Icon(Icons.info_outline)),
+          SizedBox(
+            width: 200,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [input],
+            ),
+          ),
+        ],
+      ),
     );
+    //   return ExpansionTile(
+    //     // title: Row(
+    //     //   children: [
+    //     //     title,
+    //     //     const Spacer(),
+    //     //     SizedBox(
+    //     //       width: 160,
+    //     //       height: null,
+    //     //       child: input,
+    //     //     ),
+    //     //   ],
+    //     // ),
+    //     title: title,
+    //     trailing: input,
+    //     controlAffinity: ListTileControlAffinity.leading,
+    //     minTileHeight: 70,
+    //     children: [description],
+    //   );
+    // }
   }
 
   Widget _settingsButton({required Widget child, required void Function() onPressed}) {
@@ -145,58 +269,60 @@ class SettingsScreen extends StatelessWidget {
                 children: [
                   _settingsHeader("Weather Backend"),
                   _settingsTile(
+                    context,
                     title: const Text("Backend"),
                     description: const Text("The backend for weather data. Met Office may not be available on specific platforms."),
-                    input: SegmentedButton<RequestedWeatherBackend>(
-                      segments: [
-                        const ButtonSegment(value: RequestedWeatherBackend.openmeteo, label: Text("Openmeteo")),
-                        ButtonSegment(value: RequestedWeatherBackend.met, label: const Text("Met Office"), enabled: metOfficeApiKey.isNotEmpty),
+                    input: SimpleDataSelectorWidget<RequestedWeatherBackend>(
+                      selected: state.backend,
+                      entries: [
+                        const DropdownMenuEntry(
+                          value: RequestedWeatherBackend.openmeteo,
+                          label: "Openmeteo",
+                        ),
+                        DropdownMenuEntry(
+                          value: RequestedWeatherBackend.met,
+                          label: "Met Office",
+                          enabled: metOfficeApiKey.isNotEmpty,
+                        ),
                       ],
-                      selected: {state.backend},
-                      emptySelectionAllowed: false,
-                      multiSelectionEnabled: false,
-                      onSelectionChanged: (selected) {
-                        assert(selected.length == 1);
-                        context.read<SettingsBloc>().add(SettingsEvent(backend: selected.first));
+                      onSelected: (backend) {
+                        context.read<SettingsBloc>().add(SettingsEvent(backend: backend));
                       },
                     ),
                   ),
+
                   _settingsHeader("Display Units"),
                   _settingsTile(
+                    context,
                     title: const Text("Temperature"),
-                    input: SegmentedButton<TempDisplay>(
-                      segments: const [
-                        ButtonSegment(value: TempDisplay.celsius, label: Text("°C")),
-                        ButtonSegment(value: TempDisplay.both, label: Text("Both")),
-                        ButtonSegment(value: TempDisplay.farenheit, label: Text("°F")),
+                    input: SimpleDataSelectorWidget(
+                      selected: state.temperatureUnit,
+                      entries: const [
+                        DropdownMenuEntry(value: TempDisplay.celsius, label: "°C"),
+                        DropdownMenuEntry(value: TempDisplay.farenheit, label: "°F"),
+                        DropdownMenuEntry(value: TempDisplay.both, label: "°C and °F"),
                       ],
-                      selected: {state.temperatureUnit},
-                      emptySelectionAllowed: false,
-                      multiSelectionEnabled: false,
-                      onSelectionChanged: (selected) {
-                        assert(selected.length == 1);
-                        context.read<SettingsBloc>().add(SettingsEvent(temperatureUnit: selected.first));
+                      onSelected: (s) {
+                        context.read<SettingsBloc>().add(SettingsEvent(temperatureUnit: s));
                       },
                     ),
                   ),
                   _settingsTile(
+                    context,
                     title: const Text("Rainfall"),
-                    input: SegmentedButton<Rainfall>(
-                      segments: const [
-                        ButtonSegment(value: Rainfall.mm, label: Text("mm")),
-                        ButtonSegment(value: Rainfall.inch, label: Text("in")),
+                    input: SimpleDataSelectorWidget(
+                      selected: state.rainfallUnit,
+                      entries: const [
+                        DropdownMenuEntry(value: Rainfall.mm, label: "mm"),
+                        DropdownMenuEntry(value: Rainfall.inch, label: "in"),
                       ],
-                      selected: {state.rainfallUnit},
-                      emptySelectionAllowed: false,
-                      multiSelectionEnabled: false,
-                      onSelectionChanged: (selected) {
-                        assert(selected.length == 1);
-                        context.read<SettingsBloc>().add(SettingsEvent(rainfallUnit: selected.first));
+                      onSelected: (s) {
+                        context.read<SettingsBloc>().add(SettingsEvent(rainfallUnit: s));
                       },
                     ),
                   ),
                   // TODO windspeed display unit
-                  // _settingsTile(
+                  // _settingsTile(context,
                   //   title: const Text("Windspeed"),
                   //   input: SegmentedButton<Speed>(
                   //     segments: const [
@@ -215,6 +341,7 @@ class SettingsScreen extends StatelessWidget {
                   // ),
                   _settingsHeader("Waking Hours"),
                   _settingsTile(
+                    context,
                     title: const Text("Wake-Up Time"),
                     description: const Text(
                         "The time you typically wake up. When you open the app between your wake-up and bed times, it will automatically show you the weather for now til bedtime. Whole hours only, minutes are ignored."),
@@ -229,6 +356,7 @@ class SettingsScreen extends StatelessWidget {
                     ),
                   ),
                   _settingsTile(
+                    context,
                     title: const Text("Bedtime"),
                     description: const Text("The time you typically go to bed. Whole hours only, minutes are ignored."),
                     input: TextButton(
@@ -243,6 +371,7 @@ class SettingsScreen extends StatelessWidget {
                   ),
                   _settingsHeader("Insight Parameters"),
                   _settingsTile(
+                    context,
                     title: const Text("Use Estimated Wet Bulb Temperature"),
                     description: const Text(
                       "Wet Bulb Temperature is a better approximation of how it feels outside. When enabled, the main display and insights will display this temperature.",
@@ -255,6 +384,7 @@ class SettingsScreen extends StatelessWidget {
                     ),
                   ),
                   _settingsTile(
+                    context,
                     title: const Text("Slippery - Recent Rainfall Threshold"),
                     description: Text("If rainfall over the last ${state.weatherConfig.numberOfHoursPriorRainThreshold} hours is higher than this, show a Slippery insight."),
                     input: DataPickerWidget(
@@ -265,6 +395,7 @@ class SettingsScreen extends StatelessWidget {
                     ),
                   ),
                   _settingsTile(
+                    context,
                     title: const Text("Slippery - Definition of Recent"),
                     description: const Text("Rainfall this many hours ago will be counted towards the Slippery insight total."),
                     input: Row(
@@ -298,6 +429,7 @@ class SettingsScreen extends StatelessWidget {
                     ),
                   ),
                   _settingsTile(
+                    context,
                     title: const Text("Rain Chance Threshold"),
                     description: const Text("If the chance of rain is higher than this, show a Light/Medium/Heavy Rain insight."),
                     input: DataPickerWidget(
@@ -308,6 +440,7 @@ class SettingsScreen extends StatelessWidget {
                     ),
                   ),
                   _settingsTile(
+                    context,
                     title: const Text("Rain Threshold - Medium"),
                     description: const Text("Predicted rainfall above this value shows a Medium Rain insight, and Light Rain otherwise."),
                     input: DataPickerWidget(
@@ -318,6 +451,7 @@ class SettingsScreen extends StatelessWidget {
                     ),
                   ),
                   _settingsTile(
+                    context,
                     title: const Text("Rain Threshold - Heavy"),
                     description: const Text("Predicted rainfall below this value shows a Heavy Rain insight."),
                     input: DataPickerWidget(
@@ -328,6 +462,7 @@ class SettingsScreen extends StatelessWidget {
                     ),
                   ),
                   _settingsTile(
+                    context,
                     title: const Text("High Humidity Threshold"),
                     description: const Text(
                       "Humidity higher than this is counted as 'high', showing a Uncomfortable or Sweaty insight.",
@@ -340,6 +475,7 @@ class SettingsScreen extends StatelessWidget {
                     ),
                   ),
                   _settingsTile(
+                    context,
                     title: const Text("High Humidity Temperature Threshold"),
                     description: const Text("High humidity insights require the temperature to be above this."),
                     input: DataPickerWidget(
@@ -350,6 +486,7 @@ class SettingsScreen extends StatelessWidget {
                     ),
                   ),
                   _settingsTile(
+                    context,
                     title: const Text("High Humidity Threshold - Sweat"),
                     description: const Text(
                       "At high humidity, any temperatures above this show a Sweaty insight. Temperatures between Misty and Sweaty show an Uncomfortable insight.",
@@ -362,6 +499,7 @@ class SettingsScreen extends StatelessWidget {
                     ),
                   ),
                   _settingsTile(
+                    context,
                     title: const Text("Windspeed - Breezy"),
                     description: const Text("Any wind faster than this will show a Breezy insight. Wind slower than this will be ignored."),
                     input: DataPickerWidget(
@@ -372,6 +510,7 @@ class SettingsScreen extends StatelessWidget {
                     ),
                   ),
                   _settingsTile(
+                    context,
                     title: const Text("Windspeed - Windy"),
                     description: const Text("Any wind faster than this will show a Windy insight."),
                     input: DataPickerWidget(
@@ -382,6 +521,7 @@ class SettingsScreen extends StatelessWidget {
                     ),
                   ),
                   _settingsTile(
+                    context,
                     title: const Text("Windspeed - Gale"),
                     description: const Text("Any wind faster than this will show a Gale-y insight."),
                     input: DataPickerWidget(
