@@ -69,7 +69,7 @@ class DataPickerWidget<T extends Unit<T>> extends StatefulWidget {
     required this.initial,
     required this.onChanged,
     this.textWidth = 60,
-    this.unitWidth = 90,
+    this.unitWidth = 100,
   });
 
   final Data<T> initial;
