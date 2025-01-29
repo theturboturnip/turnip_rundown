@@ -36,6 +36,8 @@ class WeatherInsightConfig {
   final Data<Rainfall> heavyRainThreshold;
 
   final Data<Percent> highHumidityThreshold;
+  // We used to have a "cool mist" insight for (low temp + high humidity) that was quite inaccurate.
+  // Now we got rid of that and this insight is really the minimum temperature for humidity to be relevant.
   final Data<Temp> maxTemperatureForHighHumidityMist;
   final Data<Temp> minTemperatureForHighHumiditySweat;
 
@@ -153,7 +155,7 @@ enum InsightType {
   // Humidity
   sweaty,
   uncomfortablyHumid,
-  coolMist, // TODO this isn't really relevant
+  // coolMist, // TODO this isn't really relevant. replace with low vis?
 
   // General temperature
   boiling,
@@ -280,8 +282,6 @@ final class WeatherInsights {
                 insights[InsightType.sweaty]!.add(hour);
               } else if (tempC > config.maxTemperatureForHighHumidityMist.valueAs(Temp.celsius)) {
                 insights[InsightType.uncomfortablyHumid]!.add(hour);
-              } else {
-                insights[InsightType.coolMist]!.add(hour);
               }
             }
           }

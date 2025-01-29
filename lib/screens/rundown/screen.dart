@@ -601,7 +601,7 @@ class RundownScreen extends StatelessWidget {
     InsightType.slippery: ("Slippery", Symbols.do_not_step),
     InsightType.sweaty: ("Sweaty", Icons.thermostat),
     InsightType.uncomfortablyHumid: ("Uncomfortably humid", Symbols.humidity_mid),
-    InsightType.coolMist: ("Misty", Symbols.mist),
+    // InsightType.coolMist: ("Misty", Symbols.mist),
     InsightType.boiling: ("Boiling hot", Symbols.emergency_heat),
     InsightType.freezing: ("Freezing cold", Icons.severe_cold),
     InsightType.sunny: ("Sunny", Icons.brightness_high),
