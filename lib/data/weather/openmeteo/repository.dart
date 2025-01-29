@@ -173,6 +173,7 @@ class OpenMeteoWeatherRepository extends WeatherRepository {
           "forecast_days": "2",
         },
       ),
+      headers: {},
       forceRefreshCache: forceRefreshCache,
     );
     final response = OpenMeteoHourlyRequest.fromJson(jsonDecode(responseStr));
@@ -273,16 +274,23 @@ DataSeries<Temp> estimateWetBulbGlobeTemps({
   required DataSeries<Temp> dryBulbTemp,
   required DataSeries<Speed> windspeed,
   required DataSeries<Percent> relHumidity,
-  required DataSeries<Temp> dewPointTemp,
-  required DataSeries<SolarRadiation> solarRadiation,
+  required DataSeries<Temp>? dewPointTemp,
+  required DataSeries<SolarRadiation>? solarRadiation,
 }) {
-  return IterableZip([dryBulbTemp.datas(), windspeed.datas(), relHumidity.datas(), dewPointTemp.datas(), solarRadiation.datas()]).map((datas) {
+  final length = dryBulbTemp.length;
+  return IterableZip([
+    dryBulbTemp.datas(),
+    windspeed.datas(),
+    relHumidity.datas(),
+    dewPointTemp?.datas() ?? Iterable.generate(length, (i) => null),
+    solarRadiation?.datas() ?? Iterable.generate(length, (i) => null),
+  ]).map((datas) {
     return estimateWetBulbGlobeTemp(
       dryBulbTemp: datas[0] as Data<Temp>,
       windspeed: datas[1] as Data<Speed>,
       relHumidity: datas[2] as Data<Percent>,
-      dewPointTemp: datas[3] as Data<Temp>,
-      solarRadiation: datas[4] as Data<SolarRadiation>,
+      dewPointTemp: datas[3] as Data<Temp>?,
+      solarRadiation: datas[4] as Data<SolarRadiation>?,
     );
   }).toDataSeries(Temp.celsius);
 }

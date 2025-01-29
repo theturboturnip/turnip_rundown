@@ -8,11 +8,11 @@ import 'package:turnip_rundown/data/settings/repository.dart';
 class UncachedApiCacheRepository implements ApiCacheRepository {
   // The Future will emit a [ClientException] if http fails
   @override
-  Future<String> makeHttpRequest(Uri uri, {bool forceRefreshCache = false, Duration timeout = const Duration(minutes: 15)}) async {
+  Future<String> makeHttpRequest(Uri uri, {Map<String, String>? headers, bool forceRefreshCache = false, Duration timeout = const Duration(minutes: 15)}) async {
     print("doing HTTP request $uri");
 
     // We don't cache anything :)
-    final response = await http.read(uri);
+    final response = await http.read(uri, headers: headers);
 
     return response;
   }

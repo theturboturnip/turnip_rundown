@@ -55,6 +55,7 @@ dependencies:
   intl: ^0.20.1
   material_symbols_icons: ^4.2801.0
   shared_preferences: ^2.3.4
+  geojson_vi: ^2.2.5
 
 dev_dependencies:
   flutter_test:

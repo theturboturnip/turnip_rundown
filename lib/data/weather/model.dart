@@ -26,6 +26,7 @@ class CurrentWeather {
   final Data<Percent> relHumidity;
 }
 
+// A set of data series up to N hours from "now", and from M previous hours up to "now".
 class HourlyPredictedWeather {
   const HourlyPredictedWeather({
     required this.precipitationUpToNow,
@@ -51,9 +52,11 @@ class HourlyPredictedWeather {
   final DataSeries<Temp> estimatedWetBulbGlobeTemp;
   final DataSeries<Speed> windspeed;
   final DataSeries<Percent> relHumidity;
-  final DataSeries<SolarRadiation> directRadiation;
   final DataSeries<Length> snowfall;
-  final DataSeries<Percent> cloudCover;
+  // These aren't available everywhere, so make them nullable.
+  // TODO allow backend-specific Sunny detection
+  final DataSeries<SolarRadiation>? directRadiation;
+  final DataSeries<Percent>? cloudCover;
 }
 
 /// Wet-bulb-globe-temp estimation based on

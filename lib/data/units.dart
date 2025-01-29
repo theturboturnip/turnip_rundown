@@ -328,6 +328,7 @@ class DataSeries<TUnit extends Unit<TUnit>> {
   final List<double> _values;
   final TUnit _unit;
 
+  TUnit get unit => _unit;
   int get length => _values.length;
 
   Iterable<Data<TUnit>> datas() {

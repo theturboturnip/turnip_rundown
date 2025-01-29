@@ -50,9 +50,9 @@ class SqfliteApiCacheAndSettingsRepository implements ApiCacheRepository, Settin
     return repo;
   }
 
-  // The Future will emit a [ClientException] if http fails
+  // The Future will emit a [ClientException] if http fails.
   @override
-  Future<String> makeHttpRequest(Uri uri, {bool forceRefreshCache = false, Duration timeout = const Duration(minutes: 15)}) async {
+  Future<String> makeHttpRequest(Uri uri, {Map<String, String>? headers, bool forceRefreshCache = false, Duration timeout = const Duration(minutes: 15)}) async {
     final timestamp = DateTime.timestamp();
     if (!forceRefreshCache) {
       final cachedApiResponse = (await db.query(
@@ -81,7 +81,7 @@ class SqfliteApiCacheAndSettingsRepository implements ApiCacheRepository, Settin
     print("doing HTTP request $uri");
 
     final timeoutAfter = timestamp.add(timeout);
-    final response = await http.read(uri);
+    final response = await http.read(uri, headers: headers);
 
     await db.rawInsert(
       "INSERT OR REPLACE INTO cache (uri, response, timeoutAfter) VALUES (?, ?, ?)",

@@ -5,6 +5,10 @@ import 'package:turnip_rundown/data/weather/model.dart';
 
 part 'insights.g.dart';
 
+// TODO gusty warnings using gust vs. basic wind
+// TODO use the significantWeatherCode from the MET
+// TODO remove mist
+
 @JsonSerializable()
 class WeatherInsightConfig {
   const WeatherInsightConfig({
@@ -293,9 +297,11 @@ final class WeatherInsights {
           }
 
           // >650W/m2 with <50% cloud cover
-          if (weather.directRadiation[hour].valueAs(SolarRadiation.wPerM2) >= minSunnyDirectRadidationWm2 &&
-              weather.cloudCover[hour].valueAs(Percent.outOf100) < maxSunnyCloudCoverOutOf100) {
-            insights[InsightType.sunny]!.add(hour);
+          if (weather.directRadiation != null && weather.cloudCover != null) {
+            if (weather.directRadiation![hour].valueAs(SolarRadiation.wPerM2) >= minSunnyDirectRadidationWm2 &&
+                weather.cloudCover![hour].valueAs(Percent.outOf100) < maxSunnyCloudCoverOutOf100) {
+              insights[InsightType.sunny]!.add(hour);
+            }
           }
 
           // wind
