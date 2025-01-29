@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:ui';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -14,6 +13,7 @@ import 'package:turnip_rundown/data/geo/repository.dart';
 import 'package:turnip_rundown/data/current_coordinate/repository.dart';
 import 'package:turnip_rundown/data/settings/repository.dart';
 import 'package:turnip_rundown/data/sqflite_repositories.dart';
+import 'package:turnip_rundown/data/weather/met/repository.dart';
 import 'package:turnip_rundown/data/weather/repository.dart';
 import 'package:turnip_rundown/data/web_repository.dart';
 import 'package:turnip_rundown/nav.dart';
@@ -41,6 +41,17 @@ void main() async {
       sqfliteFfiInit();
     }
 
+    late final String dbFolder;
+    if (Platform.isAndroid) {
+      dbFolder = await getDatabasesPath();
+    } else if (Platform.isIOS || Platform.isMacOS) {
+      dbFolder = (await getLibraryDirectory()).path;
+    } else if (kDebugMode) {
+      dbFolder = (await getTemporaryDirectory()).path;
+    } else {
+      dbFolder = (await getApplicationDocumentsDirectory()).path;
+    }
+
     // Create separate repositories in the relevant directories for different purposes.
     // The repositories will both be capable of storing the other kind of data,
     // they just won't.
@@ -50,7 +61,7 @@ void main() async {
     //   "turnip_rundown_cache.db",
     // ));
     cacheRepo = settingsRepo = await SqfliteApiCacheAndSettingsRepository.getRepository(join(
-      await (Platform.isAndroid ? getDatabasesPath() : getLibraryDirectory().toString()),
+      dbFolder,
       "turnip_rundown.db",
     ));
   }
@@ -75,9 +86,18 @@ class MyApp extends StatelessWidget {
         RepositoryProvider<SettingsRepository>(create: (context) => settingsRepo),
         RepositoryProvider<CurrentCoordinateRepository>(create: (context) => GeolocatorCurrentCoordinateRepository()),
         RepositoryProvider<WeatherRepository>(
-          create: (context) => OpenMeteoWeatherRepository(
-            cache: RepositoryProvider.of<ApiCacheRepository>(context),
-          ),
+          create: (context) {
+            final cache = RepositoryProvider.of<ApiCacheRepository>(context);
+            return SwitchWeatherRepository(
+              settings: settingsRepo,
+              repos: {
+                RequestedWeatherBackend.openmeteo: OpenMeteoWeatherRepository(
+                  cache: cache,
+                ),
+                RequestedWeatherBackend.met: MetOfficeRepository.load(cache),
+              },
+            );
+          },
         ),
         RepositoryProvider<GeocoderRepository>(
           create: (context) => PhotonGeocoderRepository(

@@ -456,6 +456,7 @@ class RundownScreen extends StatelessWidget {
           Speed.milesPerHour,
           dateTimesForEachHour,
           defaultMin: const Data(0, Speed.milesPerHour),
+          defaultMax: const Data(10, Speed.milesPerHour),
           hoursLookedAhead: state.config.hoursToLookAhead,
         ),
         if (!state.weathers.any((weather) => weather.directRadiation == null))
@@ -641,15 +642,16 @@ class RundownScreen extends StatelessWidget {
     List<DateTime> dateTimesForEachHour, {
     required int hoursLookedAhead,
     int? numDataPoints,
-    Data<TUnit>? defaultMin,
+    required Data<TUnit> defaultMin,
+    required Data<TUnit> defaultMax,
     Data<TUnit>? baseline,
-    Data<TUnit>? defaultMax,
     TUnit? otherUnit,
   }) {
     List<List<double>> dataPointss = datas.map((series) => series.valuesAs(asUnit).toList()).toList();
-    final (dataMin, dataMax) = dataPointss.flattened.minMax as (double, double);
-    final overallMin = (defaultMin == null) ? dataMin : min(dataMin, defaultMin.valueAs(asUnit));
-    final overallMax = (defaultMax == null) ? dataMax : max(dataMax, defaultMax.valueAs(asUnit));
+    final dataPointsFlat = dataPointss.flattened;
+    final (dataMin, dataMax) = dataPointsFlat.isEmpty ? (defaultMin.valueAs(asUnit), defaultMax.valueAs(asUnit)) : dataPointsFlat.minMax as (double, double);
+    final overallMin = min(dataMin, defaultMin.valueAs(asUnit));
+    final overallMax = max(dataMax, defaultMax.valueAs(asUnit));
 
     numDataPoints ??= (hoursLookedAhead >= 12) ? 24 : 12;
 

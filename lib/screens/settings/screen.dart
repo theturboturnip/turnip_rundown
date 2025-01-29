@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:turnip_rundown/data/api_cache_repository.dart';
 import 'package:turnip_rundown/data/settings/repository.dart';
 import 'package:turnip_rundown/data/units.dart';
+import 'package:turnip_rundown/data/weather/met/repository.dart';
 import 'package:turnip_rundown/screens/settings/bloc.dart';
 import 'package:turnip_rundown/util.dart';
 
@@ -138,10 +139,28 @@ class SettingsScreen extends StatelessWidget {
         return SafeArea(
           child: SingleChildScrollView(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  _settingsHeader("Weather Backend"),
+                  _settingsTile(
+                    title: const Text("Backend"),
+                    description: const Text("The backend for weather data. Met Office may not be available on specific platforms."),
+                    input: SegmentedButton<RequestedWeatherBackend>(
+                      segments: [
+                        const ButtonSegment(value: RequestedWeatherBackend.openmeteo, label: Text("Openmeteo")),
+                        ButtonSegment(value: RequestedWeatherBackend.met, label: const Text("Met Office"), enabled: metOfficeApiKey.isNotEmpty),
+                      ],
+                      selected: {state.backend},
+                      emptySelectionAllowed: false,
+                      multiSelectionEnabled: false,
+                      onSelectionChanged: (selected) {
+                        assert(selected.length == 1);
+                        context.read<SettingsBloc>().add(SettingsEvent(backend: selected.first));
+                      },
+                    ),
+                  ),
                   _settingsHeader("Display Units"),
                   _settingsTile(
                     title: const Text("Temperature"),

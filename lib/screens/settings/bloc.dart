@@ -8,6 +8,7 @@ final class SettingsEvent {
   SettingsEvent({
     this.temperatureUnit,
     this.rainfallUnit,
+    this.backend,
     this.useEstimatedWetBulbTemp,
     this.numberOfHoursPriorRainThreshold,
     this.priorRainThreshold,
@@ -44,6 +45,7 @@ final class SettingsEvent {
 
   final TempDisplay? temperatureUnit;
   final Rainfall? rainfallUnit;
+  final RequestedWeatherBackend? backend;
   final bool? useEstimatedWetBulbTemp;
   final int? numberOfHoursPriorRainThreshold;
   final Data<Rainfall>? priorRainThreshold;
@@ -63,6 +65,7 @@ final class SettingsEvent {
     return Settings(
       temperatureUnit: temperatureUnit ?? base.temperatureUnit,
       rainfallUnit: rainfallUnit ?? base.rainfallUnit,
+      backend: backend ?? base.backend,
       weatherConfig: base.weatherConfig.copyWith(
         useEstimatedWetBulbTemp: useEstimatedWetBulbTemp,
         numberOfHoursPriorRainThreshold: numberOfHoursPriorRainThreshold,
@@ -90,8 +93,11 @@ class SettingsBloc extends Bloc<SettingsEvent, Settings> {
     on<SettingsEvent>(
       (event, emit) async {
         final newState = event.copyOf(state);
-        emit(newState);
+        // Don't emit state until it's stored
+        // because repo.storeSettings also updates
+        // the repo.settings getter that some components use
         await repo.storeSettings(newState);
+        emit(newState);
       },
       transformer: sequential(),
     );

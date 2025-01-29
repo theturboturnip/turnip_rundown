@@ -209,6 +209,8 @@ class MetOfficeRepository extends WeatherRepository {
           "dataSource": "BD1",
           "latitude": coords.lat.toString(),
           "longitude": coords.long.toString(),
+          // TODO use this to reverse lookup location
+          // "includeLocationName": true,
         },
       ),
       headers: {

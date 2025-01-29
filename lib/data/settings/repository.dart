@@ -124,6 +124,11 @@ class WakingHours {
   }
 }
 
+enum RequestedWeatherBackend {
+  openmeteo,
+  met,
+}
+
 @JsonSerializable()
 class Settings {
   Settings({
@@ -131,6 +136,7 @@ class Settings {
     required this.rainfallUnit,
     required this.weatherConfig,
     required this.wakingHours,
+    required this.backend,
   });
 
   @JsonKey(defaultValue: TempDisplay.both)
@@ -145,6 +151,9 @@ class Settings {
 
   @JsonKey(defaultValue: WakingHours.initial)
   final WakingHours wakingHours;
+
+  @JsonKey(defaultValue: RequestedWeatherBackend.openmeteo) // TODO set the default to met when it's ready
+  final RequestedWeatherBackend backend;
 
   factory Settings.initial() => Settings.fromJson(jsonDecode("{}"));
 

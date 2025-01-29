@@ -31,6 +31,9 @@ Settings _$SettingsFromJson(Map<String, dynamic> json) => Settings(
       wakingHours: json['wakingHours'] == null
           ? WakingHours.initial()
           : WakingHours.fromJson(json['wakingHours'] as Map<String, dynamic>),
+      backend: $enumDecodeNullable(
+              _$RequestedWeatherBackendEnumMap, json['backend']) ??
+          RequestedWeatherBackend.openmeteo,
     );
 
 Map<String, dynamic> _$SettingsToJson(Settings instance) => <String, dynamic>{
@@ -38,6 +41,7 @@ Map<String, dynamic> _$SettingsToJson(Settings instance) => <String, dynamic>{
       'rainfallUnit': _$LengthEnumMap[instance.rainfallUnit]!,
       'weatherConfig': instance.weatherConfig,
       'wakingHours': instance.wakingHours,
+      'backend': _$RequestedWeatherBackendEnumMap[instance.backend]!,
     };
 
 const _$TempDisplayEnumMap = {
@@ -51,4 +55,9 @@ const _$LengthEnumMap = {
   Length.cm: 'cm',
   Length.mm: 'mm',
   Length.inch: 'inch',
+};
+
+const _$RequestedWeatherBackendEnumMap = {
+  RequestedWeatherBackend.openmeteo: 'openmeteo',
+  RequestedWeatherBackend.met: 'met',
 };
