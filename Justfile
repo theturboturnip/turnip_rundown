@@ -30,5 +30,5 @@ dbg-macos:
 rel-android:
     flutter run -d RZ8 --release --dart-define-from-file=api-keys-native.json
 
-run-build-runner:
+generate:
     dart run build_runner build
