@@ -540,7 +540,9 @@ class RundownScreen extends StatelessWidget {
     // e.g. (1, 2) is the two-hour range for (the hour starting at 1) and (the hour starting at 2)
     // therefore is actually 1AM-3AM
     if (range.$1 == 0) {
-      if (allowBareUntil) {
+      if (range.$2 + 1 == endOfRange) {
+        return "throughout";
+      } else if (allowBareUntil) {
         return "until ${jmLocalTime(dateTimesForEachHour[range.$2 + 1])}";
       } else {
         return "from now to ${jmLocalTime(dateTimesForEachHour[range.$2 + 1])}";
@@ -603,23 +605,21 @@ class RundownScreen extends StatelessWidget {
     }
 
     return groupedByWarning.entries
-        .map((entry) {
-          final warning = nameOfWarning[entry.key]!.$1;
-          final warningIcon = Icon(nameOfWarning[entry.key]!.$2);
-          return entry.value.entries.map((entry) {
-            final locationIndex = entry.key;
-            final locationHours = entry.value;
-            var title = "$warning ${listOfLocations.length > 1 ? "at ${listOfLocations[locationIndex]} " : ""}";
-            var subtitle = _renderActiveHours(
-              locationHours,
-              dateTimesForEachHour,
-              hoursLookedAhead,
-            );
-            return ListTile(leading: warningIcon, title: Text(title), subtitle: Text(subtitle));
-          });
-        })
+        .map((entry) => entry.value.entries.map((locationAndHours) => (entry.key, locationAndHours.key, locationAndHours.value)))
         .flattened
-        .toList();
+        .sorted((a, b) => a.$3.firstHour!.compareTo(b.$3.firstHour!))
+        .map((warningAndLocationAndHours) {
+      final warningData = nameOfWarning[warningAndLocationAndHours.$1]!;
+      final locationIndex = warningAndLocationAndHours.$2;
+      final locationHours = warningAndLocationAndHours.$3;
+      var title = "${warningData.$1} ${listOfLocations.length > 1 ? "at ${listOfLocations[locationIndex]} " : ""}";
+      var subtitle = _renderActiveHours(
+        locationHours,
+        dateTimesForEachHour,
+        hoursLookedAhead,
+      );
+      return ListTile(leading: Icon(warningData.$2), title: Text(title), subtitle: Text(subtitle));
+    }).toList();
   }
 
   static const insightTypeMap = {

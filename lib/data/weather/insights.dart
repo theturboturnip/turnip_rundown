@@ -112,6 +112,7 @@ class ActiveHours {
   bool get isNotEmpty => _hours.isNotEmpty;
 
   int get numActiveHours => _hours.length;
+  int? get firstHour => _hours.minOrNull;
 
   void add(int hour) {
     _hours.add(hour);
