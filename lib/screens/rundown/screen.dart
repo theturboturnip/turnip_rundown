@@ -203,8 +203,12 @@ class RundownScreen extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 10.0),
               child: Text(
                 (hoursLookaheadState.lockedUtcLookaheadTo != null)
-                    ? "from now to ${jmLocalTime(hoursLookaheadState.lockedUtcLookaheadTo!)}"
-                    : _renderTimeRange((0, currentNumLookaheadHours - 1), dateTimesForEachHour),
+                    ? "until ${jmLocalTime(hoursLookaheadState.lockedUtcLookaheadTo!)}"
+                    : _renderTimeRange(
+                        (0, currentNumLookaheadHours - 1),
+                        dateTimesForEachHour,
+                        allowBareUntil: true,
+                      ),
                 style: const TextStyle(fontWeight: FontWeight.bold),
                 // The plan:
                 // have a button which when pressed triggers an action IncrementPlannedHoursLookedAhead.
@@ -528,16 +532,24 @@ class RundownScreen extends StatelessWidget {
 
   String _renderTimeRange(
     (int, int) range,
-    List<DateTime> dateTimesForEachHour,
-  ) {
+    List<DateTime> dateTimesForEachHour, {
+    required bool allowBareUntil,
+    int? endOfRange,
+  }) {
     // The range should end at the end of hour = the start of the *next* hour
     // e.g. (1, 2) is the two-hour range for (the hour starting at 1) and (the hour starting at 2)
     // therefore is actually 1AM-3AM
     if (range.$1 == 0) {
-      return "from now to ${jmLocalTime(dateTimesForEachHour[range.$2 + 1])}";
+      if (allowBareUntil) {
+        return "until ${jmLocalTime(dateTimesForEachHour[range.$2 + 1])}";
+      } else {
+        return "from now to ${jmLocalTime(dateTimesForEachHour[range.$2 + 1])}";
+      }
+    }
+    if (range.$2 + 1 == endOfRange) {
+      return "from ${jmLocalTime(dateTimesForEachHour[range.$1])}";
     }
     return "${jmLocalTime(dateTimesForEachHour[range.$1])}-${jmLocalTime(dateTimesForEachHour[range.$2 + 1])}";
-    // }
   }
 
   String _renderActiveHours(
@@ -545,10 +557,26 @@ class RundownScreen extends StatelessWidget {
     List<DateTime> dateTimesForEachHour,
     int hoursLookedAhead,
   ) {
-    if (hours.numActiveHours > (hoursLookedAhead / 2)) {
+    if (hours.asRanges.length == 1) {
+      return _renderTimeRange(
+        hours.asRanges.first,
+        dateTimesForEachHour,
+        endOfRange: hoursLookedAhead,
+        allowBareUntil: true,
+      );
+    } else if (hours.numActiveHours > (hoursLookedAhead / 2)) {
       return "throughout";
     } else {
-      return hours.asRanges.map((range) => _renderTimeRange(range, dateTimesForEachHour)).join(", ");
+      return hours.asRanges
+          .map(
+            (range) => _renderTimeRange(
+              range,
+              dateTimesForEachHour,
+              endOfRange: hoursLookedAhead,
+              allowBareUntil: false,
+            ),
+          )
+          .join(", ");
     }
   }
 
