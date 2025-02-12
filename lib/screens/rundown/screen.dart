@@ -595,6 +595,7 @@ class RundownScreen extends StatelessWidget {
   }
 
   static const insightTypeMap = {
+    InsightType.sprinkles: ("Sprinkles?", Symbols.sprinkler),
     InsightType.lightRain: ("Light rain", Symbols.rainy_light),
     InsightType.mediumRain: ("Medium rain", Symbols.rainy_heavy),
     InsightType.heavyRain: ("Heavy rain", Symbols.rainy_heavy),

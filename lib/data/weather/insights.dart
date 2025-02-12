@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:collection/collection.dart';
 import 'package:json_annotation/json_annotation.dart';
 import 'package:turnip_rundown/data/units.dart';
@@ -140,6 +142,7 @@ class ActiveHours {
 
 enum InsightType {
   // rainy
+  sprinkles,
   lightRain,
   mediumRain,
   heavyRain,
@@ -239,14 +242,30 @@ final class WeatherInsights {
           final currentSnowMM = weather.snowfall[hour].valueAs(Length.mm);
           if (currentSnowMM > minSnowySnowfallMM) {
             insights[InsightType.snow]!.add(hour);
-          }
-          if (currentPrecipitationMM > currentSnowMM) {
+            if (currentPrecipitationMM > currentSnowMM) {
+              if (currentPrecipitationMM > config.heavyRainThreshold.valueAs(Length.mm)) {
+                insights[InsightType.heavyRain]!.add(hour);
+              } else if (currentPrecipitationMM > config.mediumRainThreshold.valueAs(Length.mm)) {
+                insights[InsightType.mediumRain]!.add(hour);
+              } else if (currentPrecipitationMM > 0) {
+                insights[InsightType.lightRain]!.add(hour);
+              } else {
+                insights[InsightType.sprinkles]!.add(hour);
+              }
+            }
+          } else if (weather.precipitationProb[hour].valueAs(Percent.outOf100) > config.rainProbabilityThreshold.valueAs(Percent.outOf100)) {
+            // Some APIs tend to return nonzero chance of rain with no actual precipitation value.
+            // This caused issues when comparing (currentPrecipitationMM > currentSnowMM).
+            // if they're both 0, you don't get a warning even for a high chance of rain.
+            // => if there's no significant snow, just care about the rain without comparing.
             if (currentPrecipitationMM > config.heavyRainThreshold.valueAs(Length.mm)) {
               insights[InsightType.heavyRain]!.add(hour);
             } else if (currentPrecipitationMM > config.mediumRainThreshold.valueAs(Length.mm)) {
               insights[InsightType.mediumRain]!.add(hour);
             } else if (currentPrecipitationMM > 0) {
               insights[InsightType.lightRain]!.add(hour);
+            } else {
+              insights[InsightType.sprinkles]!.add(hour);
             }
           }
 
@@ -255,7 +274,7 @@ final class WeatherInsights {
           final previousHoursPrecipitations = (startIndexForPreviousHoursPrecipitation >= 0)
               ? allRainfallMMIncludingPast.skip(startIndexForPreviousHoursPrecipitation).take(config.numberOfHoursPriorRainThreshold + 1)
               : allRainfallMMIncludingPast.take(indexForRainfallMM + 1);
-          final previousHoursPrecipitationMM = previousHoursPrecipitations.sum;
+          final previousHoursPrecipitationMM = previousHoursPrecipitations.map((valMM) => max(0.5, valMM)).sum;
           if (previousHoursPrecipitationMM > config.priorRainThreshold.valueAs(Length.mm)) {
             insights[InsightType.slippery]!.add(hour);
           }
