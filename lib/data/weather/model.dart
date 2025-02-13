@@ -26,6 +26,17 @@ class CurrentWeather {
   final Data<Percent> relHumidity;
 }
 
+class SunriseSunset {
+  final DateTime? nextSunriseUtc;
+  // Will be before sunrise if the sun is currently up
+  final DateTime? nextSunsetUtc;
+
+  SunriseSunset({
+    required this.nextSunriseUtc,
+    required this.nextSunsetUtc,
+  });
+}
+
 // A set of data series up to N hours from "now", and from M previous hours up to "now".
 class HourlyPredictedWeather {
   const HourlyPredictedWeather({
@@ -40,6 +51,7 @@ class HourlyPredictedWeather {
     required this.directRadiation,
     required this.snowfall,
     required this.cloudCover,
+    required this.sunriseSunset,
   });
 
   final DataSeries<Rainfall> precipitationUpToNow;
@@ -57,6 +69,9 @@ class HourlyPredictedWeather {
   // TODO allow backend-specific Sunny detection
   final DataSeries<SolarRadiation>? directRadiation;
   final DataSeries<Percent>? cloudCover;
+
+  // Sunrise and sunset - null if this API fails for whatever reason.
+  final SunriseSunset? sunriseSunset;
 }
 
 /// Wet-bulb-globe-temp estimation based on

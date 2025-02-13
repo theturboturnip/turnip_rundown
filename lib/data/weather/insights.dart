@@ -179,10 +179,12 @@ final class WeatherInsights {
     required this.minTempAt,
     required this.maxTempAt,
     required this.insightsByLocation,
+    required this.sunriseSunsetByLocation,
   });
   final (Data<Temp>, int)? minTempAt;
   final (Data<Temp>, int)? maxTempAt;
   final List<Map<InsightType, ActiveHours>> insightsByLocation;
+  final List<SunriseSunset?> sunriseSunsetByLocation;
 
   static WeatherInsights fromAnalysis(List<HourlyPredictedWeather> weathers, WeatherInsightConfig config, {int maxLookahead = 24}) {
     if (maxLookahead < 0 || maxLookahead > 24) {
@@ -191,7 +193,12 @@ final class WeatherInsights {
 
     late final (Data<Temp>, int)? minTempAt, maxTempAt;
     if (weathers.isEmpty) {
-      return WeatherInsights(minTempAt: null, maxTempAt: null, insightsByLocation: []);
+      return WeatherInsights(
+        minTempAt: null,
+        maxTempAt: null,
+        insightsByLocation: [],
+        sunriseSunsetByLocation: [],
+      );
     } else {
       List<(double, double)> minMaxTempC;
       if (config.useEstimatedWetBulbTemp) {
@@ -341,6 +348,7 @@ final class WeatherInsights {
         minTempAt: minTempAt,
         maxTempAt: maxTempAt,
         insightsByLocation: insightsByLocation,
+        sunriseSunsetByLocation: weathers.map((weather) => weather.sunriseSunset).toList(),
       );
     }
   }

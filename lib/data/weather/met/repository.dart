@@ -6,10 +6,16 @@ import 'package:turnip_rundown/data/api_cache_repository.dart';
 import 'package:turnip_rundown/data/units.dart';
 import 'package:turnip_rundown/data/weather/model.dart';
 import 'package:turnip_rundown/data/weather/repository.dart';
+import 'package:turnip_rundown/data/weather/sunrise-sunset-org/repository.dart';
 
 // See https://datahub.metoffice.gov.uk/docs/f/category/site-specific/type/site-specific/api-documentation#get-/point/hourly
 
-HourlyPredictedWeather predictWeatherFromMetGeoJson(String featuresJson, {required DateTime cutoffTime, int numAfterCutoff = 24}) {
+HourlyPredictedWeather predictWeatherFromMetGeoJson(
+  String featuresJson, {
+  required DateTime cutoffTime,
+  required SunriseSunset? sunriseSunset,
+  int numAfterCutoff = 24,
+}) {
   cutoffTime = cutoffTime.toUtc();
 
   final featuresJsonMap = jsonDecode(featuresJson);
@@ -93,6 +99,7 @@ HourlyPredictedWeather predictWeatherFromMetGeoJson(String featuresJson, {requir
     directRadiation: null,
     snowfall: extractDataSeries("totalSnowAmount", lengthUnitFromMet),
     cloudCover: null,
+    sunriseSunset: sunriseSunset,
   );
 
   // final DataSeries<Rainfall> precipitation;
@@ -193,12 +200,18 @@ class MetOfficeRepository extends WeatherRepository {
     return metOfficeApiKey.isEmpty ? null : MetOfficeRepository._(cache: cache);
   }
 
-  MetOfficeRepository._({required this.cache});
+  MetOfficeRepository._({required this.cache}) : sunriseSunsetRepo = SunriseSunsetOrgRepository(cache: cache);
 
   final ApiCacheRepository cache;
+  final SunriseSunsetOrgRepository sunriseSunsetRepo;
 
   @override
   Future<HourlyPredictedWeather> getPredictedWeather(Coordinate coords, {bool forceRefreshCache = false}) async {
+    // Pre-request sunriseSunset because it can be multiple HTTP requests and therefore slow
+    final Future<SunriseSunset?> sunriseSunsetRequest = sunriseSunsetRepo.getNextSunriseAndSunset(
+      coords,
+      forceRefreshCache: forceRefreshCache,
+    );
     // Get 48hrs worth of predicted data
     final responseStr = await cache.makeHttpRequest(
       Uri(
@@ -219,6 +232,13 @@ class MetOfficeRepository extends WeatherRepository {
       },
       forceRefreshCache: forceRefreshCache,
     );
-    return predictWeatherFromMetGeoJson(responseStr, cutoffTime: DateTime.timestamp());
+    return predictWeatherFromMetGeoJson(
+      responseStr,
+      sunriseSunset: await sunriseSunsetRequest.onError((err, stacktrace) {
+        print("$err, $stacktrace");
+        return null;
+      }),
+      cutoffTime: DateTime.timestamp(),
+    );
   }
 }

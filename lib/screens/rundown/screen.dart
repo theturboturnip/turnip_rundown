@@ -35,6 +35,30 @@ Color nthWeatherResultColor(int index) {
   return baseColor[offset]!;
 }
 
+class InsightWidget extends StatelessWidget {
+  final Icon icon;
+  final String title;
+  final String subtitle;
+  final DateTime startTimeUtc;
+
+  const InsightWidget({
+    super.key,
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.startTimeUtc,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      leading: icon,
+      title: Text(title),
+      subtitle: Text(subtitle),
+    );
+  }
+}
+
 class RundownScreen extends StatelessWidget {
   const RundownScreen({super.key});
 
@@ -583,7 +607,7 @@ class RundownScreen extends StatelessWidget {
     }
   }
 
-  List<Widget> _buildWeatherWarningInsight<TWarning>(
+  List<InsightWidget> _buildWeatherWarningInsight<TWarning>(
     Iterable<Map<TWarning, ActiveHours>> listOfMappingOfWarningToHoursForEachLocation,
     Map<TWarning, (String, IconData)> nameOfWarning,
     List<String> listOfLocations,
@@ -605,22 +629,25 @@ class RundownScreen extends StatelessWidget {
       }
     }
 
-    return groupedByWarning.entries
-        .map((entry) => entry.value.entries.map((locationAndHours) => (entry.key, locationAndHours.key, locationAndHours.value)))
-        .flattened
-        .sorted((a, b) => a.$3.firstHour!.compareTo(b.$3.firstHour!))
-        .map((warningAndLocationAndHours) {
-      final warningData = nameOfWarning[warningAndLocationAndHours.$1]!;
-      final locationIndex = warningAndLocationAndHours.$2;
-      final locationHours = warningAndLocationAndHours.$3;
-      var title = "${warningData.$1} ${listOfLocations.length > 1 ? "at ${listOfLocations[locationIndex]} " : ""}";
-      var subtitle = _renderActiveHours(
-        locationHours,
-        dateTimesForEachHour,
-        hoursLookedAhead,
-      );
-      return ListTile(leading: Icon(warningData.$2), title: Text(title), subtitle: Text(subtitle));
-    }).toList();
+    return groupedByWarning.entries.map((entry) => entry.value.entries.map((locationAndHours) => (entry.key, locationAndHours.key, locationAndHours.value))).flattened.map(
+      (warningAndLocationAndHours) {
+        final warningData = nameOfWarning[warningAndLocationAndHours.$1]!;
+        final locationIndex = warningAndLocationAndHours.$2;
+        final locationHours = warningAndLocationAndHours.$3;
+        var title = "${warningData.$1} ${listOfLocations.length > 1 ? "at ${listOfLocations[locationIndex]} " : ""}";
+        var subtitle = _renderActiveHours(
+          locationHours,
+          dateTimesForEachHour,
+          hoursLookedAhead,
+        );
+        return InsightWidget(
+          icon: Icon(warningData.$2),
+          title: title,
+          subtitle: subtitle,
+          startTimeUtc: dateTimesForEachHour[warningAndLocationAndHours.$3.firstHour!],
+        );
+      },
+    ).toList();
   }
 
   static const insightTypeMap = {
@@ -650,15 +677,50 @@ class RundownScreen extends StatelessWidget {
     if (state is SuccessfulWeatherPrediction) {
       final listOfLocations = state.config.legend.map((legendElem) => legendElem.isYourCoordinate ? "your location" : legendElem.location.name).toList();
       assert(insightTypeMap.keys.toSet().containsAll(InsightType.values));
-      return [
-        ..._buildWeatherWarningInsight(
-          state.insights.insightsByLocation,
-          insightTypeMap,
-          listOfLocations,
-          dateTimesForEachHour,
-          state.config.hoursToLookAhead,
-        ),
-      ].whereType<Widget>().toList();
+
+      final insightWidgets = _buildWeatherWarningInsight(
+        state.insights.insightsByLocation,
+        insightTypeMap,
+        listOfLocations,
+        dateTimesForEachHour,
+        state.config.hoursToLookAhead,
+      );
+
+      final timestamp = DateTime.timestamp();
+
+      final timeRangeEndUtc = dateTimesForEachHour[state.config.hoursToLookAhead];
+      for (final (locationIndex, sunriseSunset) in state.insights.sunriseSunsetByLocation.indexed) {
+        final sunrise = sunriseSunset?.nextSunriseUtc;
+        final sunset = sunriseSunset?.nextSunsetUtc;
+
+        if (sunrise?.isBefore(timeRangeEndUtc) == true && sunrise?.isAfter(timestamp) == true) {
+          var title = "Sunrise ${listOfLocations.length > 1 ? "at ${listOfLocations[locationIndex]} " : ""}";
+          var subtitle = jmLocalTime(sunrise!);
+          insightWidgets.add(
+            InsightWidget(
+              icon: const Icon(Symbols.wb_twilight),
+              title: title,
+              subtitle: subtitle,
+              startTimeUtc: sunrise,
+            ),
+          );
+        }
+
+        if (sunset?.isBefore(timeRangeEndUtc) == true && sunset?.isAfter(timestamp) == true) {
+          var title = "Sunset ${listOfLocations.length > 1 ? "at ${listOfLocations[locationIndex]} " : ""}";
+          var subtitle = jmLocalTime(sunset!);
+          insightWidgets.add(
+            InsightWidget(
+              icon: const Icon(Symbols.wb_twilight),
+              title: title,
+              subtitle: subtitle,
+              startTimeUtc: sunset,
+            ),
+          );
+        }
+      }
+
+      return insightWidgets.sorted((a, b) => a.startTimeUtc.compareTo(b.startTimeUtc)).toList();
     } else {
       return [];
     }

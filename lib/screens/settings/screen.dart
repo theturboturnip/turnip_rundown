@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:turnip_rundown/data/api_cache_repository.dart';
 import 'package:turnip_rundown/data/settings/repository.dart';
 import 'package:turnip_rundown/data/units.dart';
@@ -288,6 +289,21 @@ class SettingsScreen extends StatelessWidget {
                       onSelected: (backend) {
                         context.read<SettingsBloc>().add(SettingsEvent(backend: backend));
                       },
+                    ),
+                  ),
+                  _settingsTile(
+                    context,
+                    title: const Text("Sunrise/set Backend"),
+                    input: TextButton(
+                      onPressed: () => launchUrl(
+                        Uri(scheme: "https", host: "sunrise-sunset.org"),
+                      ),
+                      child: const Text(
+                        "https://sunrise-sunset.org",
+                        style: TextStyle(
+                          color: Colors.blue,
+                        ),
+                      ),
                     ),
                   ),
 

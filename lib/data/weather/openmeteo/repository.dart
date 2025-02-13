@@ -8,6 +8,7 @@ import 'package:turnip_rundown/data/api_cache_repository.dart';
 import 'package:turnip_rundown/data/units.dart';
 import 'package:turnip_rundown/data/weather/model.dart';
 import 'package:turnip_rundown/data/weather/repository.dart';
+import 'package:turnip_rundown/data/weather/sunrise-sunset-org/repository.dart';
 
 part 'repository.g.dart';
 
@@ -147,12 +148,18 @@ SolarRadiation solarUnitFromOpenMeteo(String? str, {required SolarRadiation expe
 }
 
 class OpenMeteoWeatherRepository extends WeatherRepository {
-  OpenMeteoWeatherRepository({required this.cache});
+  OpenMeteoWeatherRepository({required this.cache}) : sunriseSunsetRepo = SunriseSunsetOrgRepository(cache: cache);
 
   final ApiCacheRepository cache;
+  final SunriseSunsetOrgRepository sunriseSunsetRepo;
 
   @override
   Future<HourlyPredictedWeather> getPredictedWeather(Coordinate coords, {bool forceRefreshCache = false}) async {
+    // Pre-request sunriseSunset because it can be multiple HTTP requests and therefore slow
+    final Future<SunriseSunset?> sunriseSunsetRequest = sunriseSunsetRepo.getNextSunriseAndSunset(
+      coords,
+      forceRefreshCache: forceRefreshCache,
+    );
     // Get 3 days worth of predicted/measured data
     final responseStr = await cache.makeHttpRequest(
       Uri(
@@ -266,6 +273,10 @@ class OpenMeteoWeatherRepository extends WeatherRepository {
       directRadiation: directRadiation_3day.slice(indexInTimeSeriesForRightNow, indexInTimeSeriesForRightNow + 23),
       snowfall: snowfall_3day.slice(indexInTimeSeriesForRightNow, indexInTimeSeriesForRightNow + 23),
       cloudCover: cloudCover_3day.slice(indexInTimeSeriesForRightNow, indexInTimeSeriesForRightNow + 23),
+      sunriseSunset: await sunriseSunsetRequest.onError((err, stacktrace) {
+        print("$err, $stacktrace");
+        return null;
+      }),
     );
   }
 }
