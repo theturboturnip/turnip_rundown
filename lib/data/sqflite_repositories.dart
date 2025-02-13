@@ -5,22 +5,29 @@ import 'package:http/http.dart' as http;
 
 import 'package:turnip_rundown/data/api_cache_repository.dart';
 import 'package:turnip_rundown/data/settings/repository.dart';
+import 'package:turnip_rundown/data/units.dart';
 
 // A class that implements both ApiCache and Settings repositories on top of a single sqlite database.
 // On Android the cache and settings dbs are in separate files, because the platform requests it.
 // Both repositories are capable of both behaviours, we just don't use them.
 // On web, it's one DB.
 class SqfliteApiCacheAndSettingsRepository implements ApiCacheRepository, SettingsRepository {
-  SqfliteApiCacheAndSettingsRepository(this.db, this._settings, this._lockedUtcLookaheadTo);
+  SqfliteApiCacheAndSettingsRepository(
+    this.db,
+    this._settings,
+    this._lockedUtcLookaheadTo,
+    this._lastGeocoordLookup,
+  );
 
   final Database db;
   Settings _settings;
   DateTime? _lockedUtcLookaheadTo;
+  Coordinate? _lastGeocoordLookup;
 
   static Future<SqfliteApiCacheAndSettingsRepository> getRepository(String databasePath) async {
     final db = await openDatabase(
       databasePath,
-      version: 3,
+      version: 4,
       onUpgrade: (db, oldVersion, newVersion) async {
         if (oldVersion == 0) {
           await db.execute("CREATE TABLE cache(uri TEXT UNIQUE, response TEXT, timeoutAfter TEXT)");
@@ -36,6 +43,10 @@ class SqfliteApiCacheAndSettingsRepository implements ApiCacheRepository, Settin
           await db.insert("keyval", {"key": "lockedUtcLookaheadTo", "val": ""});
           oldVersion = 3;
         }
+        if (oldVersion == 3) {
+          await db.insert("keyval", {"key": "lastGeocoordLookup", "val": ""});
+          oldVersion = 4;
+        }
       },
     );
     final keyvalRows = await db.query("keyval", columns: ["key", "val"]);
@@ -44,7 +55,14 @@ class SqfliteApiCacheAndSettingsRepository implements ApiCacheRepository, Settin
     };
     final settings = Settings.fromJson(jsonDecode(keyvals["settingsJson"]!));
     final lockedUtcLookaheadTo = DateTime.tryParse(keyvals["lockedUtcLookaheadTo"]!);
-    final repo = SqfliteApiCacheAndSettingsRepository(db, settings, lockedUtcLookaheadTo);
+    final lastGeocoordLookupJson = keyvals["lastGeocoordLookup"]!;
+    final lastGeocoordLookup = lastGeocoordLookupJson.isNotEmpty ? Coordinate.fromJson(jsonDecode(lastGeocoordLookupJson)) : null;
+    final repo = SqfliteApiCacheAndSettingsRepository(
+      db,
+      settings,
+      lockedUtcLookaheadTo,
+      lastGeocoordLookup,
+    );
     await repo.clearTimedOutEntries();
 
     return repo;
@@ -139,5 +157,18 @@ class SqfliteApiCacheAndSettingsRepository implements ApiCacheRepository, Settin
       await db.update("keyval", {"val": lockedUtcLookaheadTo.toIso8601String()}, where: "key like 'lockedUtcLookaheadTo'");
     }
     _lockedUtcLookaheadTo = lockedUtcLookaheadTo;
+  }
+
+  @override
+  Coordinate? get lastGeocoordLookup => _lastGeocoordLookup;
+
+  @override
+  Future<void> storeLastGeocoordLookup(Coordinate? lastGeocoordLookup) async {
+    if (lastGeocoordLookup == null) {
+      await db.update("keyval", {"val": "null"}, where: "key like 'lastGeocoordLookup'");
+    } else {
+      await db.update("keyval", {"val": jsonEncode(lastGeocoordLookup.toJson())}, where: "key like 'lastGeocoordLookup'");
+    }
+    _lastGeocoordLookup = lastGeocoordLookup;
   }
 }

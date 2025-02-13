@@ -3,6 +3,7 @@ import 'package:bloc_concurrency/bloc_concurrency.dart';
 import 'package:equatable/equatable.dart';
 import 'package:turnip_rundown/data.dart';
 import 'package:turnip_rundown/data/geo/repository.dart';
+import 'package:turnip_rundown/data/settings/repository.dart';
 
 final class LocationListState extends Equatable {
   const LocationListState({
@@ -12,10 +13,10 @@ final class LocationListState extends Equatable {
     this.currentCoordinateError,
   });
 
-  factory LocationListState.initial() => const LocationListState(
-        currentCoordinate: null,
+  factory LocationListState.initial(Coordinate? currentCoordinate) => LocationListState(
+        currentCoordinate: currentCoordinate,
         includeCurrentCoordinateInInsights: true,
-        otherNamedLocations: [],
+        otherNamedLocations: const [],
       );
 
   final Coordinate? currentCoordinate;
@@ -84,15 +85,16 @@ final class RemoveOtherLocation extends LocationListEvent {
 }
 
 class LocationListBloc extends Bloc<LocationListEvent, LocationListState> {
-  LocationListBloc(CurrentCoordinateRepository location)
+  LocationListBloc(CurrentCoordinateRepository location, SettingsRepository settings)
       : super(
-          LocationListState.initial(),
+          LocationListState.initial(settings.lastGeocoordLookup),
         ) {
     on<RefreshCurrentCoordinate>(
       (event, emit) async {
         await location.getCoordinate().then((newCoordinate) async {
           // TODO make rounding precision a preference?
           newCoordinate = newCoordinate.roundedTo(2, elevationDp: 0);
+          settings.storeLastGeocoordLookup(newCoordinate);
           if (state.includeCurrentCoordinateInInsights) {
             emit(LocationListState(
               currentCoordinate: newCoordinate,

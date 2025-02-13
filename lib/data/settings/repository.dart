@@ -166,4 +166,6 @@ abstract interface class SettingsRepository {
   Future<void> storeSettings(Settings settings);
   DateTime? get lockedUtcLookaheadTo;
   Future<void> storeLockedUtcLookaheadTo(DateTime? lockedUtcLookaheadTo);
+  Coordinate? get lastGeocoordLookup;
+  Future<void> storeLastGeocoordLookup(Coordinate? lastGeocoordLookup);
 }

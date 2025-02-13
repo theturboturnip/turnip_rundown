@@ -384,8 +384,12 @@ extension RoundTo on double {
   }
 }
 
+@JsonSerializable()
 class Coordinate extends Equatable {
   const Coordinate({required this.lat, required this.long, this.elevation});
+
+  factory Coordinate.fromJson(Map<String, dynamic> json) => _$CoordinateFromJson(json);
+  Map<String, dynamic> toJson() => _$CoordinateToJson(this);
 
   final double lat;
   final double long;

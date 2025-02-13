@@ -49,6 +49,7 @@ class RundownScreen extends StatelessWidget {
         BlocProvider(
           create: (context) => LocationListBloc(
             RepositoryProvider.of<CurrentCoordinateRepository>(context),
+            RepositoryProvider.of<SettingsRepository>(context),
           )..add(const RefreshCurrentCoordinate()),
         ),
         BlocProvider(

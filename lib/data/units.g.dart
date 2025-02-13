@@ -20,6 +20,19 @@ Map<String, dynamic> _$DataToJson<TUnit extends Unit<TUnit>>(
       'unit': UnitConverter<TUnit>().toJson(instance._unit),
     };
 
+Coordinate _$CoordinateFromJson(Map<String, dynamic> json) => Coordinate(
+      lat: (json['lat'] as num).toDouble(),
+      long: (json['long'] as num).toDouble(),
+      elevation: (json['elevation'] as num?)?.toDouble(),
+    );
+
+Map<String, dynamic> _$CoordinateToJson(Coordinate instance) =>
+    <String, dynamic>{
+      'lat': instance.lat,
+      'long': instance.long,
+      'elevation': instance.elevation,
+    };
+
 const _$TempEnumMap = {
   Temp.farenheit: 'farenheit',
   Temp.celsius: 'celsius',
