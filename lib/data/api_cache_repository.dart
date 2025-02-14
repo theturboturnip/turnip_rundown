@@ -1,8 +1,8 @@
 class HostStats {
   HostStats({required this.cacheHits, required this.cacheMisses});
 
-  final int cacheHits;
-  final int cacheMisses;
+  int cacheHits;
+  int cacheMisses;
 }
 
 class ApiStats {

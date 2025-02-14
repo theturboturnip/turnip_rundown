@@ -15,7 +15,7 @@ import 'package:turnip_rundown/data/settings/repository.dart';
 import 'package:turnip_rundown/data/sqflite_repositories.dart';
 import 'package:turnip_rundown/data/weather/met/repository.dart';
 import 'package:turnip_rundown/data/weather/repository.dart';
-import 'package:turnip_rundown/data/web_repository.dart';
+import 'package:turnip_rundown/data/web_repositories.dart';
 import 'package:turnip_rundown/nav.dart';
 import 'package:turnip_rundown/screens/settings/bloc.dart';
 
@@ -27,12 +27,12 @@ void main() async {
   late SettingsRepository settingsRepo;
 
   if (kIsWeb) {
-    // // Use web implementation on the web.
-    // databaseFactory = databaseFactoryFfiWeb;
+    // Use an in-memory cache for API responses
+    cacheRepo = InMemoryApiCacheRepository();
 
-    // Make a single repository for both the cache and the settings.
-    cacheRepo = UncachedApiCacheRepository();
+    // TODO prob don't need this?
     SharedPreferences.setMockInitialValues({});
+    // Use SharedPreferences to store settings
     settingsRepo = SharedPreferencesSettingsRepository(prefs: await SharedPreferences.getInstance());
   } else {
     // Use ffi on Linux and Windows.

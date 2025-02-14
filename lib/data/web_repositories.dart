@@ -6,7 +6,15 @@ import 'package:http/http.dart' as http;
 import 'package:turnip_rundown/data/settings/repository.dart';
 import 'package:turnip_rundown/data/units.dart';
 
-class UncachedApiCacheRepository implements ApiCacheRepository {
+class InMemoryApiCacheRepository implements ApiCacheRepository {
+  InMemoryApiCacheRepository()
+      : cache = {},
+        stats = {};
+
+  // Uri -> (timeout, response data)
+  final Map<Uri, (DateTime, String)> cache;
+  final Map<String, HostStats> stats;
+
   // The Future will emit a [ClientException] if http fails
   @override
   Future<String> makeHttpRequest(
@@ -15,30 +23,48 @@ class UncachedApiCacheRepository implements ApiCacheRepository {
     bool forceRefreshCache = false,
     Duration timeout = const Duration(minutes: 15),
   }) async {
-    print("doing HTTP request $uri");
+    final timestamp = DateTime.timestamp();
+    final cachedTimeoutAndResponse = cache[uri];
 
-    // We don't cache anything :)
-    final response = await http.read(uri, headers: headers);
+    final hostStats = stats[uri.host] ?? HostStats(cacheHits: 0, cacheMisses: 0);
+    late final String response;
+
+    // If we're forcing a reset
+    // or we don't have anything in the cache
+    // or we do have something in the cache but it's timed out
+    if (forceRefreshCache || cachedTimeoutAndResponse == null || cachedTimeoutAndResponse.$1.isBefore(timestamp)) {
+      // refetch
+      print("fetching from $uri");
+      response = await http.read(uri, headers: headers);
+      cache[uri] = (timestamp.add(timeout), response);
+      hostStats.cacheMisses += 1;
+    } else {
+      // use cached
+      response = cachedTimeoutAndResponse.$2;
+      hostStats.cacheHits += 1;
+    }
+
+    stats[uri.host] = hostStats;
 
     return response;
   }
 
   @override
   Future<void> clearTimedOutEntries() async {
-    // We don't cache anything :)
+    final timestamp = DateTime.timestamp();
+    cache.removeWhere((uri, timeoutAndResponse) => timeoutAndResponse.$1.isAfter(timestamp));
   }
 
   @override
   Future<ApiStats> getStats() async {
-    // We don't cache anything :)
     return ApiStats(
-      hostStats: {},
+      hostStats: Map.fromEntries(stats.entries),
     );
   }
 
   @override
   Future<void> resetStats() async {
-    // We don't cache anything :)
+    stats.clear();
   }
 }
 
