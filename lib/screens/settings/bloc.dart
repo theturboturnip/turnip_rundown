@@ -23,6 +23,8 @@ final class SettingsEvent {
     this.minimumGaleyWindspeed,
     this.wakingHourStart,
     this.wakingHourEnd,
+    this.boilingMinTemp,
+    this.freezingMaxTemp,
   });
 
   factory SettingsEvent.withInitialWeatherConfig() {
@@ -60,6 +62,8 @@ final class SettingsEvent {
   final Data<Speed>? minimumGaleyWindspeed;
   final int? wakingHourStart;
   final int? wakingHourEnd;
+  final Data<Temp>? boilingMinTemp;
+  final Data<Temp>? freezingMaxTemp;
 
   Settings copyOf(Settings base) {
     return Settings(
@@ -79,6 +83,8 @@ final class SettingsEvent {
         minimumBreezyWindspeed: minimumBreezyWindspeed,
         minimumWindyWindspeed: minimumWindyWindspeed,
         minimumGaleyWindspeed: minimumGaleyWindspeed,
+        boilingMinTemp: boilingMinTemp,
+        freezingMaxTemp: freezingMaxTemp,
       ),
       wakingHours: base.wakingHours.copyWith(
         start: wakingHourStart,

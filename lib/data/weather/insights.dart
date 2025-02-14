@@ -26,6 +26,8 @@ class WeatherInsightConfig {
     required this.minimumBreezyWindspeed,
     required this.minimumWindyWindspeed,
     required this.minimumGaleyWindspeed,
+    this.boilingMinTemp = const Data(20, Temp.celsius),
+    this.freezingMaxTemp = const Data(5, Temp.celsius),
   });
 
   final bool useEstimatedWetBulbTemp;
@@ -47,6 +49,9 @@ class WeatherInsightConfig {
   final Data<Speed> minimumWindyWindspeed;
   final Data<Speed> minimumGaleyWindspeed;
 
+  final Data<Temp> boilingMinTemp;
+  final Data<Temp> freezingMaxTemp;
+
   factory WeatherInsightConfig.initial() => const WeatherInsightConfig(
         useEstimatedWetBulbTemp: true,
         // Guessed
@@ -64,6 +69,9 @@ class WeatherInsightConfig {
         minimumBreezyWindspeed: Data(4, Speed.milesPerHour),
         minimumWindyWindspeed: Data(13, Speed.milesPerHour),
         minimumGaleyWindspeed: Data(32, Speed.milesPerHour),
+        // Guessed
+        boilingMinTemp: Data(20, Temp.celsius),
+        freezingMaxTemp: Data(5, Temp.celsius),
       );
   // }
 
@@ -83,6 +91,8 @@ class WeatherInsightConfig {
     Data<Speed>? minimumBreezyWindspeed,
     Data<Speed>? minimumWindyWindspeed,
     Data<Speed>? minimumGaleyWindspeed,
+    Data<Temp>? boilingMinTemp,
+    Data<Temp>? freezingMaxTemp,
   }) =>
       WeatherInsightConfig(
         useEstimatedWetBulbTemp: useEstimatedWetBulbTemp ?? this.useEstimatedWetBulbTemp,
@@ -97,6 +107,8 @@ class WeatherInsightConfig {
         minimumBreezyWindspeed: minimumBreezyWindspeed ?? this.minimumBreezyWindspeed,
         minimumWindyWindspeed: minimumWindyWindspeed ?? this.minimumWindyWindspeed,
         minimumGaleyWindspeed: minimumGaleyWindspeed ?? this.minimumGaleyWindspeed,
+        boilingMinTemp: boilingMinTemp ?? this.boilingMinTemp,
+        freezingMaxTemp: freezingMaxTemp ?? this.freezingMaxTemp,
       );
 }
 
@@ -240,8 +252,8 @@ final class WeatherInsights {
           int indexForRainfallMM = hour + weather.precipitationUpToNow.length;
 
           // TODO MAKE THIS CONFIGURABLE
-          const boilingMinTempC = 20;
-          const freezingMaxTempC = 5;
+          final boilingMinTempC = config.boilingMinTemp.valueAs(Temp.celsius);
+          final freezingMaxTempC = config.freezingMaxTemp.valueAs(Temp.celsius);
           const minSunnyDirectRadidationWm2 = 650;
           const maxSunnyCloudCoverOutOf100 = 50;
           const minSnowySnowfallMM = 10;

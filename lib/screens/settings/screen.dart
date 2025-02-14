@@ -401,6 +401,28 @@ class SettingsScreen extends StatelessWidget {
                   ),
                   _settingsTile(
                     context,
+                    title: const Text("Temperature - Freezing"),
+                    description: const Text("Temperatures above this threshold show a Freezing insight."),
+                    input: DataPickerWidget(
+                      initial: state.weatherConfig.freezingMaxTemp,
+                      onChanged: (value) {
+                        context.read<SettingsBloc>().add(SettingsEvent(freezingMaxTemp: value));
+                      },
+                    ),
+                  ),
+                  _settingsTile(
+                    context,
+                    title: const Text("Temperature - Boiling"),
+                    description: const Text("Temperatures above this threshold show a Boiling insight."),
+                    input: DataPickerWidget(
+                      initial: state.weatherConfig.boilingMinTemp,
+                      onChanged: (value) {
+                        context.read<SettingsBloc>().add(SettingsEvent(boilingMinTemp: value));
+                      },
+                    ),
+                  ),
+                  _settingsTile(
+                    context,
                     title: const Text("Slippery - Recent Rainfall Threshold"),
                     description: Text("If rainfall over the last ${state.weatherConfig.numberOfHoursPriorRainThreshold} hours is higher than this, show a Slippery insight."),
                     input: DataPickerWidget(
