@@ -32,3 +32,6 @@ rel-android:
 
 generate:
     dart run build_runner build
+
+generate-icon:
+    dart run flutter_launcher_icons
