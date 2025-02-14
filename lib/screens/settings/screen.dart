@@ -492,7 +492,7 @@ class SettingsScreen extends StatelessWidget {
                   ),
                   _settingsTile(
                     context,
-                    title: const Text("High Humidity Temperature Threshold"),
+                    title: const Text("High Humidity Temperature - Uncomfortable"),
                     description: const Text("High humidity insights require the temperature to be above this."),
                     input: DataPickerWidget(
                       initial: state.weatherConfig.maxTemperatureForHighHumidityMist,
@@ -503,9 +503,9 @@ class SettingsScreen extends StatelessWidget {
                   ),
                   _settingsTile(
                     context,
-                    title: const Text("High Humidity Threshold - Sweat"),
+                    title: const Text("High Humidity Temperature - Sweaty"),
                     description: const Text(
-                      "At high humidity, any temperatures above this show a Sweaty insight. Temperatures between Misty and Sweaty show an Uncomfortable insight.",
+                      "At high humidity, any temperatures above this show a Sweaty insight. Temperatures between Uncomfortable and Sweaty show an Uncomfortable insight.",
                     ),
                     input: DataPickerWidget(
                       initial: state.weatherConfig.minTemperatureForHighHumiditySweat,
