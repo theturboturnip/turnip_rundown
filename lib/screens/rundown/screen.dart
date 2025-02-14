@@ -130,6 +130,9 @@ class RundownScreen extends StatelessWidget {
                             context.read<WeatherPredictBloc>().add(const RefreshPredictedWeather(config: null));
                           },
                           child: SingleChildScrollView(
+                            // Ensure the refresh indicator can always be used,
+                            // even if there isn't enough content to scroll
+                            physics: const AlwaysScrollableScrollPhysics(),
                             child: Padding(
                               padding: const EdgeInsets.all(16),
                               child: Column(
