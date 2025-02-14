@@ -225,7 +225,8 @@ final class WeatherInsights {
             weather.precipitation.valuesAs(Length.mm).mapIndexed(
               (index, len) {
                 if (weather.precipitationProb[index].valueAs(Percent.outOf100) >= config.rainProbabilityThreshold.valueAs(Percent.outOf100)) {
-                  return len;
+                  // If no precipitation is expected, but there is a high chance of precipitation, treat that as 0.5mm
+                  return max(0.5, len);
                 } else {
                   return 0;
                 }
@@ -282,7 +283,7 @@ final class WeatherInsights {
           final previousHoursPrecipitations = (startIndexForPreviousHoursPrecipitation >= 0)
               ? allRainfallMMIncludingPast.skip(startIndexForPreviousHoursPrecipitation).take(config.numberOfHoursPriorRainThreshold + 1)
               : allRainfallMMIncludingPast.take(indexForRainfallMM + 1);
-          final previousHoursPrecipitationMM = previousHoursPrecipitations.map((valMM) => max(0.5, valMM)).sum;
+          final previousHoursPrecipitationMM = previousHoursPrecipitations.sum;
           if (previousHoursPrecipitationMM > config.priorRainThreshold.valueAs(Length.mm)) {
             insights[InsightType.slippery]!.add(hour);
           }
