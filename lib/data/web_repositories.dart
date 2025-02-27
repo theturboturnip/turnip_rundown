@@ -5,6 +5,7 @@ import 'package:turnip_rundown/data/api_cache_repository.dart';
 import 'package:http/http.dart' as http;
 import 'package:turnip_rundown/data/settings/repository.dart';
 import 'package:turnip_rundown/data/units.dart';
+import 'package:turnip_rundown/util.dart';
 
 class InMemoryApiCacheRepository implements ApiCacheRepository {
   InMemoryApiCacheRepository()
@@ -12,7 +13,7 @@ class InMemoryApiCacheRepository implements ApiCacheRepository {
         stats = {};
 
   // Uri -> (timeout, response data)
-  final Map<Uri, (DateTime, String)> cache;
+  final Map<Uri, (UtcDateTime, String)> cache;
   final Map<String, HostStats> stats;
 
   // The Future will emit a [ClientException] if http fails
@@ -23,7 +24,7 @@ class InMemoryApiCacheRepository implements ApiCacheRepository {
     bool forceRefreshCache = false,
     Duration timeout = const Duration(minutes: 15),
   }) async {
-    final timestamp = DateTime.timestamp();
+    final timestamp = UtcDateTime.timestamp();
     final cachedTimeoutAndResponse = cache[uri];
 
     final hostStats = stats[uri.host] ?? HostStats(cacheHits: 0, cacheMisses: 0);
@@ -51,7 +52,7 @@ class InMemoryApiCacheRepository implements ApiCacheRepository {
 
   @override
   Future<void> clearTimedOutEntries() async {
-    final timestamp = DateTime.timestamp();
+    final timestamp = UtcDateTime.timestamp();
     cache.removeWhere((uri, timeoutAndResponse) => timeoutAndResponse.$1.isAfter(timestamp));
   }
 
@@ -71,21 +72,21 @@ class InMemoryApiCacheRepository implements ApiCacheRepository {
 class SharedPreferencesSettingsRepository implements SettingsRepository {
   SharedPreferencesSettingsRepository({required this.prefs}) {
     _settings = Settings.fromJson(jsonDecode(prefs.getString("settingsJson") ?? "{}"));
-    _lockedUtcLookaheadTo = DateTime.tryParse(prefs.getString("lockedUtcLookaheadTo") ?? "");
+    _lockedUtcLookaheadTo = UtcDateTime.tryParseAndCoerceFullIso8601(prefs.getString("lockedUtcLookaheadTo") ?? "");
     final lastGeocoordLookupJson = prefs.getString("lastGeocoordLookupJson") ?? "";
     _lastGeocoordLookup = lastGeocoordLookupJson.isNotEmpty ? Coordinate.fromJson(jsonDecode(lastGeocoordLookupJson)) : null;
   }
 
   final SharedPreferences prefs;
   late Settings _settings;
-  DateTime? _lockedUtcLookaheadTo;
+  UtcDateTime? _lockedUtcLookaheadTo;
   Coordinate? _lastGeocoordLookup;
 
   @override
-  DateTime? get lockedUtcLookaheadTo => _lockedUtcLookaheadTo;
+  UtcDateTime? get lockedUtcLookaheadTo => _lockedUtcLookaheadTo;
 
   @override
-  Future<void> storeLockedUtcLookaheadTo(DateTime? lockedUtcLookaheadTo) async {
+  Future<void> storeLockedUtcLookaheadTo(UtcDateTime? lockedUtcLookaheadTo) async {
     prefs.setString("lockedUtcLookaheadTo", lockedUtcLookaheadTo?.toIso8601String() ?? "");
     _lockedUtcLookaheadTo = lockedUtcLookaheadTo;
   }

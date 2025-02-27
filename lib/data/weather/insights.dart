@@ -186,6 +186,12 @@ enum InsightType {
   galey;
 }
 
+class Insight {}
+
+class LevelInsight extends Insight {}
+
+class EventInsight extends Insight {}
+
 final class WeatherInsights {
   WeatherInsights({
     required this.minTempAt,

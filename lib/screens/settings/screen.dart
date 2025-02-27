@@ -362,7 +362,7 @@ class SettingsScreen extends StatelessWidget {
                     description: const Text(
                         "The time you typically wake up. When you open the app between your wake-up and bed times, it will automatically show you the weather for now til bedtime. Whole hours only, minutes are ignored."),
                     input: TextButton(
-                      child: Text(jmLocalTime(DateTime(2000, 1, 1, state.wakingHours.start))),
+                      child: Text(jmFormatHour(state.wakingHours.start)),
                       onPressed: () async {
                         final selectedTime = await showTimePicker(context: context, initialTime: TimeOfDay(hour: state.wakingHours.start, minute: 0));
                         if (selectedTime != null && context.mounted) {
@@ -376,7 +376,7 @@ class SettingsScreen extends StatelessWidget {
                     title: const Text("Bedtime"),
                     description: const Text("The time you typically go to bed. Whole hours only, minutes are ignored."),
                     input: TextButton(
-                      child: Text(jmLocalTime(DateTime(2000, 1, 1, state.wakingHours.end))),
+                      child: Text(jmFormatHour(state.wakingHours.end)),
                       onPressed: () async {
                         final selectedTime = await showTimePicker(context: context, initialTime: TimeOfDay(hour: state.wakingHours.end, minute: 0));
                         if (selectedTime != null && context.mounted) {

@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:turnip_rundown/data/api_cache_repository.dart';
 import 'package:turnip_rundown/data/settings/repository.dart';
 import 'package:turnip_rundown/data/units.dart';
+import 'package:turnip_rundown/util.dart';
 
 // A class that implements both ApiCache and Settings repositories on top of a single sqlite database.
 // On Android the cache and settings dbs are in separate files, because the platform requests it.
@@ -21,7 +22,7 @@ class SqfliteApiCacheAndSettingsRepository implements ApiCacheRepository, Settin
 
   final Database db;
   Settings _settings;
-  DateTime? _lockedUtcLookaheadTo;
+  UtcDateTime? _lockedUtcLookaheadTo;
   Coordinate? _lastGeocoordLookup;
 
   static Future<SqfliteApiCacheAndSettingsRepository> getRepository(String databasePath) async {
@@ -54,7 +55,7 @@ class SqfliteApiCacheAndSettingsRepository implements ApiCacheRepository, Settin
       for (final row in keyvalRows) row["key"] as String: row["val"] as String,
     };
     final settings = Settings.fromJson(jsonDecode(keyvals["settingsJson"]!));
-    final lockedUtcLookaheadTo = DateTime.tryParse(keyvals["lockedUtcLookaheadTo"]!);
+    final lockedUtcLookaheadTo = UtcDateTime.tryParseAndCoerceFullIso8601(keyvals["lockedUtcLookaheadTo"]!);
     final lastGeocoordLookupJson = keyvals["lastGeocoordLookup"]!;
     final lastGeocoordLookup = lastGeocoordLookupJson.isNotEmpty ? Coordinate.fromJson(jsonDecode(lastGeocoordLookupJson)) : null;
     final repo = SqfliteApiCacheAndSettingsRepository(
@@ -71,7 +72,7 @@ class SqfliteApiCacheAndSettingsRepository implements ApiCacheRepository, Settin
   // The Future will emit a [ClientException] if http fails.
   @override
   Future<String> makeHttpRequest(Uri uri, {Map<String, String>? headers, bool forceRefreshCache = false, Duration timeout = const Duration(minutes: 15)}) async {
-    final timestamp = DateTime.timestamp();
+    final timestamp = UtcDateTime.timestamp();
     if (!forceRefreshCache) {
       final cachedApiResponse = (await db.query(
         "cache",
@@ -81,7 +82,7 @@ class SqfliteApiCacheAndSettingsRepository implements ApiCacheRepository, Settin
       ))
           .firstOrNull;
       final timeoutAfterStr = cachedApiResponse != null ? cachedApiResponse["timeoutAfter"] as String : null;
-      final timeoutAfter = timeoutAfterStr != null ? DateTime.tryParse(timeoutAfterStr) : null;
+      final timeoutAfter = timeoutAfterStr != null ? UtcDateTime.tryParseAndCoerceFullIso8601(timeoutAfterStr) : null;
       if (timeoutAfter != null && timeoutAfter.isAfter(timestamp)) {
         await db.transaction((txn) async {
           await txn.rawInsert("INSERT OR IGNORE INTO stats (host, cacheHits, cacheMisses) VALUES (?, 0, 0)", [uri.host]);
@@ -115,7 +116,7 @@ class SqfliteApiCacheAndSettingsRepository implements ApiCacheRepository, Settin
 
   @override
   Future<void> clearTimedOutEntries() async {
-    await db.delete("cache", where: "timeoutAfter < ?", whereArgs: [DateTime.timestamp().toIso8601String()]);
+    await db.delete("cache", where: "timeoutAfter < ?", whereArgs: [UtcDateTime.timestamp().toIso8601String()]);
   }
 
   @override
@@ -147,10 +148,10 @@ class SqfliteApiCacheAndSettingsRepository implements ApiCacheRepository, Settin
   }
 
   @override
-  DateTime? get lockedUtcLookaheadTo => _lockedUtcLookaheadTo;
+  UtcDateTime? get lockedUtcLookaheadTo => _lockedUtcLookaheadTo;
 
   @override
-  Future<void> storeLockedUtcLookaheadTo(DateTime? lockedUtcLookaheadTo) async {
+  Future<void> storeLockedUtcLookaheadTo(UtcDateTime? lockedUtcLookaheadTo) async {
     if (lockedUtcLookaheadTo == null) {
       await db.update("keyval", {"val": ""}, where: "key like 'lockedUtcLookaheadTo'");
     } else {

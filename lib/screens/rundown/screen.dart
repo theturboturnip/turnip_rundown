@@ -39,7 +39,7 @@ class InsightWidget extends StatelessWidget {
   final Icon icon;
   final String title;
   final String subtitle;
-  final DateTime startTimeUtc;
+  final UtcDateTime startTimeUtc;
 
   const InsightWidget({
     super.key,
@@ -106,14 +106,16 @@ class RundownScreen extends StatelessWidget {
                         );
                     return BlocBuilder<WeatherPredictBloc, WeatherPredictState>(
                       builder: (context, weatherState) {
-                        final DateTime utcHourInLocalTime = DateTime.timestamp()
-                            .copyWith(
-                              minute: 0,
-                              second: 0,
-                              millisecond: 0,
-                              microsecond: 0,
-                            )
-                            .toLocal();
+                        final LocalDateTime utcHourInLocalTime = LocalDateTime(
+                          DateTime.timestamp()
+                              .copyWith(
+                                minute: 0,
+                                second: 0,
+                                millisecond: 0,
+                                microsecond: 0,
+                              )
+                              .toLocal(),
+                        );
                         final dateTimesForEachHour = List.generate(
                           24,
                           (index) => utcHourInLocalTime.add(Duration(hours: index)),
@@ -189,7 +191,7 @@ class RundownScreen extends StatelessWidget {
     HoursLookaheadState hoursLookaheadState,
     WeatherPredictState weather,
     Settings settings,
-    List<DateTime> dateTimesForEachHour,
+    List<LocalDateTime> dateTimesForEachHour,
   ) {
     final currentNumLookaheadHours = settings.wakingHours.numHoursToLookahead(hoursLookaheadState.lockedUtcLookaheadTo);
     return [
@@ -231,7 +233,7 @@ class RundownScreen extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 10.0),
               child: Text(
                 (hoursLookaheadState.lockedUtcLookaheadTo != null)
-                    ? "until ${jmLocalTime(hoursLookaheadState.lockedUtcLookaheadTo!)}"
+                    ? "until ${hoursLookaheadState.lockedUtcLookaheadTo!.toLocal().jmFormat()}"
                     : _renderTimeRange(
                         (0, currentNumLookaheadHours - 1),
                         dateTimesForEachHour,
@@ -412,8 +414,8 @@ class RundownScreen extends StatelessWidget {
     BuildContext context,
     WeatherPredictState state,
     Settings settings, {
-    required List<DateTime> dateTimesForEachHour,
-    required List<DateTime> dateTimesForPriorHours,
+    required List<LocalDateTime> dateTimesForEachHour,
+    required List<LocalDateTime> dateTimesForPriorHours,
   }) {
     return [
       if (state is FailedWeatherPrediction) Text("Cannot retrieve weather: ${state.error}"),
@@ -560,7 +562,7 @@ class RundownScreen extends StatelessWidget {
 
   String _renderTimeRange(
     (int, int) range,
-    List<DateTime> dateTimesForEachHour, {
+    List<LocalDateTime> dateTimesForEachHour, {
     required bool allowBareUntil,
     int? endOfRange,
   }) {
@@ -571,20 +573,20 @@ class RundownScreen extends StatelessWidget {
       if (range.$2 + 1 == endOfRange) {
         return "throughout";
       } else if (allowBareUntil) {
-        return "until ${jmLocalTime(dateTimesForEachHour[range.$2 + 1])}";
+        return "until ${dateTimesForEachHour[range.$2 + 1].jmFormat()}";
       } else {
-        return "from now to ${jmLocalTime(dateTimesForEachHour[range.$2 + 1])}";
+        return "from now to ${dateTimesForEachHour[range.$2 + 1].jmFormat()}";
       }
     }
     if (range.$2 + 1 == endOfRange) {
-      return "from ${jmLocalTime(dateTimesForEachHour[range.$1])}";
+      return "from ${dateTimesForEachHour[range.$1].jmFormat()}";
     }
-    return "${jmLocalTime(dateTimesForEachHour[range.$1])}-${jmLocalTime(dateTimesForEachHour[range.$2 + 1])}";
+    return "${dateTimesForEachHour[range.$1].jmFormat()}-${dateTimesForEachHour[range.$2 + 1].jmFormat()}";
   }
 
   String _renderActiveHours(
     ActiveHours hours,
-    List<DateTime> dateTimesForEachHour,
+    List<LocalDateTime> dateTimesForEachHour,
     int hoursLookedAhead,
   ) {
     if (hours.asRanges.length == 1) {
@@ -614,7 +616,7 @@ class RundownScreen extends StatelessWidget {
     Iterable<Map<TWarning, ActiveHours>> listOfMappingOfWarningToHoursForEachLocation,
     Map<TWarning, (String, IconData)> nameOfWarning,
     List<String> listOfLocations,
-    List<DateTime> dateTimesForEachHour,
+    List<LocalDateTime> dateTimesForEachHour,
     int hoursLookedAhead,
   ) {
     // if there are no warnings that apply for any hours in any location, return null.
@@ -647,7 +649,7 @@ class RundownScreen extends StatelessWidget {
           icon: Icon(warningData.$2),
           title: title,
           subtitle: subtitle,
-          startTimeUtc: dateTimesForEachHour[warningAndLocationAndHours.$3.firstHour!],
+          startTimeUtc: dateTimesForEachHour[warningAndLocationAndHours.$3.firstHour!].toUtc(),
         );
       },
     ).toList();
@@ -675,7 +677,7 @@ class RundownScreen extends StatelessWidget {
     BuildContext context,
     WeatherPredictState state,
     Settings settings,
-    List<DateTime> dateTimesForEachHour,
+    List<LocalDateTime> dateTimesForEachHour,
   ) {
     if (state is SuccessfulWeatherPrediction) {
       final listOfLocations = state.config.legend.map((legendElem) => legendElem.isYourCoordinate ? "your location" : legendElem.location.name).toList();
@@ -689,16 +691,16 @@ class RundownScreen extends StatelessWidget {
         state.config.hoursToLookAhead,
       );
 
-      final timestamp = DateTime.timestamp();
+      final timestamp = UtcDateTime.timestamp();
 
-      final timeRangeEndUtc = dateTimesForEachHour[state.config.hoursToLookAhead];
+      final timeRangeEndUtc = dateTimesForEachHour[state.config.hoursToLookAhead].toUtc();
       for (final (locationIndex, sunriseSunset) in state.insights.sunriseSunsetByLocation.indexed) {
-        final sunrise = sunriseSunset?.nextSunriseUtc;
-        final sunset = sunriseSunset?.nextSunsetUtc;
+        final sunrise = sunriseSunset?.nextSunrise;
+        final sunset = sunriseSunset?.nextSunset;
 
         if (sunrise?.isBefore(timeRangeEndUtc) == true && sunrise?.isAfter(timestamp) == true) {
           var title = "Sunrise ${listOfLocations.length > 1 ? "at ${listOfLocations[locationIndex]} " : ""}";
-          var subtitle = jmLocalTime(sunrise!);
+          var subtitle = sunrise!.toLocal().jmFormat();
           insightWidgets.add(
             InsightWidget(
               icon: const Icon(Symbols.wb_twilight),
@@ -711,7 +713,7 @@ class RundownScreen extends StatelessWidget {
 
         if (sunset?.isBefore(timeRangeEndUtc) == true && sunset?.isAfter(timestamp) == true) {
           var title = "Sunset ${listOfLocations.length > 1 ? "at ${listOfLocations[locationIndex]} " : ""}";
-          var subtitle = jmLocalTime(sunset!);
+          var subtitle = sunset!.toLocal().jmFormat();
           insightWidgets.add(
             InsightWidget(
               icon: const Icon(Symbols.wb_twilight),
@@ -734,7 +736,7 @@ class RundownScreen extends StatelessWidget {
     String title,
     Iterable<DataSeries<TUnit>> datas,
     TUnit asUnit,
-    List<DateTime> dateTimesForEachHour, {
+    List<LocalDateTime> dateTimesForEachHour, {
     required int hoursLookedAhead,
     int? numDataPoints,
     required Data<TUnit> defaultMin,
@@ -811,13 +813,13 @@ class RundownScreen extends StatelessWidget {
                   return SideTitleWidget(
                     axisSide: meta.axisSide,
                     child: Text(
-                      jmLocalTime(
-                        dateTimesForEachHour[hour].add(
-                          Duration(
-                            seconds: (3600 * remainder).round(),
-                          ),
-                        ),
-                      ),
+                      dateTimesForEachHour[hour]
+                          .add(
+                            Duration(
+                              seconds: (3600 * remainder).round(),
+                            ),
+                          )
+                          .jmFormat(),
                     ),
                   );
                 },
@@ -840,13 +842,13 @@ class RundownScreen extends StatelessWidget {
 
                 final hour = spot.x.floor();
                 final remainder = spot.x - hour;
-                final dateTimeForPoint = jmLocalTime(
-                  dateTimesForEachHour[hour].add(
-                    Duration(
-                      seconds: (3600 * remainder).round(),
-                    ),
-                  ),
-                );
+                final dateTimeForPoint = dateTimesForEachHour[hour]
+                    .add(
+                      Duration(
+                        seconds: (3600 * remainder).round(),
+                      ),
+                    )
+                    .jmFormat();
 
                 return LineTooltipItem(
                   "${spot.barIndex == 0 ? "$dateTimeForPoint\n" : ""}"

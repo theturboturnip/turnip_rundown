@@ -9,6 +9,7 @@ import 'package:turnip_rundown/data/units.dart';
 import 'package:turnip_rundown/data/weather/model.dart';
 import 'package:turnip_rundown/data/weather/repository.dart';
 import 'package:turnip_rundown/data/weather/sunrise-sunset-org/repository.dart';
+import 'package:turnip_rundown/util.dart';
 
 part 'repository.g.dart';
 
@@ -250,8 +251,8 @@ class OpenMeteoWeatherRepository extends WeatherRepository {
     // Compute wet bulb temperature
 
     // Extract the 24hrs preceding right now and the 24hrs following right now
-    final DateTime currentTime = DateTime.timestamp();
-    final datapointDateTimes = response.hourly.time.map((givenTimeStr) => DateTime.parse("${givenTimeStr}Z")).toList();
+    final UtcDateTime currentTime = UtcDateTime.timestamp();
+    final datapointDateTimes = response.hourly.time.map((givenTimeStr) => UtcDateTime.parsePartialIso8601AsUtc(givenTimeStr)).toList();
     final int indexInTimeSeriesForRightNow = datapointDateTimes.indexWhere((givenTime) {
       return currentTime.difference(givenTime) < const Duration(hours: 1);
     });

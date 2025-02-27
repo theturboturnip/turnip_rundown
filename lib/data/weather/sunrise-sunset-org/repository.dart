@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:turnip_rundown/data/api_cache_repository.dart';
 import 'package:turnip_rundown/data/units.dart';
 import 'package:turnip_rundown/data/weather/model.dart';
+import 'package:turnip_rundown/util.dart';
 
 class SunriseSunsetOrgRepository {
   SunriseSunsetOrgRepository({required this.cache});
@@ -10,7 +11,7 @@ class SunriseSunsetOrgRepository {
   final ApiCacheRepository cache;
 
   Future<SunriseSunset> getNextSunriseAndSunset(Coordinate coord, {bool forceRefreshCache = false}) async {
-    final now = DateTime.timestamp();
+    final now = UtcDateTime.timestamp();
     var response = await cache.makeHttpRequest(
       Uri(
         scheme: "https",
@@ -27,14 +28,14 @@ class SunriseSunsetOrgRepository {
       forceRefreshCache: forceRefreshCache,
     );
     var jsonResponse = jsonDecode(response);
-    final sunriseToday = DateTime.parse(jsonResponse["results"]["sunrise"]).toUtc();
-    final sunsetToday = DateTime.parse(jsonResponse["results"]["sunset"]).toUtc();
+    final sunriseToday = UtcDateTime.parseAndCoerceFullIso8601(jsonResponse["results"]["sunrise"]);
+    final sunsetToday = UtcDateTime.parseAndCoerceFullIso8601(jsonResponse["results"]["sunset"]);
 
     // Don't assume sunset is after sunrise?
     if (sunriseToday.isAfter(now) && sunsetToday.isAfter(now)) {
       return SunriseSunset(
-        nextSunriseUtc: sunriseToday,
-        nextSunsetUtc: sunsetToday,
+        nextSunrise: sunriseToday,
+        nextSunset: sunsetToday,
       );
     }
 
@@ -53,16 +54,16 @@ class SunriseSunsetOrgRepository {
       ),
     );
     jsonResponse = jsonDecode(response);
-    final sunriseTomorrow = DateTime.parse(jsonResponse["results"]["sunrise"]).toUtc();
-    final sunsetTomorrow = DateTime.parse(jsonResponse["results"]["sunset"]).toUtc();
+    final sunriseTomorrow = UtcDateTime.parseAndCoerceFullIso8601(jsonResponse["results"]["sunrise"]);
+    final sunsetTomorrow = UtcDateTime.parseAndCoerceFullIso8601(jsonResponse["results"]["sunset"]);
 
     // TODO probably don't assert here
     assert(sunriseTomorrow.isAfter(sunriseToday));
     assert(sunsetTomorrow.isAfter(sunsetToday));
 
     return SunriseSunset(
-      nextSunriseUtc: sunriseToday.isAfter(now) ? sunriseToday : sunriseTomorrow,
-      nextSunsetUtc: sunsetToday.isAfter(now) ? sunsetToday : sunsetTomorrow,
+      nextSunrise: sunriseToday.isAfter(now) ? sunriseToday : sunriseTomorrow,
+      nextSunset: sunsetToday.isAfter(now) ? sunsetToday : sunsetTomorrow,
     );
   }
 }

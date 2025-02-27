@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:turnip_rundown/data/units.dart';
+import 'package:turnip_rundown/util.dart';
 
 enum WeatherStatus {
   sunny,
@@ -27,13 +28,13 @@ class CurrentWeather {
 }
 
 class SunriseSunset {
-  final DateTime? nextSunriseUtc;
+  final UtcDateTime? nextSunrise;
   // Will be before sunrise if the sun is currently up
-  final DateTime? nextSunsetUtc;
+  final UtcDateTime? nextSunset;
 
   SunriseSunset({
-    required this.nextSunriseUtc,
-    required this.nextSunsetUtc,
+    required this.nextSunrise,
+    required this.nextSunset,
   });
 }
 
@@ -56,7 +57,7 @@ class HourlyPredictedWeather {
 
   final DataSeries<Rainfall> precipitationUpToNow;
 
-  final List<DateTime> dateTimesForPredictions;
+  final List<UtcDateTime> dateTimesForPredictions;
 
   final DataSeries<Rainfall> precipitation;
   final DataSeries<Percent> precipitationProb;

@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:json_annotation/json_annotation.dart';
 import 'package:turnip_rundown/data/units.dart';
 import 'package:turnip_rundown/data/weather/insights.dart';
+import 'package:turnip_rundown/util.dart';
 
 part 'repository.g.dart';
 
@@ -113,8 +114,8 @@ class WakingHours {
     }
   }
 
-  int numHoursToLookahead(DateTime? lockedUtcLookaheadTo) {
-    final utcTime = DateTime.timestamp();
+  int numHoursToLookahead(UtcDateTime? lockedUtcLookaheadTo) {
+    final utcTime = UtcDateTime.timestamp();
 
     if (lockedUtcLookaheadTo != null && utcTime.isBefore(lockedUtcLookaheadTo)) {
       return math.min(24, (lockedUtcLookaheadTo.difference(utcTime).inMinutes / 60).ceil());
@@ -164,8 +165,8 @@ class Settings {
 abstract interface class SettingsRepository {
   Settings get settings;
   Future<void> storeSettings(Settings settings);
-  DateTime? get lockedUtcLookaheadTo;
-  Future<void> storeLockedUtcLookaheadTo(DateTime? lockedUtcLookaheadTo);
+  UtcDateTime? get lockedUtcLookaheadTo;
+  Future<void> storeLockedUtcLookaheadTo(UtcDateTime? lockedUtcLookaheadTo);
   Coordinate? get lastGeocoordLookup;
   Future<void> storeLastGeocoordLookup(Coordinate? lastGeocoordLookup);
 }

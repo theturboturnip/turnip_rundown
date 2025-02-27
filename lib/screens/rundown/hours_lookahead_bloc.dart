@@ -5,11 +5,12 @@ import 'package:bloc/bloc.dart';
 import 'package:bloc_concurrency/bloc_concurrency.dart';
 import 'package:equatable/equatable.dart';
 import 'package:turnip_rundown/data/settings/repository.dart';
+import 'package:turnip_rundown/util.dart';
 
 class HoursLookaheadState extends Equatable {
   const HoursLookaheadState({required this.lockedUtcLookaheadTo, required this.decrementWillResultInReset});
 
-  final DateTime? lockedUtcLookaheadTo;
+  final UtcDateTime? lockedUtcLookaheadTo;
   // If the locked time is close enough to the current time, decrementing it will result in it resetting entirely.
   final bool decrementWillResultInReset;
 
@@ -31,7 +32,7 @@ final class IncrementLockedLookaheadEvent extends ChangeLockedLookaheadEvent {
     required this.currentNumLookaheadHours,
   });
 
-  final DateTime hour0InLocalTime;
+  final LocalDateTime hour0InLocalTime;
   final int currentNumLookaheadHours;
 }
 
@@ -41,7 +42,7 @@ final class DecrementLockedLookaheadEvent extends ChangeLockedLookaheadEvent {
     required this.currentNumLookaheadHours,
   });
 
-  final DateTime hour0InLocalTime;
+  final LocalDateTime hour0InLocalTime;
   final int currentNumLookaheadHours;
 }
 
@@ -57,7 +58,7 @@ class HoursLookaheadBloc extends Bloc<ChangeLockedLookaheadEvent, HoursLookahead
     on<ChangeLockedLookaheadEvent>(
       (event, emit) async {
         var lockedUtcLookaheadTo = state.lockedUtcLookaheadTo;
-        final timestamp = DateTime.timestamp();
+        final timestamp = UtcDateTime.timestamp();
         switch (event) {
           case CheckLockedLookaheadEvent():
             print("checking locked-lookahead $lockedUtcLookaheadTo");

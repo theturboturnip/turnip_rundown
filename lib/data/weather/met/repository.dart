@@ -7,17 +7,16 @@ import 'package:turnip_rundown/data/units.dart';
 import 'package:turnip_rundown/data/weather/model.dart';
 import 'package:turnip_rundown/data/weather/repository.dart';
 import 'package:turnip_rundown/data/weather/sunrise-sunset-org/repository.dart';
+import 'package:turnip_rundown/util.dart';
 
 // See https://datahub.metoffice.gov.uk/docs/f/category/site-specific/type/site-specific/api-documentation#get-/point/hourly
 
 HourlyPredictedWeather predictWeatherFromMetGeoJson(
   String featuresJson, {
-  required DateTime cutoffTime,
+  required UtcDateTime cutoffTime,
   required SunriseSunset? sunriseSunset,
   int numAfterCutoff = 24,
 }) {
-  cutoffTime = cutoffTime.toUtc();
-
   final featuresJsonMap = jsonDecode(featuresJson);
   final features = GeoJSONFeatureCollection.fromMap(featuresJsonMap);
 
@@ -29,7 +28,7 @@ HourlyPredictedWeather predictWeatherFromMetGeoJson(
     throw "Met Office data returned a feature without a timeSeries - $features";
   }
 
-  final timeSeriesDateTimesUtc = <DateTime>[];
+  final timeSeriesDateTimesUtc = <UtcDateTime>[];
   final dataToCapture = <String, List<double>>{
     "screenTemperature": [],
     // TODO minScreenAirTemp, maxScreenAirTemp
@@ -48,7 +47,7 @@ HourlyPredictedWeather predictWeatherFromMetGeoJson(
 
   for (final timeSeriesEntry in timeSeries.sortedBy((entry) => entry["time"] as String)) {
     final timeStr = timeSeriesEntry["time"] as String;
-    timeSeriesDateTimesUtc.add(DateTime.parse(timeStr).toUtc());
+    timeSeriesDateTimesUtc.add(UtcDateTime.parseAndCoerceFullIso8601(timeStr));
 
     for (final doubleSeries in dataToCapture.entries) {
       // Sometimes the data can be null. TODO do we need defaults other than 0 lol.
@@ -238,7 +237,7 @@ class MetOfficeRepository extends WeatherRepository {
         print("$err, $stacktrace");
         return null;
       }),
-      cutoffTime: DateTime.timestamp(),
+      cutoffTime: UtcDateTime.timestamp(),
     );
   }
 }
