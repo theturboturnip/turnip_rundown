@@ -18,7 +18,7 @@ dbg-windows:
     flutter run -d Windows --dart-define-from-file=api-keys-native.json
 
 dbg-android:
-    flutter run -d RZ8 --dart-define-from-file=api-keys-native.json
+    flutter run -d RZC --dart-define-from-file=api-keys-native.json
 
 dbg-macos:
     flutter run -d macos --dart-define-from-file=api-keys-native.json
@@ -28,7 +28,7 @@ dbg-macos:
 #     flutter run -d mac-designed-for-ipad
 
 rel-android:
-    flutter run -d RZ8 --release --dart-define-from-file=api-keys-native.json
+    flutter run -d RZC --release --dart-define-from-file=api-keys-native.json
 
 generate:
     dart run build_runner build
