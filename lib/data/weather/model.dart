@@ -111,6 +111,7 @@ class WeatherDataBank {
     });
     final int nextIdx = nowIdx + nextHours;
     if (nowIdx < 0 || nextIdx < 0 || nextIdx > datapointDateTimes.length) {
+      print("have ${datapointDateTimes.length} times but need ${nextIdx + 1} to satisfy from now $nowIdx to $nextHours in the future. can't extract");
       return null;
     }
 

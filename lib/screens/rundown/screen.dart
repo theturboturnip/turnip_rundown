@@ -799,7 +799,7 @@ class RundownScreen extends StatelessWidget {
     final overallMin = min(dataMin, defaultMin.valueAs(asUnit));
     final overallMax = max(dataMax, defaultMax.valueAs(asUnit));
 
-    numDataPoints ??= (hoursLookedAhead >= 12) ? 24 : 12;
+    numDataPoints ??= min((hoursLookedAhead >= 12) ? 24 : 12, dataPointss.map((dataPoints) => dataPoints.length).max);
 
     final usingTwoUnits = (otherUnit != null) && (otherUnit != asUnit);
 

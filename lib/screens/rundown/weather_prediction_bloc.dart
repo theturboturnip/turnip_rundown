@@ -105,28 +105,34 @@ class WeatherPredictBloc extends Bloc<RefreshPredictedWeather, WeatherPredictSta
             (legendElem) => weather.getPredictedWeather(
               settings.settings.backend,
               legendElem.location.coordinate,
+              nextHours: config.hoursToLookAhead + 7 /* TODO tune this */,
               forceRefreshCache: event.forceRefreshCache,
             ),
           ),
         );
         await weathersFuture.then((weathersAndStatus) {
           final weathers = <HourlyPredictedWeather>[];
+          bool missingWeathers = false;
           bool maybeStale = false;
-          String? error;
+          List<String> errors = [];
           for (final weatherAndStatus in weathersAndStatus) {
             if (weatherAndStatus.isStale) {
               maybeStale = true;
             }
-            if (weatherAndStatus.errorWhenFetching != null) {
-              error = "${weatherAndStatus.errorWhenFetching}, $error";
-            } else if (weatherAndStatus.weather == null) {
-              error = "Failed to retrieve weather";
+            if (weatherAndStatus.weather == null) {
+              missingWeathers = true;
             } else {
               weathers.add(weatherAndStatus.weather!);
             }
+            if (weatherAndStatus.errorWhenFetching != null) {
+              errors.add(weatherAndStatus.errorWhenFetching!);
+            } else if (weatherAndStatus.weather == null) {
+              errors.add("Failed to retrieve weather");
+            }
           }
+          final error = errors.isEmpty ? null : errors.join(", ");
 
-          if (error != null) {
+          if (missingWeathers) {
             emit(
               WeatherPredictState(
                 config: config,

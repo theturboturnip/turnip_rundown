@@ -42,7 +42,7 @@ abstract class WeatherDataBankRepository implements HttpCacheRepository {
 
   // Returns (data, maybeStale)
   // maybeStale = true if the hourly data was extracted from a data bank after its "soft timeout".
-  Future<HourlyPredictedWeatherAndStatus> getPredictedWeather(RequestedWeatherBackend backend, Coordinate coords, {bool forceRefreshCache = false}) async {
+  Future<HourlyPredictedWeatherAndStatus> getPredictedWeather(RequestedWeatherBackend backend, Coordinate coords, {int nextHours = 24, bool forceRefreshCache = false}) async {
     clearCacheOfHardTimedOut();
 
     var now = UtcDateTime.timestamp();
@@ -52,7 +52,7 @@ abstract class WeatherDataBankRepository implements HttpCacheRepository {
     final cachedWeatherData = cachedWeatherDataAndSoftTimeouts[(backend, coords)];
     if (cachedWeatherData != null) {
       final (cachedWeatherBank, softTimeout) = cachedWeatherData;
-      cachedPerHour = cachedWeatherBank.tryExtract(now);
+      cachedPerHour = cachedWeatherBank.tryExtract(now, nextHours: nextHours);
       if (cachedPerHour != null) {
         cachedPerHourSoftTimeout = softTimeout;
       }
@@ -71,7 +71,7 @@ abstract class WeatherDataBankRepository implements HttpCacheRepository {
         now = UtcDateTime.timestamp();
         addToCache(backend, coords, newBank, now.add(const Duration(minutes: 30)));
         return HourlyPredictedWeatherAndStatus(
-          weather: newBank.tryExtract(now)!,
+          weather: newBank.tryExtract(now, nextHours: nextHours)!,
           isStale: false,
           errorWhenFetching: null,
         );
