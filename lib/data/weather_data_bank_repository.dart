@@ -59,9 +59,11 @@ abstract class WeatherDataBankRepository implements HttpCacheRepository {
     }
 
     final isStale = cachedPerHourSoftTimeout != null ? now.isAfter(cachedPerHourSoftTimeout) : false;
-    if (cachedPerHour != null && !isStale) {
+    if (!forceRefreshCache && cachedPerHour != null && !isStale) {
+      print("retrieving weather for $coords directly from cached bank, not stale");
       return HourlyPredictedWeatherAndStatus(weather: cachedPerHour, isStale: false, errorWhenFetching: null);
     }
+    print("banked weather for $coords is null or stale, looking up online");
 
     final client = (clients[backend] ?? clients[RequestedWeatherBackend.openmeteo]!);
     return await client.getPredictedWeather(coords, this, forceRefreshCache: forceRefreshCache).then(
@@ -75,11 +77,14 @@ abstract class WeatherDataBankRepository implements HttpCacheRepository {
         );
       },
     ).catchError(
-      (err) => HourlyPredictedWeatherAndStatus(
-        weather: cachedPerHour,
-        isStale: isStale,
-        errorWhenFetching: "$err",
-      ),
+      (err) {
+        print("failed to look up weather online $err");
+        return HourlyPredictedWeatherAndStatus(
+          weather: cachedPerHour,
+          isStale: isStale,
+          errorWhenFetching: "$err",
+        );
+      },
     );
   }
 }
