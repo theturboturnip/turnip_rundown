@@ -400,33 +400,31 @@ extension RoundTo on double {
 
 @JsonSerializable()
 class Coordinate extends Equatable {
-  const Coordinate({required this.lat, required this.long, this.elevation});
+  const Coordinate({required this.lat, required this.long});
 
   factory Coordinate.fromJson(Map<String, dynamic> json) => _$CoordinateFromJson(json);
   Map<String, dynamic> toJson() => _$CoordinateToJson(this);
 
   final double lat;
   final double long;
-  final double? elevation;
+  // Maintained for legacy purposes
+  @JsonKey(name: "elevation")
+  final double? unusedElevation = null;
 
   Coordinate roundedTo(int latLongDp, {required int elevationDp}) {
     return Coordinate(
       lat: lat.roundTo(latLongDp),
       long: long.roundTo(latLongDp),
-      elevation: elevation?.roundTo(elevationDp),
     );
   }
 
   @override
   String toString() {
-    if (elevation != null) {
-      return "$lat, $long, ${elevation}m";
-    }
     return "$lat, $long";
   }
 
   @override
-  List<Object?> get props => [lat, long, elevation];
+  List<Object?> get props => [lat, long];
 }
 
 extension MinMax on Iterable<num> {

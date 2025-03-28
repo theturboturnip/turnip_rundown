@@ -45,7 +45,6 @@ class GeolocatorCurrentCoordinateRepository extends CurrentCoordinateRepository 
     return Coordinate(
       lat: position.latitude,
       long: position.longitude,
-      elevation: (position.altitude == 0.0) ? null : position.altitude,
     );
   }
 

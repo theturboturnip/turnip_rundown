@@ -39,14 +39,12 @@ Map<String, dynamic> _$DataSeriesToJson<TUnit extends Unit<TUnit>>(
 Coordinate _$CoordinateFromJson(Map<String, dynamic> json) => Coordinate(
       lat: (json['lat'] as num).toDouble(),
       long: (json['long'] as num).toDouble(),
-      elevation: (json['elevation'] as num?)?.toDouble(),
     );
 
 Map<String, dynamic> _$CoordinateToJson(Coordinate instance) =>
     <String, dynamic>{
       'lat': instance.lat,
       'long': instance.long,
-      'elevation': instance.elevation,
     };
 
 const _$TempEnumMap = {

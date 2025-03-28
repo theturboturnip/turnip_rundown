@@ -170,7 +170,6 @@ class OpenMeteoWeatherRepository extends WeatherClient {
         queryParameters: {
           "latitude": coords.lat.toString(),
           "longitude": coords.long.toString(),
-          if (coords.elevation != null) "elevation": coords.elevation.toString(),
           "hourly": "temperature_2m,relative_humidity_2m,dew_point_2m,precipitation_probability,precipitation,wind_speed_10m,direct_radiation_instant,snowfall,cloud_cover",
           "temperature_unit": "celsius",
           "wind_speed_unit": "kmh",
