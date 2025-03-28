@@ -35,7 +35,7 @@ class SqfliteApiCacheAndSettingsRepository extends WeatherDataBankRepository imp
   }) async {
     final db = await openDatabase(
       databasePath,
-      version: 4,
+      version: 5,
       onUpgrade: (db, oldVersion, newVersion) async {
         if (oldVersion == 0) {
           await db.execute("CREATE TABLE cache(uri TEXT UNIQUE, response TEXT, timeoutAfter TEXT)");
