@@ -7,14 +7,14 @@ import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
-import 'package:turnip_rundown/data/api_cache_repository.dart';
 import 'package:turnip_rundown/data/geo/photon/repository.dart';
 import 'package:turnip_rundown/data/geo/repository.dart';
 import 'package:turnip_rundown/data/current_coordinate/repository.dart';
 import 'package:turnip_rundown/data/settings/repository.dart';
 import 'package:turnip_rundown/data/sqflite_repositories.dart';
-import 'package:turnip_rundown/data/weather/met/repository.dart';
-import 'package:turnip_rundown/data/weather/repository.dart';
+import 'package:turnip_rundown/data/weather/met/client.dart';
+import 'package:turnip_rundown/data/weather/client.dart';
+import 'package:turnip_rundown/data/weather_data_bank_repository.dart';
 import 'package:turnip_rundown/data/web_repositories.dart';
 import 'package:turnip_rundown/nav.dart';
 import 'package:turnip_rundown/screens/settings/bloc.dart';
@@ -23,12 +23,16 @@ void main() async {
   // Use sqflite on MacOS/iOS/Android.
   WidgetsFlutterBinding.ensureInitialized();
 
-  late ApiCacheRepository cacheRepo;
+  late WeatherDataBankRepository cacheRepo;
   late SettingsRepository settingsRepo;
+  final weatherClients = {
+    RequestedWeatherBackend.openmeteo: OpenMeteoWeatherRepository(),
+    RequestedWeatherBackend.met: MetOfficeRepository.load(),
+  };
 
   if (kIsWeb) {
-    // Use an in-memory cache for API responses
-    cacheRepo = InMemoryApiCacheRepository();
+    // Use an in-memory cache for API responses and weather bank data
+    cacheRepo = InMemoryHttpCacheRepository(clients: weatherClients);
 
     // TODO prob don't need this?
     SharedPreferences.setMockInitialValues({});
@@ -60,10 +64,10 @@ void main() async {
     //   (await getApplicationCacheDirectory()).path,
     //   "turnip_rundown_cache.db",
     // ));
-    cacheRepo = settingsRepo = await SqfliteApiCacheAndSettingsRepository.getRepository(join(
-      dbFolder,
-      "turnip_rundown.db",
-    ));
+    cacheRepo = settingsRepo = await SqfliteApiCacheAndSettingsRepository.getRepository(
+      join(dbFolder, "turnip_rundown.db"),
+      clients: weatherClients,
+    );
   }
 
   runApp(MyApp(
@@ -75,33 +79,19 @@ void main() async {
 class MyApp extends StatelessWidget {
   const MyApp({super.key, required this.cacheRepo, required this.settingsRepo});
 
-  final ApiCacheRepository cacheRepo;
+  final WeatherDataBankRepository cacheRepo;
   final SettingsRepository settingsRepo;
 
   @override
   Widget build(BuildContext context) {
     return MultiRepositoryProvider(
       providers: [
-        RepositoryProvider<ApiCacheRepository>(create: (context) => cacheRepo),
+        RepositoryProvider<WeatherDataBankRepository>(create: (context) => cacheRepo),
         RepositoryProvider<SettingsRepository>(create: (context) => settingsRepo),
         RepositoryProvider<CurrentCoordinateRepository>(create: (context) => GeolocatorCurrentCoordinateRepository()),
-        RepositoryProvider<WeatherRepository>(
-          create: (context) {
-            final cache = RepositoryProvider.of<ApiCacheRepository>(context);
-            return SwitchWeatherRepository(
-              settings: settingsRepo,
-              repos: {
-                RequestedWeatherBackend.openmeteo: OpenMeteoWeatherRepository(
-                  cache: cache,
-                ),
-                RequestedWeatherBackend.met: MetOfficeRepository.load(cache),
-              },
-            );
-          },
-        ),
         RepositoryProvider<GeocoderRepository>(
           create: (context) => PhotonGeocoderRepository(
-            cache: RepositoryProvider.of<ApiCacheRepository>(context),
+            cache: RepositoryProvider.of<WeatherDataBankRepository>(context),
           ),
         ),
       ],

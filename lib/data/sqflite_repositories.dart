@@ -2,30 +2,37 @@ import 'dart:convert';
 
 import 'package:sqflite/sqflite.dart';
 import 'package:http/http.dart' as http;
+import 'package:turnip_rundown/data.dart';
 
-import 'package:turnip_rundown/data/api_cache_repository.dart';
+import 'package:turnip_rundown/data/http_cache_repository.dart';
 import 'package:turnip_rundown/data/settings/repository.dart';
 import 'package:turnip_rundown/data/units.dart';
+import 'package:turnip_rundown/data/weather_data_bank_repository.dart';
 import 'package:turnip_rundown/util.dart';
 
 // A class that implements both ApiCache and Settings repositories on top of a single sqlite database.
 // On Android the cache and settings dbs are in separate files, because the platform requests it.
 // Both repositories are capable of both behaviours, we just don't use them.
 // On web, it's one DB.
-class SqfliteApiCacheAndSettingsRepository implements ApiCacheRepository, SettingsRepository {
+class SqfliteApiCacheAndSettingsRepository extends WeatherDataBankRepository implements SettingsRepository {
   SqfliteApiCacheAndSettingsRepository(
     this.db,
     this._settings,
     this._lockedUtcLookaheadTo,
-    this._lastGeocoordLookup,
-  );
+    this._lastGeocoordLookup, {
+    required super.clients,
+    required super.cachedWeatherDataAndSoftTimeouts,
+  });
 
   final Database db;
   Settings _settings;
   UtcDateTime? _lockedUtcLookaheadTo;
   Coordinate? _lastGeocoordLookup;
 
-  static Future<SqfliteApiCacheAndSettingsRepository> getRepository(String databasePath) async {
+  static Future<SqfliteApiCacheAndSettingsRepository> getRepository(
+    String databasePath, {
+    required Map<RequestedWeatherBackend, WeatherClient?> clients,
+  }) async {
     final db = await openDatabase(
       databasePath,
       version: 4,
@@ -48,6 +55,10 @@ class SqfliteApiCacheAndSettingsRepository implements ApiCacheRepository, Settin
           await db.insert("keyval", {"key": "lastGeocoordLookup", "val": ""});
           oldVersion = 4;
         }
+        if (oldVersion == 4) {
+          await db.execute("CREATE TABLE weatherData(backend TEXT, coordJson TEXT, dataJson TEXT, utcSoftTimeout TEXT, utcHardTimeout TEXT)");
+          oldVersion = 5;
+        }
       },
     );
     final keyvalRows = await db.query("keyval", columns: ["key", "val"]);
@@ -58,15 +69,48 @@ class SqfliteApiCacheAndSettingsRepository implements ApiCacheRepository, Settin
     final lockedUtcLookaheadTo = UtcDateTime.tryParseAndCoerceFullIso8601(keyvals["lockedUtcLookaheadTo"]!);
     final lastGeocoordLookupJson = keyvals["lastGeocoordLookup"]!;
     final lastGeocoordLookup = lastGeocoordLookupJson.isNotEmpty ? Coordinate.fromJson(jsonDecode(lastGeocoordLookupJson)) : null;
+
+    final cachedWeatherRows = await db.query("weatherData", columns: ["backend", "coordJson", "dataJson", "utcSoftTimeout"]);
+    final cachedWeather = <(RequestedWeatherBackend, Coordinate), (WeatherDataBank, UtcDateTime)>{
+      for (final row in cachedWeatherRows)
+        (
+          RequestedWeatherBackend.values.byName(row["backend"] as String),
+          Coordinate.fromJson(jsonDecode(row["coordJson"] as String)),
+        ): (
+          WeatherDataBank.fromJson(jsonDecode(row["dataJson"] as String)),
+          UtcDateTime.parseAndCoerceFullIso8601(row["utcSoftTimeout"] as String),
+        ),
+    };
+
     final repo = SqfliteApiCacheAndSettingsRepository(
       db,
       settings,
       lockedUtcLookaheadTo,
       lastGeocoordLookup,
+      clients: clients,
+      cachedWeatherDataAndSoftTimeouts: cachedWeather,
     );
     await repo.clearTimedOutEntries();
 
     return repo;
+  }
+
+  @override
+  void addToCache(RequestedWeatherBackend backend, Coordinate coords, WeatherDataBank data, UtcDateTime softTimeout) {
+    super.addToCache(backend, coords, data, softTimeout);
+    db.insert("weatherData", {
+      "backend": backend.name,
+      "coordJson": jsonEncode(coords.toJson()),
+      "dataJson": jsonEncode(data.toJson()),
+      "utcHardTimeout": data.hardTimeout.toIso8601String(),
+      "utcSoftTimeout": softTimeout.toIso8601String(),
+    });
+  }
+
+  @override
+  void clearCacheOfHardTimedOut() {
+    super.clearCacheOfHardTimedOut();
+    db.delete("weatherData", where: "utcHardTimeout < ?", whereArgs: [UtcDateTime.timestamp().toIso8601String()]);
   }
 
   // The Future will emit a [ClientException] if http fails.

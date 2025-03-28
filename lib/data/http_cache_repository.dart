@@ -11,7 +11,7 @@ class ApiStats {
   final Map<String, HostStats> hostStats;
 }
 
-abstract interface class ApiCacheRepository {
+abstract interface class HttpCacheRepository {
   /// The Future will emit a [ClientException] if the http request is attempted and fails.
   /// 'headers' are ignored for the purposes of caching: i.e. if you make two requests to the same uri with different headers each time, the second
   /// request will return the cached data even though the headers are different.

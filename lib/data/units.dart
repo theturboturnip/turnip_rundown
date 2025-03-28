@@ -322,14 +322,24 @@ class Data<TUnit extends Unit<TUnit>> extends Equatable {
 
 // 0-indexed series of data, all under one unit.
 // Immutable.
-class DataSeries<TUnit extends Unit<TUnit>> {
+@JsonSerializable()
+class DataSeries<TUnit extends Unit<TUnit>> extends Equatable {
   const DataSeries(this._values, this._unit);
 
+  @JsonKey(name: "values", includeFromJson: true, includeToJson: true)
   final List<double> _values;
+  @JsonKey(name: "unit", includeFromJson: true, includeToJson: true)
+  @UnitConverter()
   final TUnit _unit;
 
   TUnit get unit => _unit;
   int get length => _values.length;
+
+  factory DataSeries.fromJson(Map<String, dynamic> json) => _$DataSeriesFromJson<TUnit>(json);
+  Map<String, dynamic> toJson() => _$DataSeriesToJson(this);
+
+  @override
+  List<Object?> get props => [_values, _unit];
 
   Iterable<Data<TUnit>> datas() {
     return _values.map((val) => Data(val, _unit));
@@ -341,6 +351,10 @@ class DataSeries<TUnit extends Unit<TUnit>> {
 
   DataSeries<TUnit> slice(int startIndexIncl, int endIndexIncl) {
     return DataSeries(_values.sublist(startIndexIncl, endIndexIncl + 1), _unit);
+  }
+
+  DataSeries<TUnit> sublist(int startIndexIncl, int endIndexExcl) {
+    return DataSeries(_values.sublist(startIndexIncl, endIndexExcl), _unit);
   }
 
   Data<TUnit> operator [](int i) => Data(_values[i], _unit);

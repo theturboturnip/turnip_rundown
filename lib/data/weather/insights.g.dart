@@ -33,10 +33,10 @@ WeatherInsightConfig _$WeatherInsightConfigFromJson(
       minimumGaleyWindspeed: Data<Speed>.fromJson(
           json['minimumGaleyWindspeed'] as Map<String, dynamic>),
       boilingMinTemp: json['boilingMinTemp'] == null
-          ? Data(20, Temp.celsius)
+          ? const Data(20, Temp.celsius)
           : Data<Temp>.fromJson(json['boilingMinTemp'] as Map<String, dynamic>),
       freezingMaxTemp: json['freezingMaxTemp'] == null
-          ? Data(5, Temp.celsius)
+          ? const Data(5, Temp.celsius)
           : Data<Temp>.fromJson(
               json['freezingMaxTemp'] as Map<String, dynamic>),
     );

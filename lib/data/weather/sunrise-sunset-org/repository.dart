@@ -1,16 +1,12 @@
 import 'dart:convert';
 
-import 'package:turnip_rundown/data/api_cache_repository.dart';
+import 'package:turnip_rundown/data/http_cache_repository.dart';
 import 'package:turnip_rundown/data/units.dart';
 import 'package:turnip_rundown/data/weather/model.dart';
 import 'package:turnip_rundown/util.dart';
 
 class SunriseSunsetOrgRepository {
-  SunriseSunsetOrgRepository({required this.cache});
-
-  final ApiCacheRepository cache;
-
-  Future<SunriseSunset> getNextSunriseAndSunset(Coordinate coord, {bool forceRefreshCache = false}) async {
+  Future<SunriseSunset> getNextSunriseAndSunset(Coordinate coord, HttpCacheRepository cache, {bool forceRefreshCache = false}) async {
     final now = UtcDateTime.timestamp();
     var response = await cache.makeHttpRequest(
       Uri(

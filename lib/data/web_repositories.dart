@@ -1,16 +1,18 @@
 import 'dart:convert';
 
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:turnip_rundown/data/api_cache_repository.dart';
+import 'package:turnip_rundown/data/http_cache_repository.dart';
 import 'package:http/http.dart' as http;
 import 'package:turnip_rundown/data/settings/repository.dart';
 import 'package:turnip_rundown/data/units.dart';
+import 'package:turnip_rundown/data/weather_data_bank_repository.dart';
 import 'package:turnip_rundown/util.dart';
 
-class InMemoryApiCacheRepository implements ApiCacheRepository {
-  InMemoryApiCacheRepository()
+class InMemoryHttpCacheRepository extends WeatherDataBankRepository {
+  InMemoryHttpCacheRepository({required super.clients})
       : cache = {},
-        stats = {};
+        stats = {},
+        super(cachedWeatherDataAndSoftTimeouts: {});
 
   // Uri -> (timeout, response data)
   final Map<Uri, (UtcDateTime, String)> cache;

@@ -4,14 +4,14 @@ import 'dart:convert';
 
 import 'package:collection/collection.dart';
 import 'package:json_annotation/json_annotation.dart';
-import 'package:turnip_rundown/data/api_cache_repository.dart';
+import 'package:turnip_rundown/data/http_cache_repository.dart';
 import 'package:turnip_rundown/data/units.dart';
 import 'package:turnip_rundown/data/weather/model.dart';
-import 'package:turnip_rundown/data/weather/repository.dart';
+import 'package:turnip_rundown/data/weather/client.dart';
 import 'package:turnip_rundown/data/weather/sunrise-sunset-org/repository.dart';
 import 'package:turnip_rundown/util.dart';
 
-part 'repository.g.dart';
+part 'client.g.dart';
 
 @JsonSerializable()
 class OpenMeteoHourlyRequest {
@@ -148,17 +148,17 @@ SolarRadiation solarUnitFromOpenMeteo(String? str, {required SolarRadiation expe
   }
 }
 
-class OpenMeteoWeatherRepository extends WeatherRepository {
-  OpenMeteoWeatherRepository({required this.cache}) : sunriseSunsetRepo = SunriseSunsetOrgRepository(cache: cache);
+class OpenMeteoWeatherRepository extends WeatherClient {
+  OpenMeteoWeatherRepository() : sunriseSunsetRepo = SunriseSunsetOrgRepository();
 
-  final ApiCacheRepository cache;
   final SunriseSunsetOrgRepository sunriseSunsetRepo;
 
   @override
-  Future<HourlyPredictedWeather> getPredictedWeather(Coordinate coords, {bool forceRefreshCache = false}) async {
+  Future<WeatherDataBank> getPredictedWeather(Coordinate coords, HttpCacheRepository cache, {bool forceRefreshCache = false}) async {
     // Pre-request sunriseSunset because it can be multiple HTTP requests and therefore slow
     final Future<SunriseSunset?> sunriseSunsetRequest = sunriseSunsetRepo.getNextSunriseAndSunset(
       coords,
+      cache,
       forceRefreshCache: forceRefreshCache,
     );
     // Get 3 days worth of predicted/measured data
@@ -248,37 +248,25 @@ class OpenMeteoWeatherRepository extends WeatherRepository {
       dewPointTemp: dew_point_3day,
       solarRadiation: directRadiation_3day,
     );
-    // Compute wet bulb temperature
-
-    // Extract the 24hrs preceding right now and the 24hrs following right now
-    final UtcDateTime currentTime = UtcDateTime.timestamp();
     final datapointDateTimes = response.hourly.time.map((givenTimeStr) => UtcDateTime.parsePartialIso8601AsUtc(givenTimeStr)).toList();
-    final int indexInTimeSeriesForRightNow = datapointDateTimes.indexWhere((givenTime) {
-      return currentTime.difference(givenTime) < const Duration(hours: 1);
-    });
-    assert(indexInTimeSeriesForRightNow >= 24);
-    assert(indexInTimeSeriesForRightNow + 24 <= datapointDateTimes.length);
-    // Capture the range [indexInTimeSeriesForRightNow - 24:indexInTimeSeriesForRightNow - 1] for previous 24hr
-    // Capture the range [indexInTimeSeriesForRightNow:indexInTimeSeriesForRightNow + 23] for next 24hr
-
-    return HourlyPredictedWeather(
-      precipitationUpToNow: precipitation_3day.slice(indexInTimeSeriesForRightNow - 24, indexInTimeSeriesForRightNow - 1),
-      // sublist() uses non-inclusive end
-      dateTimesForPredictions: datapointDateTimes.sublist(indexInTimeSeriesForRightNow, indexInTimeSeriesForRightNow + 24),
-      precipitation: precipitation_3day.slice(indexInTimeSeriesForRightNow, indexInTimeSeriesForRightNow + 23),
-      precipitationProb: precipitationProb_3day.slice(indexInTimeSeriesForRightNow, indexInTimeSeriesForRightNow + 23),
-      dryBulbTemp: temperature_3day.slice(indexInTimeSeriesForRightNow, indexInTimeSeriesForRightNow + 23),
-      estimatedWetBulbGlobeTemp: wetBulb_3day.slice(indexInTimeSeriesForRightNow, indexInTimeSeriesForRightNow + 23),
-      windspeed: windspeed_3day.slice(indexInTimeSeriesForRightNow, indexInTimeSeriesForRightNow + 23),
-      relHumidity: relHumidity_3day.slice(indexInTimeSeriesForRightNow, indexInTimeSeriesForRightNow + 23),
-      directRadiation: directRadiation_3day.slice(indexInTimeSeriesForRightNow, indexInTimeSeriesForRightNow + 23),
-      snowfall: snowfall_3day.slice(indexInTimeSeriesForRightNow, indexInTimeSeriesForRightNow + 23),
-      cloudCover: cloudCover_3day.slice(indexInTimeSeriesForRightNow, indexInTimeSeriesForRightNow + 23),
+    return WeatherDataBank(
+      datapointDateTimes: datapointDateTimes,
+      precipitation: precipitation_3day,
+      precipitationProb: precipitationProb_3day,
+      dryBulbTemp: temperature_3day,
+      estimatedWetBulbGlobeTemp: wetBulb_3day,
+      windspeed: windspeed_3day,
+      relHumidity: relHumidity_3day,
+      directRadiation: directRadiation_3day,
+      snowfall: snowfall_3day,
+      cloudCover: cloudCover_3day,
       sunriseSunset: await sunriseSunsetRequest.onError((err, stacktrace) {
         print("$err, $stacktrace");
         return null;
       }),
     );
+
+    // Compute wet bulb temperature
   }
 }
 

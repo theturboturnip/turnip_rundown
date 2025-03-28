@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:turnip_rundown/data/api_cache_repository.dart';
+import 'package:turnip_rundown/data/http_cache_repository.dart';
 import 'package:turnip_rundown/data/geo/repository.dart';
 import 'package:turnip_rundown/data/units.dart';
 
@@ -9,7 +9,7 @@ import 'package:turnip_rundown/data/units.dart';
 class PhotonGeocoderRepository extends GeocoderRepository {
   PhotonGeocoderRepository({required this.cache});
 
-  final ApiCacheRepository cache;
+  final HttpCacheRepository cache;
 
   @override
   Future<List<Location>> suggestLocations(String query, {Coordinate? near, int nSuggestions = 5}) async {

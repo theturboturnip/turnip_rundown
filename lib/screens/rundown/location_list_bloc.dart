@@ -127,6 +127,7 @@ class LocationListBloc extends Bloc<LocationListEvent, LocationListState> {
           currentCoordinate: state.currentCoordinate,
           includeCurrentCoordinateInInsights: true,
           otherNamedLocations: state.otherNamedLocations,
+          currentCoordinateError: state.currentCoordinateError,
         ));
       },
       transformer: sequential(),
@@ -137,6 +138,7 @@ class LocationListBloc extends Bloc<LocationListEvent, LocationListState> {
           currentCoordinate: state.currentCoordinate,
           includeCurrentCoordinateInInsights: false,
           otherNamedLocations: state.otherNamedLocations,
+          currentCoordinateError: state.currentCoordinateError,
         ));
       },
       transformer: sequential(),
@@ -151,6 +153,7 @@ class LocationListBloc extends Bloc<LocationListEvent, LocationListState> {
             ...state.otherNamedLocations,
             event.otherLocation,
           ],
+          currentCoordinateError: state.currentCoordinateError,
         ));
       },
       transformer: sequential(),
@@ -161,6 +164,7 @@ class LocationListBloc extends Bloc<LocationListEvent, LocationListState> {
           currentCoordinate: state.currentCoordinate,
           includeCurrentCoordinateInInsights: state.includeCurrentCoordinateInInsights,
           otherNamedLocations: List.from(state.otherNamedLocations)..removeAt(event.index),
+          currentCoordinateError: state.currentCoordinateError,
         ));
       },
       transformer: sequential(),

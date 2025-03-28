@@ -3,10 +3,10 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:turnip_rundown/data/api_cache_repository.dart';
+import 'package:turnip_rundown/data/http_cache_repository.dart';
 import 'package:turnip_rundown/data/settings/repository.dart';
 import 'package:turnip_rundown/data/units.dart';
-import 'package:turnip_rundown/data/weather/met/repository.dart';
+import 'package:turnip_rundown/data/weather/met/client.dart';
 import 'package:turnip_rundown/screens/settings/bloc.dart';
 import 'package:turnip_rundown/util.dart';
 
@@ -578,7 +578,7 @@ class SettingsScreen extends StatelessWidget {
                   _settingsButton(
                     child: const Text("Check API cache"),
                     onPressed: () async {
-                      final stats = await RepositoryProvider.of<ApiCacheRepository>(context).getStats();
+                      final stats = await RepositoryProvider.of<HttpCacheRepository>(context).getStats();
                       if (context.mounted) {
                         showDialog(
                           context: context,
@@ -597,7 +597,7 @@ class SettingsScreen extends StatelessWidget {
                   _settingsButton(
                     child: const Text("Reset API cache"),
                     onPressed: () {
-                      RepositoryProvider.of<ApiCacheRepository>(context).resetStats();
+                      RepositoryProvider.of<HttpCacheRepository>(context).resetStats();
                     },
                   ),
                 ],

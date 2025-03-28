@@ -125,6 +125,7 @@ class WakingHours {
   }
 }
 
+@JsonEnum(alwaysCreate: true)
 enum RequestedWeatherBackend {
   openmeteo,
   met,

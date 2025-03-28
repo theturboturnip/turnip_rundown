@@ -10,6 +10,7 @@ import 'package:material_symbols_icons/symbols.dart';
 import 'package:turnip_rundown/data.dart';
 import 'package:turnip_rundown/data/geo/repository.dart';
 import 'package:turnip_rundown/data/settings/repository.dart';
+import 'package:turnip_rundown/data/weather_data_bank_repository.dart';
 import 'package:turnip_rundown/screens/rundown/hours_lookahead_bloc.dart';
 import 'package:turnip_rundown/screens/rundown/location_list_bloc.dart';
 import 'package:turnip_rundown/screens/rundown/location_suggest_bloc.dart';
@@ -78,7 +79,8 @@ class RundownScreen extends StatelessWidget {
         ),
         BlocProvider(
           create: (context) => WeatherPredictBloc(
-            RepositoryProvider.of<WeatherRepository>(context),
+            RepositoryProvider.of<SettingsRepository>(context),
+            RepositoryProvider.of<WeatherDataBankRepository>(context),
           ),
         ),
         BlocProvider(
@@ -102,10 +104,19 @@ class RundownScreen extends StatelessWidget {
                               hoursToLookAhead: settings.wakingHours.numHoursToLookahead(hoursLookaheadState.lockedUtcLookaheadTo),
                               insightConfig: settings.weatherConfig,
                             ),
+                            forceRefreshCache: false,
                           ),
                         );
                     return BlocBuilder<WeatherPredictBloc, WeatherPredictState>(
                       builder: (context, weatherState) {
+                        final predictConfig = weatherState.config;
+                        final insightResults = weatherState.mostRecentWeatherResult ??
+                            const WeatherInsightsResult(
+                              weathersByHour: null,
+                              weatherMayBeStale: false,
+                              insights: null,
+                              error: null,
+                            );
                         final LocalDateTime utcHourInLocalTime = LocalDateTime(
                           DateTime.timestamp()
                               .copyWith(
@@ -129,7 +140,7 @@ class RundownScreen extends StatelessWidget {
                           onRefresh: () async {
                             context.read<LocationListBloc>().add(const RefreshCurrentCoordinate());
                             context.read<HoursLookaheadBloc>().add(const CheckLockedLookaheadEvent());
-                            context.read<WeatherPredictBloc>().add(const RefreshPredictedWeather(config: null));
+                            context.read<WeatherPredictBloc>().add(const RefreshPredictedWeather(config: null, forceRefreshCache: true));
                           },
                           child: SingleChildScrollView(
                             // Ensure the refresh indicator can always be used,
@@ -142,13 +153,18 @@ class RundownScreen extends StatelessWidget {
                                   ..._buildWeatherSummary(
                                     context,
                                     hoursLookaheadState,
-                                    weatherState,
+                                    insightResults,
                                     settings,
                                     dateTimesForEachHour,
                                   ),
+                                  if (weatherState.isLoading)
+                                    const LinearProgressIndicator(
+                                      value: null,
+                                    ),
                                   ..._buildWeatherInsights(
                                     context,
-                                    weatherState,
+                                    predictConfig,
+                                    insightResults,
                                     settings,
                                     dateTimesForEachHour,
                                   ),
@@ -164,7 +180,8 @@ class RundownScreen extends StatelessWidget {
                                   ),
                                   ..._buildWeatherGraphs(
                                     context,
-                                    weatherState,
+                                    predictConfig,
+                                    insightResults,
                                     settings,
                                     dateTimesForEachHour: dateTimesForEachHour,
                                     dateTimesForPriorHours: dateTimesForPriorHours,
@@ -189,7 +206,7 @@ class RundownScreen extends StatelessWidget {
   List<Widget> _buildWeatherSummary(
     BuildContext context,
     HoursLookaheadState hoursLookaheadState,
-    WeatherPredictState weather,
+    WeatherInsightsResult insightsResult,
     Settings settings,
     List<LocalDateTime> dateTimesForEachHour,
   ) {
@@ -202,8 +219,8 @@ class RundownScreen extends StatelessWidget {
           spacing: 40.0,
           children: settings.temperatureUnit.displayUnits().map(
             (unit) {
-              final minString = (weather is SuccessfulWeatherPrediction) ? weather.insights.minTempAt?.$1.valueAs(unit).toStringAsFixed(1) : null;
-              final maxString = (weather is SuccessfulWeatherPrediction) ? weather.insights.maxTempAt?.$1.valueAs(unit).toStringAsFixed(1) : null;
+              final minString = insightsResult.insights?.minTempAt?.$1.valueAs(unit).toStringAsFixed(1);
+              final maxString = insightsResult.insights?.maxTempAt?.$1.valueAs(unit).toStringAsFixed(1);
               return Text(
                 "${minString ?? "..."}–${maxString ?? "..."}${unit.display}",
                 style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 50),
@@ -412,15 +429,16 @@ class RundownScreen extends StatelessWidget {
 
   List<Widget> _buildWeatherGraphs(
     BuildContext context,
-    WeatherPredictState state,
+    WeatherPredictConfig config,
+    WeatherInsightsResult insightsResult,
     Settings settings, {
     required List<LocalDateTime> dateTimesForEachHour,
     required List<LocalDateTime> dateTimesForPriorHours,
   }) {
     return [
-      if (state is FailedWeatherPrediction) Text("Cannot retrieve weather: ${state.error}"),
-      if (state is SuccessfulWeatherPrediction && state.weathers.isEmpty) const Text("No locations selected!"),
-      if (state is SuccessfulWeatherPrediction && state.weathers.isNotEmpty) ...[
+      if (insightsResult.error != null) Text("Cannot retrieve weather: ${insightsResult.error}"),
+      if (insightsResult.weathersByHour != null && insightsResult.weathersByHour!.isEmpty) const Text("No locations selected!"),
+      if (insightsResult.weathersByHour != null && insightsResult.weathersByHour!.isNotEmpty) ...[
         // Wrap(
         //   crossAxisAlignment: WrapCrossAlignment.center,
         //   spacing: 10.0,
@@ -451,110 +469,110 @@ class RundownScreen extends StatelessWidget {
           chartOf(
             context,
             "Dry Bulb Temperature",
-            state.weathers.map((weather) => weather.dryBulbTemp),
+            insightsResult.weathersByHour!.map((weather) => weather.dryBulbTemp),
             settings.temperatureUnit.displayUnits().first,
             dateTimesForEachHour,
             defaultMin: const Data(5, Temp.celsius),
             baseline: const Data(15, Temp.celsius),
             defaultMax: const Data(25, Temp.celsius),
-            hoursLookedAhead: state.config.hoursToLookAhead,
+            hoursLookedAhead: config.hoursToLookAhead,
             otherUnit: (settings.temperatureUnit == TempDisplay.both ? Temp.farenheit : null),
           ),
         if (settings.weatherConfig.useEstimatedWetBulbTemp)
           chartOf(
             context,
             "Wet Bulb Globe Temperature (est.)",
-            state.weathers.map((weather) => weather.estimatedWetBulbGlobeTemp),
+            insightsResult.weathersByHour!.map((weather) => weather.estimatedWetBulbGlobeTemp),
             settings.temperatureUnit.displayUnits().first,
             dateTimesForEachHour,
             defaultMin: const Data(5, Temp.celsius),
             baseline: const Data(15, Temp.celsius),
             defaultMax: const Data(25, Temp.celsius),
-            hoursLookedAhead: state.config.hoursToLookAhead,
+            hoursLookedAhead: config.hoursToLookAhead,
             otherUnit: (settings.temperatureUnit == TempDisplay.both ? Temp.farenheit : null),
           ),
         chartOf(
           context,
           "Humidity",
-          state.weathers.map((weather) => weather.relHumidity),
+          insightsResult.weathersByHour!.map((weather) => weather.relHumidity),
           Percent.outOf100,
           dateTimesForEachHour,
           defaultMin: const Data(0, Percent.outOf100),
           defaultMax: const Data(100, Percent.outOf100),
-          hoursLookedAhead: state.config.hoursToLookAhead,
+          hoursLookedAhead: config.hoursToLookAhead,
         ),
         chartOf(
           context,
           "Wind Speed",
-          state.weathers.map((weather) => weather.windspeed),
+          insightsResult.weathersByHour!.map((weather) => weather.windspeed),
           Speed.milesPerHour,
           dateTimesForEachHour,
           defaultMin: const Data(0, Speed.milesPerHour),
           defaultMax: const Data(10, Speed.milesPerHour),
-          hoursLookedAhead: state.config.hoursToLookAhead,
+          hoursLookedAhead: config.hoursToLookAhead,
         ),
-        if (!state.weathers.any((weather) => weather.directRadiation == null))
+        if (!insightsResult.weathersByHour!.any((weather) => weather.directRadiation == null))
           chartOf(
             context,
             "Direct Radiation",
-            state.weathers.map((weather) => weather.directRadiation!),
+            insightsResult.weathersByHour!.map((weather) => weather.directRadiation!),
             SolarRadiation.wPerM2,
             dateTimesForEachHour,
             defaultMin: const Data(0, SolarRadiation.wPerM2),
             defaultMax: const Data(1000, SolarRadiation.wPerM2),
-            hoursLookedAhead: state.config.hoursToLookAhead,
+            hoursLookedAhead: config.hoursToLookAhead,
           ),
-        if (!state.weathers.any((weather) => weather.cloudCover == null))
+        if (!insightsResult.weathersByHour!.any((weather) => weather.cloudCover == null))
           chartOf(
             context,
             "Cloud Cover",
-            state.weathers.map((weather) => weather.cloudCover!),
+            insightsResult.weathersByHour!.map((weather) => weather.cloudCover!),
             Percent.outOf100,
             dateTimesForEachHour,
             defaultMin: const Data(0, Percent.outOf100),
             defaultMax: const Data(100, Percent.outOf100),
-            hoursLookedAhead: state.config.hoursToLookAhead,
+            hoursLookedAhead: config.hoursToLookAhead,
           ),
         chartOf(
           context,
           "Precipitation Chance",
-          state.weathers.map((weather) => weather.precipitationProb),
+          insightsResult.weathersByHour!.map((weather) => weather.precipitationProb),
           Percent.outOf100,
           dateTimesForEachHour,
           defaultMin: const Data(0, Percent.outOf100),
           defaultMax: const Data(100, Percent.outOf100),
-          hoursLookedAhead: state.config.hoursToLookAhead,
+          hoursLookedAhead: config.hoursToLookAhead,
         ),
         chartOf(
           context,
           "Precipitation",
-          state.weathers.map((weather) => weather.precipitation),
+          insightsResult.weathersByHour!.map((weather) => weather.precipitation),
           settings.rainfallUnit,
           dateTimesForEachHour,
           defaultMin: const Data(0, Length.mm),
           defaultMax: const Data(10, Length.mm),
-          hoursLookedAhead: state.config.hoursToLookAhead,
+          hoursLookedAhead: config.hoursToLookAhead,
         ),
         chartOf(
           context,
           "Snowfall",
-          state.weathers.map((weather) => weather.snowfall),
+          insightsResult.weathersByHour!.map((weather) => weather.snowfall),
           settings.rainfallUnit, // TODO
           dateTimesForEachHour,
           defaultMin: const Data(0, Length.mm),
           defaultMax: const Data(10, Length.mm),
-          hoursLookedAhead: state.config.hoursToLookAhead,
+          hoursLookedAhead: config.hoursToLookAhead,
         ),
         chartOf(
           context,
           "Precipitation (Last 24hrs)",
-          state.weathers.map((weather) => weather.precipitationUpToNow),
+          insightsResult.weathersByHour!.map((weather) => weather.precipitationUpToNow),
           settings.rainfallUnit,
           dateTimesForPriorHours,
           defaultMin: const Data(0, Length.mm),
           defaultMax: const Data(10, Length.mm),
-          numDataPoints: state.weathers.first.precipitationUpToNow.length,
-          hoursLookedAhead: state.weathers.first.precipitationUpToNow.length,
+          numDataPoints: insightsResult.weathersByHour!.first.precipitationUpToNow.length,
+          hoursLookedAhead: insightsResult.weathersByHour!.first.precipitationUpToNow.length,
         ),
       ]
     ];
@@ -675,26 +693,28 @@ class RundownScreen extends StatelessWidget {
 
   List<Widget> _buildWeatherInsights(
     BuildContext context,
-    WeatherPredictState state,
+    WeatherPredictConfig config,
+    WeatherInsightsResult insightsResult,
     Settings settings,
     List<LocalDateTime> dateTimesForEachHour,
   ) {
-    if (state is SuccessfulWeatherPrediction) {
-      final listOfLocations = state.config.legend.map((legendElem) => legendElem.isYourCoordinate ? "your location" : legendElem.location.name).toList();
+    late final List<Widget> widgets;
+    if (insightsResult.insights != null) {
+      final listOfLocations = config.legend.map((legendElem) => legendElem.isYourCoordinate ? "your location" : legendElem.location.name).toList();
       assert(insightTypeMap.keys.toSet().containsAll(InsightType.values));
 
       final insightWidgets = _buildWeatherWarningInsight(
-        state.insights.insightsByLocation,
+        insightsResult.insights!.insightsByLocation,
         insightTypeMap,
         listOfLocations,
         dateTimesForEachHour,
-        state.config.hoursToLookAhead,
+        config.hoursToLookAhead,
       );
 
       final timestamp = UtcDateTime.timestamp();
 
-      final timeRangeEndUtc = dateTimesForEachHour[state.config.hoursToLookAhead].toUtc();
-      for (final (locationIndex, sunriseSunset) in state.insights.sunriseSunsetByLocation.indexed) {
+      final timeRangeEndUtc = dateTimesForEachHour[config.hoursToLookAhead].toUtc();
+      for (final (locationIndex, sunriseSunset) in insightsResult.insights!.sunriseSunsetByLocation.indexed) {
         final sunrise = sunriseSunset?.nextSunrise;
         final sunset = sunriseSunset?.nextSunset;
 
@@ -725,10 +745,23 @@ class RundownScreen extends StatelessWidget {
         }
       }
 
-      return insightWidgets.sorted((a, b) => a.startTimeUtc.compareTo(b.startTimeUtc)).toList();
+      widgets = insightWidgets.sorted((a, b) => a.startTimeUtc.compareTo(b.startTimeUtc));
     } else {
-      return [];
+      widgets = [];
     }
+
+    if (insightsResult.weatherMayBeStale) {
+      widgets.insert(
+        0,
+        const ListTile(
+          leading: Icon(Symbols.warning),
+          title: Text("Stale Data"),
+          subtitle: Text("Warning: data fetched from one or more sources may be out of date. Try refreshing the app."),
+        ),
+      );
+    }
+
+    return widgets;
   }
 
   Widget chartOf<TUnit extends Unit<TUnit>>(

@@ -2,20 +2,19 @@ import 'dart:convert';
 
 import 'package:collection/collection.dart';
 import 'package:geojson_vi/geojson_vi.dart';
-import 'package:turnip_rundown/data/api_cache_repository.dart';
+import 'package:turnip_rundown/data/http_cache_repository.dart';
 import 'package:turnip_rundown/data/units.dart';
 import 'package:turnip_rundown/data/weather/model.dart';
-import 'package:turnip_rundown/data/weather/repository.dart';
+import 'package:turnip_rundown/data/weather/client.dart';
 import 'package:turnip_rundown/data/weather/sunrise-sunset-org/repository.dart';
 import 'package:turnip_rundown/util.dart';
 
 // See https://datahub.metoffice.gov.uk/docs/f/category/site-specific/type/site-specific/api-documentation#get-/point/hourly
 
-HourlyPredictedWeather predictWeatherFromMetGeoJson(
+WeatherDataBank predictWeatherFromMetGeoJson(
   String featuresJson, {
   required UtcDateTime cutoffTime,
   required SunriseSunset? sunriseSunset,
-  int numAfterCutoff = 24,
 }) {
   final featuresJsonMap = jsonDecode(featuresJson);
   final features = GeoJSONFeatureCollection.fromMap(featuresJsonMap);
@@ -62,13 +61,9 @@ HourlyPredictedWeather predictWeatherFromMetGeoJson(
     ),
   );
 
-  final int indexInTimeSeriesForCutoff = timeSeriesDateTimesUtc.indexWhere((givenTime) {
-    return cutoffTime.difference(givenTime) < const Duration(hours: 1);
-  });
-
   DataSeries<TUnit> extractDataSeries<TUnit extends Unit<TUnit>>(String name, TUnit Function(String?) unitFunc) {
     return DataSeries<TUnit>(
-      dataToCapture[name]!.skip(indexInTimeSeriesForCutoff).take(numAfterCutoff).toList(),
+      dataToCapture[name]!,
       unitFunc(unitParameters[name]),
     );
   }
@@ -86,9 +81,8 @@ HourlyPredictedWeather predictWeatherFromMetGeoJson(
     solarRadiation: null,
   );
 
-  return HourlyPredictedWeather(
-    precipitationUpToNow: const DataSeries([], Length.mm), // TODO predict this?
-    dateTimesForPredictions: timeSeriesDateTimesUtc.skip(indexInTimeSeriesForCutoff).toList(),
+  return WeatherDataBank(
+    datapointDateTimes: timeSeriesDateTimesUtc,
     precipitation: extractDataSeries("totalPrecipAmount", lengthUnitFromMet),
     precipitationProb: extractDataSeries("probOfPrecipitation", percentUnitFromMet),
     dryBulbTemp: dryBulbTemp,
@@ -194,21 +188,21 @@ Speed speedUnitFromMet(String? str) {
 
 const metOfficeApiKey = String.fromEnvironment('MET_OFFICE_KEY');
 
-class MetOfficeRepository extends WeatherRepository {
-  static MetOfficeRepository? load(ApiCacheRepository cache) {
-    return metOfficeApiKey.isEmpty ? null : MetOfficeRepository._(cache: cache);
+class MetOfficeRepository extends WeatherClient {
+  static MetOfficeRepository? load() {
+    return metOfficeApiKey.isEmpty ? null : MetOfficeRepository._();
   }
 
-  MetOfficeRepository._({required this.cache}) : sunriseSunsetRepo = SunriseSunsetOrgRepository(cache: cache);
+  MetOfficeRepository._() : sunriseSunsetRepo = SunriseSunsetOrgRepository();
 
-  final ApiCacheRepository cache;
   final SunriseSunsetOrgRepository sunriseSunsetRepo;
 
   @override
-  Future<HourlyPredictedWeather> getPredictedWeather(Coordinate coords, {bool forceRefreshCache = false}) async {
+  Future<WeatherDataBank> getPredictedWeather(Coordinate coords, HttpCacheRepository cache, {bool forceRefreshCache = false}) async {
     // Pre-request sunriseSunset because it can be multiple HTTP requests and therefore slow
     final Future<SunriseSunset?> sunriseSunsetRequest = sunriseSunsetRepo.getNextSunriseAndSunset(
       coords,
+      cache,
       forceRefreshCache: forceRefreshCache,
     );
     // Get 48hrs worth of predicted data

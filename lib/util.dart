@@ -39,12 +39,33 @@ class UtcDateTime implements Comparable<UtcDateTime> {
 
   UtcDateTime subtract(Duration duration) => UtcDateTime(timeAsUtc.subtract(duration));
 
+  /// Returns a [Duration] with the difference when subtracting [other] from this [DateTime].
+  ///
+  /// The returned [Duration] will be negative if [other] occurs after this [DateTime].
+  ///
+  /// ```
+  /// final berlinWallFell = DateTime.utc(1989, DateTime.november, 9);
+  /// final dDay = DateTime.utc(1944, DateTime.june, 6);
+  ///
+  /// final difference = berlinWallFell.difference(dDay);
+  /// print(difference.inDays); // 16592
+  /// ```
   Duration difference(UtcDateTime other) => timeAsUtc.difference(other.timeAsUtc);
 
   String toIso8601String() => timeAsUtc.toIso8601String();
 
   @override
   int compareTo(UtcDateTime other) => timeAsUtc.compareTo(other.timeAsUtc);
+}
+
+class UtcDateTimeJsonConverter extends JsonConverter<UtcDateTime, String> {
+  const UtcDateTimeJsonConverter();
+
+  @override
+  UtcDateTime fromJson(String json) => UtcDateTime.parseAndCoerceFullIso8601(json);
+
+  @override
+  String toJson(UtcDateTime object) => object.toIso8601String();
 }
 
 class LocalDateTime {
