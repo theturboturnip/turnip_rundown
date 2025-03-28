@@ -13,7 +13,6 @@ import 'package:turnip_rundown/util.dart';
 
 WeatherDataBank predictWeatherFromMetGeoJson(
   String featuresJson, {
-  required UtcDateTime cutoffTime,
   required SunriseSunset? sunriseSunset,
 }) {
   final featuresJsonMap = jsonDecode(featuresJson);
@@ -231,7 +230,6 @@ class MetOfficeRepository extends WeatherClient {
         print("$err, $stacktrace");
         return null;
       }),
-      cutoffTime: UtcDateTime.timestamp(),
     );
   }
 }

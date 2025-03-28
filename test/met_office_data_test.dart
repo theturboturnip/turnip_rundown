@@ -1,25 +1,14 @@
 import 'package:test/test.dart';
 import 'package:turnip_rundown/data/units.dart';
 
-import 'package:turnip_rundown/data/weather/met/repository.dart';
+import 'package:turnip_rundown/data/weather/met/client.dart';
 import 'package:turnip_rundown/data/weather/model.dart';
-import 'package:turnip_rundown/util.dart';
 
-void expectDataHasLength(HourlyPredictedWeather data, int expectedLength) {
-  expect(data.precipitationUpToNow.length, 0);
-  expect(data.dateTimesForPredictions.length, expectedLength);
-  expect(data.precipitation.length, expectedLength);
-  expect(data.precipitationProb.length, expectedLength);
-  expect(data.dryBulbTemp.length, expectedLength);
-  expect(data.estimatedWetBulbGlobeTemp.length, expectedLength);
-  expect(data.windspeed.length, expectedLength);
-  expect(data.relHumidity.length, expectedLength);
-  expect(data.snowfall.length, expectedLength);
-  expect(data.directRadiation, null);
-  expect(data.cloudCover, null);
+void expectDataHasLength(WeatherDataBank data, int expectedLength) {
+  expect(data.datapointDateTimes.length, expectedLength);
 }
 
-void expectDefaultUnits(HourlyPredictedWeather data) {
+void expectDefaultUnits(WeatherDataBank data) {
   expect(data.precipitation.unit, Length.mm);
   expect(data.precipitationProb.unit, Percent.outOf100);
   expect(data.dryBulbTemp.unit, Temp.celsius);
@@ -35,9 +24,7 @@ void main() {
     () {
       final data = predictWeatherFromMetGeoJson(
         cambridgeExample,
-        cutoffTime: UtcDateTime.direct(2025, 01, 29, hour: 1),
         sunriseSunset: null,
-        numAfterCutoff: 100,
       );
       expect(
         data.dryBulbTemp.valuesAs(Temp.celsius),
@@ -99,44 +86,6 @@ void main() {
       );
       expectDataHasLength(data, 49);
       expectDefaultUnits(data);
-    },
-  );
-
-  test(
-    "can parse cambridge example when cutoff time after start",
-    () {
-      // +55minutes shouldn't affect the start point
-      final data = predictWeatherFromMetGeoJson(
-        cambridgeExample,
-        cutoffTime: UtcDateTime.direct(2025, 01, 29, hour: 1, minute: 55),
-        sunriseSunset: null,
-        numAfterCutoff: 100,
-      );
-      expect(data.dateTimesForPredictions.first, UtcDateTime.direct(2025, 1, 29, hour: 1, minute: 0));
-      expectDataHasLength(data, 49);
-      expectDefaultUnits(data);
-
-      // +1hr moves it up by one
-      final data2 = predictWeatherFromMetGeoJson(
-        cambridgeExample,
-        cutoffTime: UtcDateTime.direct(2025, 01, 29, hour: 2, minute: 1),
-        sunriseSunset: null,
-        numAfterCutoff: 100,
-      );
-      expect(data2.dateTimesForPredictions.first, UtcDateTime.direct(2025, 1, 29, hour: 2, minute: 0));
-      expectDataHasLength(data2, 48);
-      expectDefaultUnits(data2);
-
-      // +24hr moves it up by 24
-      final data3 = predictWeatherFromMetGeoJson(
-        cambridgeExample,
-        cutoffTime: UtcDateTime.direct(2025, 01, 30, hour: 1),
-        sunriseSunset: null,
-        numAfterCutoff: 100,
-      );
-      expect(data3.dateTimesForPredictions.first, UtcDateTime.direct(2025, 1, 30, hour: 1, minute: 0));
-      expectDataHasLength(data3, 25);
-      expectDefaultUnits(data3);
     },
   );
 }

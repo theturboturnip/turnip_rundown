@@ -35,3 +35,6 @@ generate:
 
 generate-icon:
     dart run flutter_launcher_icons
+
+test:
+    flutter test
