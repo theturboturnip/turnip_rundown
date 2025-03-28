@@ -160,6 +160,11 @@ class RundownScreen extends StatelessWidget {
                                   if (weatherState.isLoading)
                                     const LinearProgressIndicator(
                                       value: null,
+                                      minHeight: 4,
+                                    ),
+                                  if (!weatherState.isLoading)
+                                    const SizedBox(
+                                      height: 4,
                                     ),
                                   ..._buildWeatherInsights(
                                     context,
@@ -277,6 +282,17 @@ class RundownScreen extends StatelessWidget {
                     );
               },
             ),
+            IconButton(
+              icon: const Icon(Icons.refresh),
+              onPressed: () {
+                context.read<WeatherPredictBloc>().add(
+                      const RefreshPredictedWeather(
+                        config: null,
+                        forceRefreshCache: true,
+                      ),
+                    );
+              },
+            )
           ],
         ),
       ),
