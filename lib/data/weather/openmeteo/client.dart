@@ -56,6 +56,7 @@ class OpenMeteoHourlyDatapoints {
     required this.directRadiation,
     required this.snowfall,
     required this.cloudCover,
+    required this.uvIndex,
   });
 
   @JsonKey(name: "time")
@@ -78,6 +79,8 @@ class OpenMeteoHourlyDatapoints {
   final List<double> snowfall;
   @JsonKey(name: "cloud_cover")
   final List<double> cloudCover;
+  @JsonKey(name: "uv_index")
+  final List<double> uvIndex;
 
   factory OpenMeteoHourlyDatapoints.fromJson(Map<String, dynamic> json) => _$OpenMeteoHourlyDatapointsFromJson(json);
 
@@ -170,7 +173,8 @@ class OpenMeteoWeatherRepository extends WeatherClient {
         queryParameters: {
           "latitude": coords.lat.toString(),
           "longitude": coords.long.toString(),
-          "hourly": "temperature_2m,relative_humidity_2m,dew_point_2m,precipitation_probability,precipitation,wind_speed_10m,direct_radiation_instant,snowfall,cloud_cover",
+          "hourly":
+              "temperature_2m,relative_humidity_2m,dew_point_2m,precipitation_probability,precipitation,wind_speed_10m,direct_radiation_instant,snowfall,cloud_cover,uv_index",
           "temperature_unit": "celsius",
           "wind_speed_unit": "kmh",
           "precipitation_unit": "mm",
@@ -240,6 +244,7 @@ class OpenMeteoWeatherRepository extends WeatherClient {
         expected: Percent.outOf100,
       ),
     );
+    final uv_3day = response.hourly.uvIndex.toDataSeries(UVIndex.uv);
     final wetBulb_3day = estimateWetBulbGlobeTemps(
       dryBulbTemp: temperature_3day,
       windspeed: windspeed_3day,
@@ -259,6 +264,7 @@ class OpenMeteoWeatherRepository extends WeatherClient {
       directRadiation: directRadiation_3day,
       snowfall: snowfall_3day,
       cloudCover: cloudCover_3day,
+      uvIndex: uv_3day,
       sunriseSunset: await sunriseSunsetRequest.onError((err, stacktrace) {
         print("$err, $stacktrace");
         return null;

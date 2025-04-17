@@ -8,7 +8,7 @@ class UtcDateTime implements Comparable<UtcDateTime> {
     int year,
     int month,
     int day, {
-    required int hour,
+    int hour = 0,
     int minute = 0,
   }) =>
       UtcDateTime(DateTime.utc(year, month, day, hour, minute));

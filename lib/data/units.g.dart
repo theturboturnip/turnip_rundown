@@ -79,3 +79,7 @@ const _$LengthEnumMap = {
   Length.mm: 'mm',
   Length.inch: 'inch',
 };
+
+const _$UVIndexEnumMap = {
+  UVIndex.uv: 'uv',
+};

@@ -239,6 +239,30 @@ enum Length implements Unit<Length> {
 
 typedef Rainfall = Length;
 
+@JsonEnum(alwaysCreate: true)
+enum UVIndex implements Unit<UVIndex> {
+  uv;
+
+  @override
+  double convertDataTo(double data, UVIndex to) {
+    switch ((this, to)) {
+      case (UVIndex.uv, UVIndex.uv):
+        return data;
+    }
+  }
+
+  @override
+  String get display => switch (this) {
+        UVIndex.uv => "UV",
+      };
+
+  @override
+  Map<UVIndex, String> get toJson => _$UVIndexEnumMap;
+
+  @override
+  List<UVIndex> get enumValues => values;
+}
+
 // Helper class for converting a generic type T-extends-Unit to and from JSON.
 // Introspects on the generic type (fixed to one of a set of possible values)
 // to figure out which decoder map to use.
@@ -280,6 +304,8 @@ class UnitConverter<T extends Unit> implements JsonConverter<T, Object?> {
         return _$enumDecode(_$SolarRadiationEnumMap, json) as T;
       case const (Length):
         return _$enumDecode(_$LengthEnumMap, json) as T;
+      case const (UVIndex):
+        return _$enumDecode(_$UVIndexEnumMap, json) as T;
       default:
         throw UnsupportedError('Unsupported type: $T');
     }
@@ -290,7 +316,7 @@ class UnitConverter<T extends Unit> implements JsonConverter<T, Object?> {
 }
 
 @JsonSerializable()
-class Data<TUnit extends Unit<TUnit>> extends Equatable {
+class Data<TUnit extends Unit<TUnit>> extends Equatable implements Comparable<Data<TUnit>> {
   const Data(this._value, this._unit);
 
   @JsonKey(name: "value", includeFromJson: true, includeToJson: true)
@@ -317,6 +343,11 @@ class Data<TUnit extends Unit<TUnit>> extends Equatable {
 
   String toDisplayString() {
     return "$_value${_unit.display}";
+  }
+
+  @override
+  int compareTo(Data<TUnit> other) {
+    return this._value.compareTo(other.valueAs(this._unit));
   }
 }
 

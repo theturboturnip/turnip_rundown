@@ -36,11 +36,12 @@ WeatherDataBank predictWeatherFromMetGeoJson(
     // TODO windGustSpeed? max10mWindGust?
     // TODO visibility?
     "screenRelativeHumidity": [],
-    // TODO mslp, uvIndex, significantWeatherCode
+    // TODO mslp, significantWeatherCode
     // TODO precipitationRate? how is it different
     "totalPrecipAmount": [],
     "totalSnowAmount": [],
     "probOfPrecipitation": [],
+    "uvIndex": [],
   };
 
   for (final timeSeriesEntry in timeSeries.sortedBy((entry) => entry["time"] as String)) {
@@ -91,6 +92,7 @@ WeatherDataBank predictWeatherFromMetGeoJson(
     directRadiation: null,
     snowfall: extractDataSeries("totalSnowAmount", lengthUnitFromMet),
     cloudCover: null,
+    uvIndex: extractDataSeries("uvIndex", (x) => UVIndex.uv),
     sunriseSunset: sunriseSunset,
   );
 

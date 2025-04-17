@@ -65,6 +65,8 @@ WeatherDataBank _$WeatherDataBankFromJson(Map<String, dynamic> json) =>
           ? null
           : SunriseSunset.fromJson(
               json['sunriseSunset'] as Map<String, dynamic>),
+      uvIndex:
+          DataSeries<UVIndex>.fromJson(json['uvIndex'] as Map<String, dynamic>),
     );
 
 Map<String, dynamic> _$WeatherDataBankToJson(WeatherDataBank instance) =>
@@ -81,5 +83,6 @@ Map<String, dynamic> _$WeatherDataBankToJson(WeatherDataBank instance) =>
       'snowfall': instance.snowfall,
       'directRadiation': instance.directRadiation,
       'cloudCover': instance.cloudCover,
+      'uvIndex': instance.uvIndex,
       'sunriseSunset': instance.sunriseSunset,
     };

@@ -1,7 +1,9 @@
 import 'dart:math';
 
 import 'package:collection/collection.dart';
+import 'package:flutter/material.dart';
 import 'package:json_annotation/json_annotation.dart';
+import 'package:material_symbols_icons/symbols.dart';
 import 'package:turnip_rundown/data/units.dart';
 import 'package:turnip_rundown/data/weather/model.dart';
 
@@ -9,7 +11,6 @@ part 'insights.g.dart';
 
 // TODO gusty warnings using gust vs. basic wind
 // TODO use the significantWeatherCode from the MET
-// TODO remove mist
 
 @JsonSerializable()
 class WeatherInsightConfig {
@@ -153,13 +154,7 @@ class ActiveHours {
   }
 }
 
-enum InsightType {
-  // rainy
-  sprinkles,
-  lightRain,
-  mediumRain,
-  heavyRain,
-
+enum EventInsightType {
   // slippery
   slippery,
 
@@ -173,202 +168,324 @@ enum InsightType {
   uncomfortablyHumid,
   // coolMist, // TODO this isn't really relevant. replace with low vis?
 
-  // General temperature
-  boiling,
-  freezing,
-
   // TODO replace this with a separate "is-sunny" boolean? exact time ranges matter less?
-  sunny,
+  sunny;
+}
 
-  // wind
+class LevelMap<TLevel, TUnit extends Unit<TUnit>> {
+  final TLevel min;
+  // Thresholds for a given value (threshold, level) where threshold is ordered i.e. minimum first.
+  // Scan through the list from the end backwards, take the first level where the value is above the threshold
+  final List<(Data<TUnit>, TLevel)> linearLevelMap;
+
+  LevelMap({required this.min, required Map<TLevel, Data<TUnit>> minValueForLevel})
+      : linearLevelMap = minValueForLevel.entries.map((entry) => (entry.value, entry.key)).sortedBy((elem) => elem.$1);
+
+  TLevel levelFor(Data<TUnit> value) {
+    for (final (nextVal, nextLevel) in linearLevelMap.reversed) {
+      if (value.compareTo(nextVal) > 0) {
+        return nextLevel;
+      }
+    }
+    return min;
+  }
+}
+
+abstract class LevelsInsight<TLevel> {
+  final List<(TLevel, int, int)> levelRanges;
+
+  // int levelIntensity(TLevel level);
+  // IconData levelIcon(TLevel level);
+
+  // int? get firstNonNullHour => levelRanges.where((range) => range.$1 != null).firstOrNull?.$2;
+  // TLevel get mostIntenseLevel => levelRanges.sorted((range, otherRange) => levelIntensity(range.$1).compareTo(levelIntensity(otherRange.$1))).last.$1;
+  // IconData get icon => levelIcon(mostIntenseLevel);
+  // Map<TLevel, String> get levelStrings;
+
+  LevelsInsight({required this.levelRanges});
+
+  List<(List<TLevel>, int, int)> nonNullLevelRanges({int hysterisis = 1}) {
+    final nonNullRanges = <(List<TLevel>, int, int)>[];
+    (List<TLevel>, int, int)? current;
+    for (final (level, start, end) in levelRanges) {
+      if (level == null) {
+        if (current != null && end - start > hysterisis) {
+          nonNullRanges.add(current);
+          current = null;
+        }
+        continue;
+      }
+
+      if (current == null) {
+        current = ([level], start, end);
+      } else {
+        // Under hysterisis we can merge (Breezy, null, Breezy) together into one if the null is short enough.
+        // TODO this hysteresis is only for null, not short-term bumps. is that ok?
+        if (level != current.$1.last) {
+          current.$1.add(level);
+        }
+        current = (current.$1, current.$2, end);
+      }
+    }
+    if (current != null) {
+      current = (current.$1, current.$2, levelRanges.last.$3);
+      nonNullRanges.add(current);
+    }
+    return nonNullRanges;
+  }
+
+  static List<(TLev, int, int)> levelRangesFromData<TLev, TUnit extends Unit<TUnit>>(DataSeries<TUnit> data, LevelMap<TLev, TUnit> levelMap) {
+    final levels = data.datas().map((data) => levelMap.levelFor(data)).toList();
+    return levelRangesFromLevels(levels);
+  }
+
+  static List<(TLev, int, int)> levelRangesFromLevels<TLev>(List<TLev> levels) {
+    var hourRanges = <(TLev, int, int)>[];
+    int currentRangeStart = 0;
+    TLev currentRangeLevel = levels[0];
+    for (int i = 1; i < levels.length; i++) {
+      // If we're still in the same range as the previous hour
+      if (currentRangeLevel == levels[i]) {
+        continue;
+      } else {
+        hourRanges.add((currentRangeLevel, currentRangeStart, i - 1));
+        currentRangeStart = i;
+        currentRangeLevel = levels[i];
+      }
+    }
+    hourRanges.add((currentRangeLevel, currentRangeStart, levels.length));
+    return hourRanges;
+  }
+}
+
+enum Heat {
+  // <5C
+  freezing,
+  // <10C
+  chilly,
+  // <15C
+  mild,
+  // <20C
+  warm,
+  // <25C
+  hot,
+  // maximum
+  boiling;
+}
+
+class HeatLevelInsight extends LevelsInsight<Heat> {
+  final Data<Temp> min;
+  final Data<Temp> max;
+
+  HeatLevelInsight(DataSeries<Temp> data, LevelMap<Heat, Temp> levelMap)
+      : min = data.datas().min,
+        max = data.datas().max,
+        super(levelRanges: LevelsInsight.levelRangesFromData(data, levelMap));
+}
+
+enum Wind {
   breezy,
   windy,
   galey;
 }
 
-class Insight {}
+class WindLevelInsight extends LevelsInsight<Wind?> {
+  WindLevelInsight(DataSeries<Speed> data, LevelMap<Wind?, Speed> levelMap) : super(levelRanges: LevelsInsight.levelRangesFromData(data, levelMap));
+}
 
-class LevelInsight extends Insight {}
+enum Precipitation {
+  sprinkles,
+  lightRain,
+  mediumRain,
+  heavyRain; // TODO include snow inside here?
+}
 
-class EventInsight extends Insight {}
+// EventInsightType.sprinkles: ("Sprinkles?", Symbols.sprinkler),
+// EventInsightType.lightRain: ("Light rain", ),
+// EventInsightType.mediumRain: ("Medium rain", Symbols.rainy_heavy),
+// EventInsightType.heavyRain: ("Heavy rain", Symbols.rainy_heavy),
+
+class PrecipitationLevelInsight extends LevelsInsight<Precipitation?> {
+  PrecipitationLevelInsight(WeatherInsightConfig config, DataSeries<Percent> precipChance, DataSeries<Length> precipitation)
+      : super(
+          levelRanges: LevelsInsight.levelRangesFromLevels(
+            overallPrecip(config, precipChance, precipitation),
+          ),
+        );
+
+  static List<Precipitation?> overallPrecip(WeatherInsightConfig config, DataSeries<Percent> precipChance, DataSeries<Length> precipitation) {
+    final precip = <Precipitation?>[];
+    assert(precipChance.length == precipitation.length);
+    for (int i = 0; i < precipitation.length; i++) {
+      final precipMM = precipitation[i].valueAs(Length.mm);
+      late final Precipitation? precipEnum;
+      if (precipChance[i].valueAs(Percent.outOf100) > config.rainProbabilityThreshold.valueAs(Percent.outOf100)) {
+        if (precipMM > config.heavyRainThreshold.valueAs(Length.mm)) {
+          precipEnum = Precipitation.heavyRain;
+        } else if (precipMM > config.mediumRainThreshold.valueAs(Length.mm)) {
+          precipEnum = Precipitation.mediumRain;
+        } else if (precipMM > 0) {
+          precipEnum = Precipitation.lightRain;
+        } else {
+          precipEnum = Precipitation.sprinkles;
+        }
+      } else {
+        precipEnum = null;
+      }
+      precip.add(precipEnum);
+    }
+    return precip;
+  }
+}
+
+class WeatherInsightsPerLocation {
+  final HeatLevelInsight heat;
+  final WindLevelInsight wind;
+  final PrecipitationLevelInsight precipitation;
+  final Map<EventInsightType, ActiveHours> eventInsights;
+  final SunriseSunset? sunriseSunset;
+
+  WeatherInsightsPerLocation({
+    required this.heat,
+    required this.wind,
+    required this.precipitation,
+    required this.eventInsights,
+    required this.sunriseSunset,
+  });
+
+  static WeatherInsightsPerLocation fromAnalysis(HourlyPredictedWeather weather, WeatherInsightConfig config, int maxLookahead) {
+    late final DataSeries<Temp> futureTemp;
+    if (config.useEstimatedWetBulbTemp) {
+      futureTemp = weather.estimatedWetBulbGlobeTemp;
+    } else {
+      futureTemp = weather.dryBulbTemp;
+    }
+
+    final heatInsight = HeatLevelInsight(
+        futureTemp.sublist(0, maxLookahead - 1),
+        LevelMap(
+          min: Heat.freezing,
+          minValueForLevel: {
+            Heat.chilly: config.freezingMaxTemp,
+            // TODO MAKE THIS CONFIGURABLE
+            Heat.mild: const Data(10, Temp.celsius),
+            Heat.warm: const Data(15, Temp.celsius),
+            Heat.hot: const Data(20, Temp.celsius),
+            Heat.boiling: config.boilingMinTemp,
+          },
+        ));
+    final precipInsight = PrecipitationLevelInsight(
+      config,
+      weather.precipitationProb.sublist(0, maxLookahead - 1),
+      weather.precipitation.sublist(0, maxLookahead - 1),
+    );
+    final windInsight = WindLevelInsight(
+        weather.windspeed.sublist(0, maxLookahead - 1),
+        LevelMap(min: null, minValueForLevel: {
+          Wind.breezy: config.minimumBreezyWindspeed,
+          Wind.windy: config.minimumWindyWindspeed,
+          Wind.galey: config.minimumGaleyWindspeed,
+        }));
+
+    final futureRainfallMM = weather.precipitation.valuesAs(Length.mm).mapIndexed(
+      (index, len) {
+        if (weather.precipitationProb[index].valueAs(Percent.outOf100) >= config.rainProbabilityThreshold.valueAs(Percent.outOf100)) {
+          // If no precipitation is expected, but there is a high chance of precipitation, treat that as 0.5mm
+          return max(0.5, len);
+        } else {
+          return 0.0;
+        }
+      },
+    ).toList();
+    final allRainfallMMIncludingPast = weather.precipitationUpToNow.valuesAs(Length.mm).toList()
+      ..addAll(
+        futureRainfallMM,
+      );
+
+    final insights = {for (final t in EventInsightType.values) t: ActiveHours({})};
+
+    for (int hour = 0; hour < maxLookahead; hour++) {
+      int indexForRainfallMM = hour + weather.precipitationUpToNow.length;
+
+      // TODO MAKE THIS CONFIGURABLE
+      const minSunnyDirectRadidationWm2 = 650;
+      const maxSunnyCloudCoverOutOf100 = 50;
+      const minSnowySnowfallMM = 10;
+
+      // rain
+      final currentSnowMM = weather.snowfall[hour].valueAs(Length.mm);
+      if (currentSnowMM > minSnowySnowfallMM) {
+        insights[EventInsightType.snow]!.add(hour);
+      }
+
+      // slippery
+      final startIndexForPreviousHoursPrecipitation = indexForRainfallMM - config.numberOfHoursPriorRainThreshold;
+      final previousHoursPrecipitations = (startIndexForPreviousHoursPrecipitation >= 0)
+          ? allRainfallMMIncludingPast.skip(startIndexForPreviousHoursPrecipitation).take(config.numberOfHoursPriorRainThreshold + 1)
+          : allRainfallMMIncludingPast.take(indexForRainfallMM + 1);
+      final previousHoursPrecipitationMM = previousHoursPrecipitations.sum;
+      if (previousHoursPrecipitationMM > config.priorRainThreshold.valueAs(Length.mm)) {
+        insights[EventInsightType.slippery]!.add(hour);
+      }
+
+      // // hail
+      // TODO can't reliably retrieve hail from weather? it works if we specify a UK models but returns null if we just specify a location *in* the UK.
+      // if (weather.hail != null) {
+      //   if (weather.hail![hour].valueAs(Length.mm) > 0.000001) {
+      //     insights[EventInsightType.hail]!.add(hour);
+      //   }
+      // }
+
+      late final double tempC = futureTemp[hour].valueAs(Temp.celsius);
+
+      // humidity
+      {
+        if (weather.relHumidity[hour].valueAs(Percent.outOf100) > config.highHumidityThreshold.valueAs(Percent.outOf100)) {
+          if (tempC > config.minTemperatureForHighHumiditySweat.valueAs(Temp.celsius)) {
+            insights[EventInsightType.sweaty]!.add(hour);
+          } else if (tempC > config.maxTemperatureForHighHumidityMist.valueAs(Temp.celsius)) {
+            insights[EventInsightType.uncomfortablyHumid]!.add(hour);
+          }
+        }
+      }
+
+      // >650W/m2 with <50% cloud cover
+      if (weather.directRadiation != null && weather.cloudCover != null) {
+        if (weather.directRadiation![hour].valueAs(SolarRadiation.wPerM2) >= minSunnyDirectRadidationWm2 &&
+            weather.cloudCover![hour].valueAs(Percent.outOf100) < maxSunnyCloudCoverOutOf100) {
+          insights[EventInsightType.sunny]!.add(hour);
+        }
+      }
+    }
+    return WeatherInsightsPerLocation(
+      heat: heatInsight,
+      wind: windInsight,
+      precipitation: precipInsight,
+      eventInsights: insights,
+      sunriseSunset: weather.sunriseSunset,
+    );
+  }
+}
 
 final class WeatherInsights {
   WeatherInsights({
-    required this.minTempAt,
-    required this.maxTempAt,
     required this.insightsByLocation,
-    required this.sunriseSunsetByLocation,
   });
-  final (Data<Temp>, int)? minTempAt;
-  final (Data<Temp>, int)? maxTempAt;
-  final List<Map<InsightType, ActiveHours>> insightsByLocation;
-  final List<SunriseSunset?> sunriseSunsetByLocation;
+
+  Data<Temp>? get minTemp => insightsByLocation.map((insight) => insight.heat.min).minOrNull;
+  Data<Temp>? get maxTemp => insightsByLocation.map((insight) => insight.heat.max).maxOrNull;
+
+  final List<WeatherInsightsPerLocation> insightsByLocation;
 
   static WeatherInsights fromAnalysis(List<HourlyPredictedWeather> weathers, WeatherInsightConfig config, {int maxLookahead = 24}) {
     if (maxLookahead < 0 || maxLookahead > 24) {
       maxLookahead = 24;
     }
 
-    late final (Data<Temp>, int)? minTempAt, maxTempAt;
-    if (weathers.isEmpty) {
-      return WeatherInsights(
-        minTempAt: null,
-        maxTempAt: null,
-        insightsByLocation: [],
-        sunriseSunsetByLocation: [],
-      );
-    } else {
-      List<(double, double)> minMaxTempC;
-      if (config.useEstimatedWetBulbTemp) {
-        minMaxTempC = weathers.map((weather) => weather.estimatedWetBulbGlobeTemp.valuesAs(Temp.celsius).take(maxLookahead).minMax as (double, double)).toList();
-      } else {
-        minMaxTempC = weathers.map((weather) => weather.dryBulbTemp.valuesAs(Temp.celsius).take(maxLookahead).minMax as (double, double)).toList();
-      }
-      (double, int) minCAt = (minMaxTempC[0].$1, 0);
-      (double, int) maxCAt = (minMaxTempC[0].$2, 0);
-      for (final (index, (min, max)) in minMaxTempC.indexed) {
-        if (min < minCAt.$1) {
-          minCAt = (min, index);
-        }
-        if (max > maxCAt.$1) {
-          maxCAt = (max, index);
-        }
-      }
-      minTempAt = (Data(minCAt.$1, Temp.celsius), minCAt.$2);
-      maxTempAt = (Data(maxCAt.$1, Temp.celsius), maxCAt.$2);
+    final insightsByLocation = weathers.map((weather) => WeatherInsightsPerLocation.fromAnalysis(weather, config, maxLookahead)).toList();
 
-      final insightsByLocation = weathers.map((weather) {
-        final allRainfallMMIncludingPast = weather.precipitationUpToNow.valuesAs(Length.mm).toList()
-          ..addAll(
-            weather.precipitation.valuesAs(Length.mm).mapIndexed(
-              (index, len) {
-                if (weather.precipitationProb[index].valueAs(Percent.outOf100) >= config.rainProbabilityThreshold.valueAs(Percent.outOf100)) {
-                  // If no precipitation is expected, but there is a high chance of precipitation, treat that as 0.5mm
-                  return max(0.5, len);
-                } else {
-                  return 0;
-                }
-              },
-            ),
-          );
-
-        final insights = {for (final t in InsightType.values) t: ActiveHours({})};
-
-        for (int hour = 0; hour < maxLookahead; hour++) {
-          int indexForRainfallMM = hour + weather.precipitationUpToNow.length;
-
-          // TODO MAKE THIS CONFIGURABLE
-          final boilingMinTempC = config.boilingMinTemp.valueAs(Temp.celsius);
-          final freezingMaxTempC = config.freezingMaxTemp.valueAs(Temp.celsius);
-          const minSunnyDirectRadidationWm2 = 650;
-          const maxSunnyCloudCoverOutOf100 = 50;
-          const minSnowySnowfallMM = 10;
-
-          // rain
-          final currentPrecipitationMM = allRainfallMMIncludingPast[indexForRainfallMM];
-          final currentSnowMM = weather.snowfall[hour].valueAs(Length.mm);
-          if (currentSnowMM > minSnowySnowfallMM) {
-            insights[InsightType.snow]!.add(hour);
-            if (currentPrecipitationMM > currentSnowMM) {
-              if (currentPrecipitationMM > config.heavyRainThreshold.valueAs(Length.mm)) {
-                insights[InsightType.heavyRain]!.add(hour);
-              } else if (currentPrecipitationMM > config.mediumRainThreshold.valueAs(Length.mm)) {
-                insights[InsightType.mediumRain]!.add(hour);
-              } else if (currentPrecipitationMM > 0) {
-                insights[InsightType.lightRain]!.add(hour);
-              } else {
-                insights[InsightType.sprinkles]!.add(hour);
-              }
-            }
-          } else if (weather.precipitationProb[hour].valueAs(Percent.outOf100) > config.rainProbabilityThreshold.valueAs(Percent.outOf100)) {
-            // Some APIs tend to return nonzero chance of rain with no actual precipitation value.
-            // This caused issues when comparing (currentPrecipitationMM > currentSnowMM).
-            // if they're both 0, you don't get a warning even for a high chance of rain.
-            // => if there's no significant snow, just care about the rain without comparing.
-            if (currentPrecipitationMM > config.heavyRainThreshold.valueAs(Length.mm)) {
-              insights[InsightType.heavyRain]!.add(hour);
-            } else if (currentPrecipitationMM > config.mediumRainThreshold.valueAs(Length.mm)) {
-              insights[InsightType.mediumRain]!.add(hour);
-            } else if (currentPrecipitationMM > 0) {
-              insights[InsightType.lightRain]!.add(hour);
-            } else {
-              insights[InsightType.sprinkles]!.add(hour);
-            }
-          }
-
-          // slippery
-          final startIndexForPreviousHoursPrecipitation = indexForRainfallMM - config.numberOfHoursPriorRainThreshold;
-          final previousHoursPrecipitations = (startIndexForPreviousHoursPrecipitation >= 0)
-              ? allRainfallMMIncludingPast.skip(startIndexForPreviousHoursPrecipitation).take(config.numberOfHoursPriorRainThreshold + 1)
-              : allRainfallMMIncludingPast.take(indexForRainfallMM + 1);
-          final previousHoursPrecipitationMM = previousHoursPrecipitations.sum;
-          if (previousHoursPrecipitationMM > config.priorRainThreshold.valueAs(Length.mm)) {
-            insights[InsightType.slippery]!.add(hour);
-          }
-
-          // // hail
-          // TODO can't reliably retrieve hail from weather? it works if we specify a UK models but returns null if we just specify a location *in* the UK.
-          // if (weather.hail != null) {
-          //   if (weather.hail![hour].valueAs(Length.mm) > 0.000001) {
-          //     insights[InsightType.hail]!.add(hour);
-          //   }
-          // }
-
-          late final double tempC;
-          if (config.useEstimatedWetBulbTemp) {
-            tempC = weather.estimatedWetBulbGlobeTemp[hour].valueAs(Temp.celsius);
-          } else {
-            tempC = weather.dryBulbTemp[hour].valueAs(Temp.celsius);
-          }
-
-          // humidity
-          {
-            if (weather.relHumidity[hour].valueAs(Percent.outOf100) > config.highHumidityThreshold.valueAs(Percent.outOf100)) {
-              if (tempC > config.minTemperatureForHighHumiditySweat.valueAs(Temp.celsius)) {
-                insights[InsightType.sweaty]!.add(hour);
-              } else if (tempC > config.maxTemperatureForHighHumidityMist.valueAs(Temp.celsius)) {
-                insights[InsightType.uncomfortablyHumid]!.add(hour);
-              }
-            }
-          }
-
-          // If it's over the min boiling temp, put a boiling warning.
-          // TODO If sweaty entirely implies boiling, and it is sweaty, don't bother?
-          if (tempC > boilingMinTempC) {
-            insights[InsightType.boiling]!.add(hour);
-          }
-          // If it's under the min freezing temp, put a freezing warning
-          if (tempC < freezingMaxTempC) {
-            insights[InsightType.freezing]!.add(hour);
-          }
-
-          // >650W/m2 with <50% cloud cover
-          if (weather.directRadiation != null && weather.cloudCover != null) {
-            if (weather.directRadiation![hour].valueAs(SolarRadiation.wPerM2) >= minSunnyDirectRadidationWm2 &&
-                weather.cloudCover![hour].valueAs(Percent.outOf100) < maxSunnyCloudCoverOutOf100) {
-              insights[InsightType.sunny]!.add(hour);
-            }
-          }
-
-          // wind
-          final windSpeedMph = weather.windspeed[hour].valueAs(Speed.milesPerHour);
-          if (windSpeedMph > config.minimumGaleyWindspeed.valueAs(Speed.milesPerHour)) {
-            insights[InsightType.galey]!.add(hour);
-          } else if (windSpeedMph > config.minimumWindyWindspeed.valueAs(Speed.milesPerHour)) {
-            insights[InsightType.windy]!.add(hour);
-          } else if (windSpeedMph > config.minimumBreezyWindspeed.valueAs(Speed.milesPerHour)) {
-            insights[InsightType.breezy]!.add(hour);
-          }
-        }
-        return insights;
-      }).toList();
-
-      return WeatherInsights(
-        minTempAt: minTempAt,
-        maxTempAt: maxTempAt,
-        insightsByLocation: insightsByLocation,
-        sunriseSunsetByLocation: weathers.map((weather) => weather.sunriseSunset).toList(),
-      );
-    }
+    return WeatherInsights(
+      insightsByLocation: insightsByLocation,
+    );
   }
 }

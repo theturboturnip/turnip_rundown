@@ -77,8 +77,8 @@ abstract class WeatherDataBankRepository implements HttpCacheRepository {
         );
       },
     ).catchError(
-      (err) {
-        print("failed to look up weather online $err");
+      (err, stackTrace) {
+        print("failed to look up weather online $err $stackTrace");
         return HourlyPredictedWeatherAndStatus(
           weather: cachedPerHour,
           isStale: isStale,

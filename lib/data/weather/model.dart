@@ -65,6 +65,7 @@ class WeatherDataBank {
   // TODO allow backend-specific Sunny detection
   final DataSeries<SolarRadiation>? directRadiation;
   final DataSeries<Percent>? cloudCover;
+  final DataSeries<UVIndex> uvIndex;
 
   final SunriseSunset? sunriseSunset;
 
@@ -80,6 +81,7 @@ class WeatherDataBank {
     required this.directRadiation,
     required this.cloudCover,
     required this.sunriseSunset,
+    required this.uvIndex,
   }) {
     assert(datapointDateTimes.isNotEmpty);
     assert(datapointDateTimes.length == precipitation.length);
@@ -95,6 +97,7 @@ class WeatherDataBank {
     if (cloudCover != null) {
       assert(datapointDateTimes.length == cloudCover!.length);
     }
+    assert(datapointDateTimes.length == uvIndex.length);
   }
 
   factory WeatherDataBank.fromJson(Map<String, dynamic> json) => _$WeatherDataBankFromJson(json);
@@ -134,6 +137,7 @@ class WeatherDataBank {
       directRadiation: directRadiation?.sublist(nowIdx, nextIdx),
       snowfall: snowfall.sublist(nowIdx, nextIdx),
       cloudCover: cloudCover?.sublist(nowIdx, nextIdx),
+      uvIndex: uvIndex.sublist(nowIdx, nextIdx),
       sunriseSunset: SunriseSunset(
         // take the nextSunrise and nextSunset only if they are after `start`.
         nextSunrise: (sunriseSunset?.nextSunrise?.isAfter(start) == true) ? sunriseSunset?.nextSunrise : null,
@@ -159,6 +163,7 @@ class HourlyPredictedWeather {
     required this.snowfall,
     required this.cloudCover,
     required this.sunriseSunset,
+    required this.uvIndex,
   });
 
   final DataSeries<Rainfall> precipitationUpToNow;
@@ -176,6 +181,7 @@ class HourlyPredictedWeather {
   // TODO allow backend-specific Sunny detection
   final DataSeries<SolarRadiation>? directRadiation;
   final DataSeries<Percent>? cloudCover;
+  final DataSeries<UVIndex> uvIndex;
 
   // Sunrise and sunset - null if this API fails for whatever reason.
   final SunriseSunset? sunriseSunset;

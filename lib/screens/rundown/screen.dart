@@ -224,8 +224,8 @@ class RundownScreen extends StatelessWidget {
           spacing: 40.0,
           children: settings.temperatureUnit.displayUnits().map(
             (unit) {
-              final minString = insightsResult.insights?.minTempAt?.$1.valueAs(unit).toStringAsFixed(1);
-              final maxString = insightsResult.insights?.maxTempAt?.$1.valueAs(unit).toStringAsFixed(1);
+              final minString = insightsResult.insights?.minTemp?.valueAs(unit).toStringAsFixed(1);
+              final maxString = insightsResult.insights?.maxTemp?.valueAs(unit).toStringAsFixed(1);
               return Text(
                 "${minString ?? "..."}–${maxString ?? "..."}${unit.display}",
                 style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 50),
@@ -646,65 +646,166 @@ class RundownScreen extends StatelessWidget {
     }
   }
 
-  List<InsightWidget> _buildWeatherWarningInsight<TWarning>(
-    Iterable<Map<TWarning, ActiveHours>> listOfMappingOfWarningToHoursForEachLocation,
-    Map<TWarning, (String, IconData)> nameOfWarning,
+  Iterable<InsightWidget> _buildWeatherWarningInsightForLevel<TLevel>(
+    LevelsInsight<TLevel> levels,
+    Map<TLevel, (int, String, IconData)> renderInfo,
+    List<String> listOfLocations,
+    List<LocalDateTime> dateTimesForEachHour,
+    int hoursLookedAhead,
+    String locationPostfix,
+  ) {
+    return levels.nonNullLevelRanges().map((range) {
+      print(range);
+      final levelsForRange = range.$1;
+      late final String name;
+      if (levelsForRange.length > 3) {
+        name = levelsForRange.toSet().map((level) => renderInfo[level]!.$2).join(" and ");
+      } else {
+        name = levelsForRange.map((level) => renderInfo[level]!.$2).join(" then ");
+      }
+
+      var title = "$name$locationPostfix";
+      var subtitle = _renderTimeRange(
+        (range.$2, range.$3),
+        dateTimesForEachHour,
+        endOfRange: hoursLookedAhead,
+        allowBareUntil: true,
+      );
+      final mostSignificantLevel = range.$1.sorted((level, otherLevel) => renderInfo[level]!.$1.compareTo(renderInfo[otherLevel]!.$1)).last;
+      return InsightWidget(
+        icon: Icon(renderInfo[mostSignificantLevel]!.$3),
+        title: title,
+        subtitle: subtitle,
+        startTimeUtc: dateTimesForEachHour[range.$2].toUtc(),
+      );
+    });
+  }
+
+  List<InsightWidget> _buildWeatherWarningInsight(
+    WeatherInsights insights,
     List<String> listOfLocations,
     List<LocalDateTime> dateTimesForEachHour,
     int hoursLookedAhead,
   ) {
-    // if there are no warnings that apply for any hours in any location, return null.
-    // if there is exactly one warning that applies for any hours in exactly one location, show a simple warning
-    //  - e.g. "humid between x-y", optionally appending location if total locations != 1
-    // if there is exactly one warning
+    final insightWidgets = <InsightWidget>[];
 
-    final groupedByWarning = <TWarning, Map<int, ActiveHours>>{};
-    for (final (index, map) in listOfMappingOfWarningToHoursForEachLocation.indexed) {
-      for (final entry in map.entries) {
+    final timestamp = UtcDateTime.timestamp();
+    final timeRangeEndUtc = dateTimesForEachHour[hoursLookedAhead].toUtc();
+
+    for (final (locationIndex, insight) in insights.insightsByLocation.indexed) {
+      final locationPostfix = listOfLocations.length > 1 ? " at ${listOfLocations[locationIndex]}" : "";
+
+      for (final entry in insight.eventInsights.entries) {
         if (entry.value.isNotEmpty) {
-          groupedByWarning.putIfAbsent(entry.key, () => <int, ActiveHours>{});
-          groupedByWarning[entry.key]![index] = entry.value;
+          final (name, icon) = eventInsightTypeMap[entry.key]!;
+
+          var title = "$name$locationPostfix";
+          var subtitle = _renderActiveHours(
+            entry.value,
+            dateTimesForEachHour,
+            hoursLookedAhead,
+          );
+          insightWidgets.add(InsightWidget(
+            icon: Icon(icon),
+            title: title,
+            subtitle: subtitle,
+            startTimeUtc: dateTimesForEachHour[entry.value.firstHour!].toUtc(),
+          ));
         }
+      }
+
+      insightWidgets.addAll(
+        _buildWeatherWarningInsightForLevel(
+          insight.heat,
+          heatInsightMap,
+          listOfLocations,
+          dateTimesForEachHour,
+          hoursLookedAhead,
+          locationPostfix,
+        ),
+      );
+      insightWidgets.addAll(
+        _buildWeatherWarningInsightForLevel(
+          insight.wind,
+          windInsightMap,
+          listOfLocations,
+          dateTimesForEachHour,
+          hoursLookedAhead,
+          locationPostfix,
+        ),
+      );
+      insightWidgets.addAll(
+        _buildWeatherWarningInsightForLevel(
+          insight.precipitation,
+          precipInsightMap,
+          listOfLocations,
+          dateTimesForEachHour,
+          hoursLookedAhead,
+          locationPostfix,
+        ),
+      );
+
+      final sunrise = insight.sunriseSunset?.nextSunrise;
+      final sunset = insight.sunriseSunset?.nextSunset;
+
+      if (sunrise?.isBefore(timeRangeEndUtc) == true && sunrise?.isAfter(timestamp) == true) {
+        var title = "Sunrise ${listOfLocations.length > 1 ? "at ${listOfLocations[locationIndex]} " : ""}";
+        var subtitle = sunrise!.toLocal().jmFormat();
+        insightWidgets.add(
+          InsightWidget(
+            icon: const Icon(Symbols.wb_twilight),
+            title: title,
+            subtitle: subtitle,
+            startTimeUtc: sunrise,
+          ),
+        );
+      }
+
+      if (sunset?.isBefore(timeRangeEndUtc) == true && sunset?.isAfter(timestamp) == true) {
+        var title = "Sunset ${listOfLocations.length > 1 ? "at ${listOfLocations[locationIndex]} " : ""}";
+        var subtitle = sunset!.toLocal().jmFormat();
+        insightWidgets.add(
+          InsightWidget(
+            icon: const Icon(Symbols.wb_twilight),
+            title: title,
+            subtitle: subtitle,
+            startTimeUtc: sunset,
+          ),
+        );
       }
     }
 
-    return groupedByWarning.entries.map((entry) => entry.value.entries.map((locationAndHours) => (entry.key, locationAndHours.key, locationAndHours.value))).flattened.map(
-      (warningAndLocationAndHours) {
-        final warningData = nameOfWarning[warningAndLocationAndHours.$1]!;
-        final locationIndex = warningAndLocationAndHours.$2;
-        final locationHours = warningAndLocationAndHours.$3;
-        var title = "${warningData.$1} ${listOfLocations.length > 1 ? "at ${listOfLocations[locationIndex]} " : ""}";
-        var subtitle = _renderActiveHours(
-          locationHours,
-          dateTimesForEachHour,
-          hoursLookedAhead,
-        );
-        return InsightWidget(
-          icon: Icon(warningData.$2),
-          title: title,
-          subtitle: subtitle,
-          startTimeUtc: dateTimesForEachHour[warningAndLocationAndHours.$3.firstHour!].toUtc(),
-        );
-      },
-    ).toList();
+    return insightWidgets;
   }
 
-  static const insightTypeMap = {
-    InsightType.sprinkles: ("Sprinkles?", Symbols.sprinkler),
-    InsightType.lightRain: ("Light rain", Symbols.rainy_light),
-    InsightType.mediumRain: ("Medium rain", Symbols.rainy_heavy),
-    InsightType.heavyRain: ("Heavy rain", Symbols.rainy_heavy),
-    InsightType.slippery: ("Slippery", Symbols.do_not_step),
-    InsightType.sweaty: ("Sweaty", Icons.thermostat),
-    InsightType.uncomfortablyHumid: ("Uncomfortably humid", Symbols.humidity_mid),
-    // InsightType.coolMist: ("Misty", Symbols.mist),
-    InsightType.boiling: ("Boiling hot", Symbols.emergency_heat),
-    InsightType.freezing: ("Freezing cold", Icons.severe_cold),
-    InsightType.sunny: ("Sunny", Icons.brightness_high),
-    InsightType.breezy: ("Breezy", Icons.air),
-    InsightType.windy: ("Windy", Icons.air),
-    InsightType.galey: ("Gale-y", Icons.storm),
-    InsightType.snow: ("Snow", Symbols.weather_snowy),
+  static const eventInsightTypeMap = {
+    EventInsightType.slippery: ("Slippery", Symbols.do_not_step),
+    EventInsightType.sweaty: ("Sweaty", Icons.thermostat),
+    EventInsightType.uncomfortablyHumid: ("Uncomfortably humid", Symbols.humidity_mid),
+    EventInsightType.sunny: ("Sunny", Icons.brightness_high),
+    EventInsightType.snow: ("Snow", Symbols.weather_snowy),
+  };
+
+  static const heatInsightMap = {
+    Heat.freezing: (2, "Freezing", Icons.severe_cold),
+    Heat.chilly: (1, "Chilly", Symbols.thermometer_loss),
+    Heat.mild: (0, "Mild", Symbols.thermometer),
+    Heat.warm: (1, "Warm", Symbols.thermometer_add),
+    Heat.hot: (2, "Hot", Symbols.heat),
+    Heat.boiling: (3, "Boiling", Symbols.emergency_heat),
+  };
+
+  static const windInsightMap = {
+    Wind.breezy: (1, "Breezy", Icons.air),
+    Wind.windy: (2, "Windy", Icons.air),
+    Wind.galey: (3, "Gale-y", Icons.storm),
+  };
+
+  static const precipInsightMap = {
+    Precipitation.sprinkles: (1, "Sprinkles", Symbols.sprinkler),
+    Precipitation.lightRain: (2, "Light rain", Symbols.rainy_light),
+    Precipitation.mediumRain: (3, "Medium rain", Symbols.rainy_heavy),
+    Precipitation.heavyRain: (4, "Heavy rain", Symbols.rainy_heavy),
   };
 
   List<Widget> _buildWeatherInsights(
@@ -717,49 +818,14 @@ class RundownScreen extends StatelessWidget {
     late final List<Widget> widgets;
     if (insightsResult.insights != null) {
       final listOfLocations = config.legend.map((legendElem) => legendElem.isYourCoordinate ? "your location" : legendElem.location.name).toList();
-      assert(insightTypeMap.keys.toSet().containsAll(InsightType.values));
+      assert(eventInsightTypeMap.keys.toSet().containsAll(EventInsightType.values));
 
       final insightWidgets = _buildWeatherWarningInsight(
-        insightsResult.insights!.insightsByLocation,
-        insightTypeMap,
+        insightsResult.insights!,
         listOfLocations,
         dateTimesForEachHour,
         config.hoursToLookAhead,
       );
-
-      final timestamp = UtcDateTime.timestamp();
-
-      final timeRangeEndUtc = dateTimesForEachHour[config.hoursToLookAhead].toUtc();
-      for (final (locationIndex, sunriseSunset) in insightsResult.insights!.sunriseSunsetByLocation.indexed) {
-        final sunrise = sunriseSunset?.nextSunrise;
-        final sunset = sunriseSunset?.nextSunset;
-
-        if (sunrise?.isBefore(timeRangeEndUtc) == true && sunrise?.isAfter(timestamp) == true) {
-          var title = "Sunrise ${listOfLocations.length > 1 ? "at ${listOfLocations[locationIndex]} " : ""}";
-          var subtitle = sunrise!.toLocal().jmFormat();
-          insightWidgets.add(
-            InsightWidget(
-              icon: const Icon(Symbols.wb_twilight),
-              title: title,
-              subtitle: subtitle,
-              startTimeUtc: sunrise,
-            ),
-          );
-        }
-
-        if (sunset?.isBefore(timeRangeEndUtc) == true && sunset?.isAfter(timestamp) == true) {
-          var title = "Sunset ${listOfLocations.length > 1 ? "at ${listOfLocations[locationIndex]} " : ""}";
-          var subtitle = sunset!.toLocal().jmFormat();
-          insightWidgets.add(
-            InsightWidget(
-              icon: const Icon(Symbols.wb_twilight),
-              title: title,
-              subtitle: subtitle,
-              startTimeUtc: sunset,
-            ),
-          );
-        }
-      }
 
       widgets = insightWidgets.sorted((a, b) => a.startTimeUtc.compareTo(b.startTimeUtc));
     } else {
