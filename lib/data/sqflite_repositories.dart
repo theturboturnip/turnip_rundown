@@ -77,6 +77,7 @@ class SqfliteApiCacheAndSettingsRepository extends WeatherDataBankRepository imp
           RequestedWeatherBackend.values.byName(row["backend"] as String),
           Coordinate.fromJson(jsonDecode(row["coordJson"] as String)),
         ): (
+          //todo allow invalidation if this is broken
           WeatherDataBank.fromJson(jsonDecode(row["dataJson"] as String)),
           UtcDateTime.parseAndCoerceFullIso8601(row["utcSoftTimeout"] as String),
         ),
