@@ -659,9 +659,15 @@ class RundownScreen extends StatelessWidget {
       final levelsForRange = range.$1;
       late final String name;
       if (levelsForRange.length > 3) {
-        name = levelsForRange.toSet().map((level) => renderInfo[level]!.$2).join(" and ");
+        final dedupedLevels = [];
+        for (final level in levelsForRange) {
+          if (!dedupedLevels.contains(level)) {
+            dedupedLevels.add(level);
+          }
+        }
+        name = dedupedLevels.map((level) => renderInfo[level]!.$2).join(" and ");
       } else {
-        name = levelsForRange.map((level) => renderInfo[level]!.$2).join(" then ");
+        name = levelsForRange.map((level) => renderInfo[level]!.$2).join(", then ");
       }
 
       var title = "$name$locationPostfix";
