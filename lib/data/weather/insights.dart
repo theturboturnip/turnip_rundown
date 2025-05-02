@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:collection/collection.dart';
+import 'package:flutter/foundation.dart';
 import 'package:json_annotation/json_annotation.dart';
 import 'package:turnip_rundown/data/units.dart';
 import 'package:turnip_rundown/data/weather/model.dart';
@@ -359,8 +360,13 @@ class WeatherInsightsPerLocation {
       futureTemp = weather.dryBulbTemp;
     }
 
+    // We want to include the value at the final hour,
+    // .sublist() takes an exclusive end index
+    // => use this as the sublist end
+    final sublistEndExcl = maxLookahead + 1;
+
     final heatInsight = HeatLevelInsight(
-        futureTemp.sublist(0, maxLookahead - 1),
+        futureTemp.sublist(0, sublistEndExcl),
         LevelMap(
           min: Heat.freezing,
           minValueForLevel: {
@@ -374,11 +380,11 @@ class WeatherInsightsPerLocation {
         ));
     final precipInsight = PrecipitationLevelInsight(
       config,
-      weather.precipitationProb.sublist(0, maxLookahead - 1),
-      weather.precipitation.sublist(0, maxLookahead - 1),
+      weather.precipitationProb.sublist(0, sublistEndExcl),
+      weather.precipitation.sublist(0, sublistEndExcl),
     );
     final windInsight = WindLevelInsight(
-        weather.windspeed.sublist(0, maxLookahead - 1),
+        weather.windspeed.sublist(0, sublistEndExcl),
         LevelMap(min: null, minValueForLevel: {
           Wind.breezy: config.minimumBreezyWindspeed,
           Wind.windy: config.minimumWindyWindspeed,
@@ -402,7 +408,8 @@ class WeatherInsightsPerLocation {
 
     final insights = {for (final t in EventInsightType.values) t: ActiveHours({})};
 
-    for (int hour = 0; hour < maxLookahead; hour++) {
+    // Measure insights up to and including the last data point
+    for (int hour = 0; hour < sublistEndExcl; hour++) {
       int indexForRainfallMM = hour + weather.precipitationUpToNow.length;
 
       // TODO MAKE THIS CONFIGURABLE
@@ -455,6 +462,15 @@ class WeatherInsightsPerLocation {
         }
       }
     }
+
+    // if (kDebugMode) {
+    //   insights[EventInsightType.slippery]!.add(1);
+    //   insights[EventInsightType.snow]!.add(2);
+    //   insights[EventInsightType.sunny]!.add(3);
+    //   insights[EventInsightType.sweaty]!.add(4);
+    //   insights[EventInsightType.uncomfortablyHumid]!.add(5);
+    // }
+
     return WeatherInsightsPerLocation(
       heat: heatInsight,
       wind: windInsight,
