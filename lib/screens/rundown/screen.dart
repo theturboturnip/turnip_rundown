@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:material_symbols_icons/symbols.dart';
+import 'package:sorted/sorted.dart';
 import 'package:turnip_rundown/data.dart';
 import 'package:turnip_rundown/data/geo/repository.dart';
 import 'package:turnip_rundown/data/settings/repository.dart';
@@ -686,7 +687,9 @@ class RundownScreen extends StatelessWidget {
         endOfRange: hoursLookedAhead,
         allowBareUntil: true,
       );
-      final mostSignificantLevel = range.$1.sorted((level, otherLevel) => renderInfo[level]!.$1.compareTo(renderInfo[otherLevel]!.$1)).last;
+      final sortedLevels = range.$1.toList();
+      const DefaultSortingStrategy().sort(sortedLevels, (level, otherLevel) => renderInfo[level]!.$1.compareTo(renderInfo[otherLevel]!.$1));
+      final mostSignificantLevel = sortedLevels.last;
       return InsightWidget(
         icon: Icon(renderInfo[mostSignificantLevel]!.$3),
         title: title,
@@ -710,6 +713,38 @@ class RundownScreen extends StatelessWidget {
     for (final (locationIndex, insight) in insights.insightsByLocation.indexed) {
       final locationPostfix = listOfLocations.length > 1 ? " at ${listOfLocations[locationIndex]}" : "";
 
+      // Add important insights first
+      insightWidgets.addAll(
+        _buildWeatherWarningInsightForLevel(
+          insight.heat,
+          heatInsightMap,
+          listOfLocations,
+          dateTimesForEachHour,
+          hoursLookedAhead,
+          locationPostfix,
+        ),
+      );
+      insightWidgets.addAll(
+        _buildWeatherWarningInsightForLevel(
+          insight.precipitation,
+          precipInsightMap,
+          listOfLocations,
+          dateTimesForEachHour,
+          hoursLookedAhead,
+          locationPostfix,
+        ),
+      );
+      insightWidgets.addAll(
+        _buildWeatherWarningInsightForLevel(
+          insight.wind,
+          windInsightMap,
+          listOfLocations,
+          dateTimesForEachHour,
+          hoursLookedAhead,
+          locationPostfix,
+        ),
+      );
+
       for (final entry in insight.eventInsights.entries) {
         if (entry.value.isNotEmpty) {
           final (name, icon) = eventInsightTypeMap[entry.key]!;
@@ -728,37 +763,6 @@ class RundownScreen extends StatelessWidget {
           ));
         }
       }
-
-      insightWidgets.addAll(
-        _buildWeatherWarningInsightForLevel(
-          insight.heat,
-          heatInsightMap,
-          listOfLocations,
-          dateTimesForEachHour,
-          hoursLookedAhead,
-          locationPostfix,
-        ),
-      );
-      insightWidgets.addAll(
-        _buildWeatherWarningInsightForLevel(
-          insight.wind,
-          windInsightMap,
-          listOfLocations,
-          dateTimesForEachHour,
-          hoursLookedAhead,
-          locationPostfix,
-        ),
-      );
-      insightWidgets.addAll(
-        _buildWeatherWarningInsightForLevel(
-          insight.precipitation,
-          precipInsightMap,
-          listOfLocations,
-          dateTimesForEachHour,
-          hoursLookedAhead,
-          locationPostfix,
-        ),
-      );
 
       final sunrise = insight.sunriseSunset?.nextSunrise;
       final sunset = insight.sunriseSunset?.nextSunset;
@@ -789,6 +793,12 @@ class RundownScreen extends StatelessWidget {
         );
       }
     }
+
+    // Use a stable sort to ensure the importance we encoded above still holds
+    const MergeSortingStrategy().sort(
+      insightWidgets,
+      (a, b) => a.startTimeUtc.compareTo(b.startTimeUtc),
+    );
 
     return insightWidgets;
   }
@@ -835,14 +845,12 @@ class RundownScreen extends StatelessWidget {
       final listOfLocations = config.legend.map((legendElem) => legendElem.isYourCoordinate ? "your location" : legendElem.location.name).toList();
       assert(eventInsightTypeMap.keys.toSet().containsAll(EventInsightType.values));
 
-      final insightWidgets = _buildWeatherWarningInsight(
+      widgets = _buildWeatherWarningInsight(
         insightsResult.insights!,
         listOfLocations,
         dateTimesForEachHour,
         config.hoursToLookAhead,
       );
-
-      widgets = insightWidgets.sorted((a, b) => a.startTimeUtc.compareTo(b.startTimeUtc));
     } else {
       widgets = [];
     }
