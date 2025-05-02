@@ -106,7 +106,7 @@ void main() {
       expect(insight.levelRanges, [
         (Heat.freezing, 0, 3),
         (Heat.chilly, 4, 8),
-        (Heat.mild, 9, 10),
+        (Heat.mild, 9, 9),
       ]);
       // Can't do this, list equality doesn't happen right
       // expect(insight.nonNullLevelRanges(), [
@@ -114,9 +114,117 @@ void main() {
       // ]);
       // so instead
       expect(insight.nonNullLevelRanges().length, 1);
-      expect(insight.nonNullLevelRanges().first.$1, [Heat.freezing, Heat.chilly, Heat.mild]);
+      expect(insight.nonNullLevelRanges().first.$1, [
+        (Heat.freezing, 0, 3),
+        (Heat.chilly, 4, 8),
+        (Heat.mild, 9, 9),
+      ]);
       expect(insight.nonNullLevelRanges().first.$2, 0);
-      expect(insight.nonNullLevelRanges().first.$3, 10);
+      expect(insight.nonNullLevelRanges().first.$3, 9);
+    },
+  );
+
+  final genericWindLevelMap = LevelMap(
+    min: null,
+    minValueForLevel: {
+      Wind.breezy: const Data(4, Speed.milesPerHour),
+      Wind.windy: const Data(13, Speed.milesPerHour),
+      Wind.galey: const Data(32, Speed.milesPerHour),
+    },
+  );
+
+  test(
+    "wind insight",
+    () {
+      final insight = WindLevelInsight(
+        const DataSeries(
+          [
+            // null
+            1.5,
+            2.5,
+            3.5,
+            // breezy
+            4.5,
+            5.5,
+            6.5,
+            7.5,
+            // windy
+            13.5,
+            // galey
+            32.5,
+            // windy
+            14.5,
+          ],
+          Speed.milesPerHour,
+        ),
+        genericWindLevelMap,
+      );
+      expect(insight.levelRanges, [
+        (null, 0, 2),
+        (Wind.breezy, 3, 6),
+        (Wind.windy, 7, 7),
+        (Wind.galey, 8, 8),
+        (Wind.windy, 9, 9),
+      ]);
+      // Can't do this, list equality doesn't happen right
+      // expect(insight.nonNullLevelRanges(), [
+      //   ([Heat.freezing, Heat.chilly, Heat.mild], 0, 10),
+      // ]);
+      // so instead
+      expect(insight.nonNullLevelRanges().length, 1);
+      expect(insight.nonNullLevelRanges().first.$1, [
+        (Wind.breezy, 3, 6),
+        (Wind.windy, 7, 7),
+        (Wind.galey, 8, 8),
+        (Wind.windy, 9, 9),
+      ]);
+      expect(insight.nonNullLevelRanges().first.$2, 3);
+      expect(insight.nonNullLevelRanges().first.$3, 9);
+    },
+  );
+
+  test(
+    "wind insight with mid null",
+    () {
+      final insight = WindLevelInsight(
+        const DataSeries(
+          [
+            // null
+            1.5,
+            2.5,
+            3.5,
+            // breezy
+            4.5,
+            5.5,
+            6.5,
+            7.5,
+            // null
+            0,
+            // breezy
+            4.5,
+          ],
+          Speed.milesPerHour,
+        ),
+        genericWindLevelMap,
+      );
+      expect(insight.levelRanges, [
+        (null, 0, 2),
+        (Wind.breezy, 3, 6),
+        (null, 7, 7),
+        (Wind.windy, 8, 8),
+      ]);
+      // Can't do this, list equality doesn't happen right
+      // expect(insight.nonNullLevelRanges(), [
+      //   ([Heat.freezing, Heat.chilly, Heat.mild], 0, 10),
+      // ]);
+      // so instead
+      expect(insight.nonNullLevelRanges().length, 1);
+      expect(insight.nonNullLevelRanges().first.$1, [
+        (Wind.breezy, 3, 6),
+        (Wind.windy, 8, 8),
+      ]);
+      expect(insight.nonNullLevelRanges().first.$2, 3);
+      expect(insight.nonNullLevelRanges().first.$3, 8);
     },
   );
 }

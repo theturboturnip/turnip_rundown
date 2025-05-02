@@ -191,21 +191,17 @@ class LevelMap<TLevel, TUnit extends Unit<TUnit>> {
 }
 
 abstract class LevelsInsight<TLevel> {
+  // List of (level, firstHourWhereLevel, lastHourWhereLevel)
+  // levels can repeat so [(breezy, 0, 1), (null, 2, 3), (breezy, 4, 7)] is possible
   final List<(TLevel, int, int)> levelRanges;
-
-  // int levelIntensity(TLevel level);
-  // IconData levelIcon(TLevel level);
-
-  // int? get firstNonNullHour => levelRanges.where((range) => range.$1 != null).firstOrNull?.$2;
-  // TLevel get mostIntenseLevel => levelRanges.sorted((range, otherRange) => levelIntensity(range.$1).compareTo(levelIntensity(otherRange.$1))).last.$1;
-  // IconData get icon => levelIcon(mostIntenseLevel);
-  // Map<TLevel, String> get levelStrings;
 
   LevelsInsight({required this.levelRanges});
 
-  List<(List<TLevel>, int, int)> nonNullLevelRanges({int hysterisis = 1}) {
-    final nonNullRanges = <(List<TLevel>, int, int)>[];
-    (List<TLevel>, int, int)? current;
+  // Takes the levelRanges and removes short ranges where the level == null
+  // would be [([breezy, 0, 3), (breezy 4, 5)], 0, 5)] for the above level range
+  List<(List<(TLevel, int, int)>, int, int)> nonNullLevelRanges({int hysterisis = 1}) {
+    final nonNullRanges = <(List<(TLevel, int, int)>, int, int)>[];
+    (List<(TLevel, int, int)>, int, int)? current;
     for (final (level, start, end) in levelRanges) {
       if (level == null) {
         if (current != null && end - start > hysterisis) {
@@ -216,12 +212,12 @@ abstract class LevelsInsight<TLevel> {
       }
 
       if (current == null) {
-        current = ([level], start, end);
+        current = ([(level, start, end)], start, end);
       } else {
         // Under hysterisis we can merge (Breezy, null, Breezy) together into one if the null is short enough.
         // TODO this hysteresis is only for null, not short-term bumps. is that ok?
-        if (level != current.$1.last) {
-          current.$1.add(level);
+        if (level != current.$1.last.$1) {
+          current.$1.add((level, start, end));
         }
         current = (current.$1, current.$2, end);
       }
@@ -252,7 +248,7 @@ abstract class LevelsInsight<TLevel> {
         currentRangeLevel = levels[i];
       }
     }
-    hourRanges.add((currentRangeLevel, currentRangeStart, levels.length));
+    hourRanges.add((currentRangeLevel, currentRangeStart, levels.length - 1));
     return hourRanges;
   }
 }

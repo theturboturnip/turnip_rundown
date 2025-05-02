@@ -660,40 +660,95 @@ class RundownScreen extends StatelessWidget {
     int hoursLookedAhead,
     String locationPostfix,
   ) {
-    print(levels.levelRanges);
     return levels.nonNullLevelRanges().map((range) {
-      print(range);
       final levelsForRange = range.$1;
       late final String name;
       if (levelsForRange.length > 3) {
-        final dedupedLevels = [];
-        for (final level in levelsForRange) {
+        final dedupedLevels = <TLevel>[];
+        for (final (level, _, _) in levelsForRange) {
           if (!dedupedLevels.contains(level)) {
             dedupedLevels.add(level);
           }
         }
         name = dedupedLevels.map((level) => renderInfo[level]!.$2).join(" and ");
       } else {
-        name = levelsForRange.map((level) => renderInfo[level]!.$2).join(", then ");
+        name = levelsForRange.map((levelStartEnd) => renderInfo[levelStartEnd.$1]!.$2).join(", then ");
       }
 
-      var title = "$name$locationPostfix";
-      var subtitle = _renderTimeRange(
-        // The range tuple is (units, firstHour, lastHour)
-        // the _renderTimeRange assumes the results is (firstHour, oneBeforeLastHour)
-        // See that function
-        (range.$2, range.$3 - 1),
-        dateTimesForEachHour,
-        endOfRange: hoursLookedAhead,
-        allowBareUntil: true,
-      );
-      final sortedLevels = range.$1.toList();
+      final title = "$name$locationPostfix";
+      String? subtitle = null;
+      if (levelsForRange.length > 1) {
+        // If this is for the whole range and there are multiple levels, we can convey more information
+        switch (levelsForRange.length) {
+          case 2:
+            // two possibilities here:
+            // [(hot, 0, 2), (cold, 3, 4)] i.e. an actual difference
+            // or [(breezy, 0, 2), (windy, 3, 4)] i.e. a difference removed by hysteresis
+            // or [(breezy, 0, 2), (breezy, 3, 4)] i.e. a difference removed by hysteresis between two of the same level
+            // in the latter case, don't use a different label
+            if (levelsForRange[0].$1 != levelsForRange[1].$1) {
+              final range = _renderTimeRange(
+                (levelsForRange[1].$2, levelsForRange[1].$3),
+                dateTimesForEachHour,
+                allowBareUntil: true,
+                endOfRange: hoursLookedAhead,
+              );
+              subtitle = "${renderInfo[levelsForRange[1].$1]!.$2} $range";
+            }
+          case 3:
+            {
+              // four possibilities
+              if (levelsForRange[0].$1 == levelsForRange[1].$1 && levelsForRange[1].$1 != levelsForRange[2].$1) {
+                // [a, a, b] with a difference removed by hysteresis
+                final range = _renderTimeRange(
+                  (levelsForRange[2].$2, levelsForRange[2].$3),
+                  dateTimesForEachHour,
+                  allowBareUntil: true,
+                  endOfRange: hoursLookedAhead,
+                );
+                subtitle = "${renderInfo[levelsForRange[2].$1]!.$2} $range";
+              } else if (levelsForRange[1].$1 == levelsForRange[2].$1) {
+                // [a, b, b] with a difference removed by hysteresis
+                final range = _renderTimeRange(
+                  (levelsForRange[1].$2, levelsForRange[2].$3),
+                  dateTimesForEachHour,
+                  allowBareUntil: true,
+                  endOfRange: hoursLookedAhead,
+                );
+                subtitle = "${renderInfo[levelsForRange[1].$1]!.$2} $range";
+              } else {
+                // all levels are distinct
+                // [a, b, c]
+                final range = _renderTimeRange(
+                  (levelsForRange[1].$2, levelsForRange[1].$3),
+                  dateTimesForEachHour,
+                  allowBareUntil: true,
+                  endOfRange: hoursLookedAhead,
+                );
+                subtitle = "${renderInfo[levelsForRange[1].$1]!.$2} $range";
+              }
+              // [a, a, a] means use the default subtitle
+            }
+
+          default:
+            {}
+        }
+      }
+      final nonNullSubtitle = subtitle ??
+          _renderTimeRange(
+            (range.$2, range.$3),
+            dateTimesForEachHour,
+            endOfRange: hoursLookedAhead,
+            allowBareUntil: true,
+          );
+
+      final sortedLevels = range.$1.map((levelStartEnd) => levelStartEnd.$1).toList();
       const DefaultSortingStrategy().sort(sortedLevels, (level, otherLevel) => renderInfo[level]!.$1.compareTo(renderInfo[otherLevel]!.$1));
       final mostSignificantLevel = sortedLevels.last;
       return InsightWidget(
         icon: Icon(renderInfo[mostSignificantLevel]!.$3),
         title: title,
-        subtitle: subtitle,
+        subtitle: nonNullSubtitle,
         startTimeUtc: dateTimesForEachHour[range.$2].toUtc(),
       );
     });
