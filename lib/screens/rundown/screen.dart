@@ -257,7 +257,7 @@ class RundownScreen extends StatelessWidget {
                 (hoursLookaheadState.lockedUtcLookaheadTo != null)
                     ? "until ${hoursLookaheadState.lockedUtcLookaheadTo!.toLocal().jmFormat()}"
                     : _renderTimeRange(
-                        (0, currentNumLookaheadHours - 1),
+                        (0, currentNumLookaheadHours),
                         dateTimesForEachHour,
                         allowBareUntil: true,
                       ),
@@ -595,27 +595,25 @@ class RundownScreen extends StatelessWidget {
   }
 
   String _renderTimeRange(
-    (int, int) range,
+    // The first and last hour indices where the condition holds
+    (int, int) rangeInclusive,
     List<LocalDateTime> dateTimesForEachHour, {
     required bool allowBareUntil,
     int? endOfRange,
   }) {
-    // The range should end at the end of hour = the start of the *next* hour
-    // e.g. (1, 2) is the two-hour range for (the hour starting at 1) and (the hour starting at 2)
-    // therefore is actually 1AM-3AM
-    if (range.$1 == 0) {
-      if (range.$2 + 1 == endOfRange) {
+    if (rangeInclusive.$1 == 0) {
+      if (rangeInclusive.$2 == endOfRange) {
         return "throughout";
       } else if (allowBareUntil) {
-        return "until ${dateTimesForEachHour[range.$2 + 1].jmFormat()}";
+        return "until ${dateTimesForEachHour[rangeInclusive.$2].jmFormat()}";
       } else {
-        return "from now to ${dateTimesForEachHour[range.$2 + 1].jmFormat()}";
+        return "from now to ${dateTimesForEachHour[rangeInclusive.$2].jmFormat()}";
       }
     }
-    if (range.$2 + 1 == endOfRange) {
-      return "from ${dateTimesForEachHour[range.$1].jmFormat()}";
+    if (rangeInclusive.$2 == endOfRange) {
+      return "from ${dateTimesForEachHour[rangeInclusive.$1].jmFormat()}";
     }
-    return "${dateTimesForEachHour[range.$1].jmFormat()}-${dateTimesForEachHour[range.$2 + 1].jmFormat()}";
+    return "${dateTimesForEachHour[rangeInclusive.$1].jmFormat()}-${dateTimesForEachHour[rangeInclusive.$2].jmFormat()}";
   }
 
   String _renderActiveHours(
@@ -624,8 +622,14 @@ class RundownScreen extends StatelessWidget {
     int hoursLookedAhead,
   ) {
     if (hours.asRanges.length == 1) {
+      var range = hours.asRanges.first;
+      // _renderTimeRange expects (firstHourWhereConditionHolds, lastHourWhereConditionHolds)
+      // The range should end at the end of hour = the start of the *next* hour
+      // e.g. (1, 2) is the two-hour range for (the hour starting at 1) and (the hour starting at 2)
+      // therefore is actually 1AM-3AM
+      range = (range.$1, range.$2 + 1);
       return _renderTimeRange(
-        hours.asRanges.first,
+        range,
         dateTimesForEachHour,
         endOfRange: hoursLookedAhead,
         allowBareUntil: true,
@@ -636,7 +640,8 @@ class RundownScreen extends StatelessWidget {
       return hours.asRanges
           .map(
             (range) => _renderTimeRange(
-              range,
+              // See above
+              (range.$1, range.$2 + 1),
               dateTimesForEachHour,
               endOfRange: hoursLookedAhead,
               allowBareUntil: false,
@@ -654,6 +659,7 @@ class RundownScreen extends StatelessWidget {
     int hoursLookedAhead,
     String locationPostfix,
   ) {
+    print(levels.levelRanges);
     return levels.nonNullLevelRanges().map((range) {
       print(range);
       final levelsForRange = range.$1;
@@ -672,7 +678,10 @@ class RundownScreen extends StatelessWidget {
 
       var title = "$name$locationPostfix";
       var subtitle = _renderTimeRange(
-        (range.$2, range.$3),
+        // The range tuple is (units, firstHour, lastHour)
+        // the _renderTimeRange assumes the results is (firstHour, oneBeforeLastHour)
+        // See that function
+        (range.$2, range.$3 - 1),
         dateTimesForEachHour,
         endOfRange: hoursLookedAhead,
         allowBareUntil: true,
