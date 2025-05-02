@@ -333,10 +333,22 @@ class PrecipitationLevelInsight extends LevelsInsight<Precipitation?> {
   }
 }
 
+enum UvLevel {
+  // low,
+  moderate,
+  high,
+  veryHigh;
+}
+
+class UvLevelInsight extends LevelsInsight<UvLevel?> {
+  UvLevelInsight(DataSeries<UVIndex> data, LevelMap<UvLevel?, UVIndex> levelMap) : super(levelRanges: LevelsInsight.levelRangesFromData(data, levelMap));
+}
+
 class WeatherInsightsPerLocation {
   final HeatLevelInsight heat;
   final WindLevelInsight wind;
   final PrecipitationLevelInsight precipitation;
+  final UvLevelInsight? uv;
   final Map<EventInsightType, ActiveHours> eventInsights;
   final SunriseSunset? sunriseSunset;
 
@@ -344,6 +356,7 @@ class WeatherInsightsPerLocation {
     required this.heat,
     required this.wind,
     required this.precipitation,
+    required this.uv,
     required this.eventInsights,
     required this.sunriseSunset,
   });
@@ -381,11 +394,29 @@ class WeatherInsightsPerLocation {
     );
     final windInsight = WindLevelInsight(
         weather.windspeed.sublist(0, sublistEndExcl),
-        LevelMap(min: null, minValueForLevel: {
-          Wind.breezy: config.minimumBreezyWindspeed,
-          Wind.windy: config.minimumWindyWindspeed,
-          Wind.galey: config.minimumGaleyWindspeed,
-        }));
+        LevelMap(
+          min: null,
+          minValueForLevel: {
+            Wind.breezy: config.minimumBreezyWindspeed,
+            Wind.windy: config.minimumWindyWindspeed,
+            Wind.galey: config.minimumGaleyWindspeed,
+          },
+        ));
+    final uvInsight = weather.uvIndex == null
+        ? null
+        : UvLevelInsight(
+            weather.uvIndex!.sublist(0, sublistEndExcl),
+            LevelMap(
+              min: null,
+              minValueForLevel: {
+                // TODO MAKE THIS CONFIGURABLE
+                // https://www.cancerresearchuk.org/about-cancer/causes-of-cancer/sun-uv-and-cancer/the-uv-index-and-sunburn-risk
+                // UvLevel.low: const Data(1.0, UVIndex.uv),
+                UvLevel.moderate: const Data(3.0, UVIndex.uv),
+                UvLevel.high: const Data(6.0, UVIndex.uv),
+                UvLevel.veryHigh: const Data(8.0, UVIndex.uv),
+              },
+            ));
 
     final futureRainfallMM = weather.precipitation.valuesAs(Length.mm).mapIndexed(
       (index, len) {
@@ -471,6 +502,7 @@ class WeatherInsightsPerLocation {
       heat: heatInsight,
       wind: windInsight,
       precipitation: precipInsight,
+      uv: uvInsight,
       eventInsights: insights,
       sunriseSunset: weather.sunriseSunset,
     );

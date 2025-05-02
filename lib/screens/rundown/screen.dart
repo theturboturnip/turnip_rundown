@@ -789,6 +789,19 @@ class RundownScreen extends StatelessWidget {
           locationPostfix,
         ),
       );
+      if (insight.uv != null) {
+        insightWidgets.addAll(
+          _buildWeatherWarningInsightForLevel(
+            insight.uv!,
+            uvInsightMap,
+            listOfLocations,
+            dateTimesForEachHour,
+            hoursLookedAhead,
+            locationPostfix,
+          ),
+        );
+      }
+
       insightWidgets.addAll(
         _buildWeatherWarningInsightForLevel(
           insight.wind,
@@ -886,6 +899,13 @@ class RundownScreen extends StatelessWidget {
     Precipitation.lightRain: (2, "Light rain", Symbols.rainy_light),
     Precipitation.mediumRain: (3, "Medium rain", Symbols.rainy_heavy),
     Precipitation.heavyRain: (4, "Heavy rain", Symbols.rainy_heavy),
+  };
+
+  static const uvInsightMap = {
+    // UvLevel.low: (1, "Low UV", Symbols.brightness_5),
+    UvLevel.moderate: (2, "Moderate UV", Symbols.brightness_5),
+    UvLevel.high: (3, "High UV", Symbols.brightness_7),
+    UvLevel.veryHigh: (4, "Very High UV", Symbols.brightness_alert),
   };
 
   List<Widget> _buildWeatherInsights(
