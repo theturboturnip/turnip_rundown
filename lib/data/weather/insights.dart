@@ -268,11 +268,11 @@ enum Heat {
   boiling;
 }
 
-class HeatLevelInsight extends LevelsInsight<Heat> {
+class HeatLevelInsight extends LevelsInsight<Heat?> {
   final Data<Temp> min;
   final Data<Temp> max;
 
-  HeatLevelInsight(DataSeries<Temp> data, LevelMap<Heat, Temp> levelMap)
+  HeatLevelInsight(DataSeries<Temp> data, LevelMap<Heat?, Temp> levelMap)
       : min = data.datas().min,
         max = data.datas().max,
         super(levelRanges: LevelsInsight.levelRangesFromData(data, levelMap));
@@ -379,11 +379,16 @@ class WeatherInsightsPerLocation {
         LevelMap(
           min: Heat.freezing,
           minValueForLevel: {
+            // for compatibility with previous setup, use this:
+            // null: config.freezingMaxTemp,
+            // for new setup use this:
             Heat.chilly: config.freezingMaxTemp,
             // TODO MAKE THIS CONFIGURABLE
             Heat.mild: const Data(10, Temp.celsius),
             Heat.warm: const Data(15, Temp.celsius),
             Heat.hot: const Data(20, Temp.celsius),
+
+            // this should always be there
             Heat.boiling: config.boilingMinTemp,
           },
         ));
