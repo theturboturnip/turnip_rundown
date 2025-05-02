@@ -56,6 +56,11 @@ class UtcDateTime implements Comparable<UtcDateTime> {
 
   @override
   int compareTo(UtcDateTime other) => timeAsUtc.compareTo(other.timeAsUtc);
+
+  @override
+  String toString() {
+    return timeAsUtc.toString();
+  }
 }
 
 class UtcDateTimeJsonConverter extends JsonConverter<UtcDateTime, String> {
@@ -86,6 +91,11 @@ class LocalDateTime {
 
   String jmFormat() {
     return DateFormat.jm().format(timeAsLocal);
+  }
+
+  @override
+  String toString() {
+    return timeAsLocal.toString();
   }
 }
 
