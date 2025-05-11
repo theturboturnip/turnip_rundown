@@ -349,6 +349,13 @@ class Data<TUnit extends Unit<TUnit>> extends Equatable implements Comparable<Da
   int compareTo(Data<TUnit> other) {
     return this._value.compareTo(other.valueAs(this._unit));
   }
+
+  // Computes (this + other) / 2 in this.unit.
+  Data<TUnit> averageWith(Data<TUnit> other) {
+    final a = this._value;
+    final b = other.valueAs(this._unit);
+    return Data((a + b) / 2, this._unit);
+  }
 }
 
 // 0-indexed series of data, all under one unit.
@@ -497,4 +504,32 @@ extension MinMax on Iterable<num> {
   ///
   /// The iterable must not be empty.
   (num, num) get minMax => minMaxOrNull ?? (throw StateError('minMax on empty feature'));
+}
+
+extension PairMap<T> on Iterable<T> {
+  // Return one of the following:
+  // - if this iterable is empty, return the empty list
+  // - if this iterable has one element, return a list with that element
+  // - if this iterable has n>1 elements, return a list with (n - 1) elements
+  //   where element i is computed as f(elem[i], elem[i+1])
+  List<T> pairMap(T Function(T, T) f) {
+    var iterator = this.iterator;
+    if (iterator.moveNext()) {
+      T prev = iterator.current;
+      if (iterator.moveNext()) {
+        // we have two elements at least
+        final data = [f(prev, iterator.current)];
+        prev = iterator.current;
+        while (iterator.moveNext()) {
+          data.add(f(prev, iterator.current));
+          prev = iterator.current;
+        }
+        return data;
+      } else {
+        return [prev];
+      }
+    } else {
+      return [];
+    }
+  }
 }

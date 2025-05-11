@@ -112,3 +112,31 @@ class UtcDateTimeConverter implements JsonConverter<UtcDateTime, String> {
 // TODO UtcDateTimeMatcher to get the tests to pass
 
 String jmFormatHour(int hour) => DateFormat.jm().format(DateTime(2000, 1, 1, hour = hour));
+
+/// Compares a and b and returns the one which is ordered first,
+/// preferring a if the comparison returns 0.
+T anyMin<T extends Comparable<T>>(T a, T b) {
+  final cmp = a.compareTo(b);
+  // a.compareTo(b) returns negative if a is ordered before b
+  // -------------- returns zero if a and b are equal
+  // -------------- returns positive if a is ordered after b
+  if (cmp <= 0) {
+    return a;
+  } else {
+    return b;
+  }
+}
+
+/// Compares a and b and returns the one which is ordered last,
+/// preferring a if the comparison returns 0.
+T anyMax<T extends Comparable<T>>(T a, T b) {
+  final cmp = a.compareTo(b);
+  // a.compareTo(b) returns negative if a is ordered before b
+  // -------------- returns zero if a and b are equal
+  // -------------- returns positive if a is ordered after b
+  if (cmp >= 0) {
+    return a;
+  } else {
+    return b;
+  }
+}

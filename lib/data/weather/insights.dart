@@ -1,4 +1,4 @@
-import 'dart:math';
+import 'dart:math' as math;
 
 import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
@@ -229,8 +229,8 @@ abstract class LevelsInsight<TLevel> {
     return nonNullRanges;
   }
 
-  static List<(TLev, int, int)> levelRangesFromData<TLev, TUnit extends Unit<TUnit>>(DataSeries<TUnit> data, LevelMap<TLev, TUnit> levelMap) {
-    final levels = data.datas().map((data) => levelMap.levelFor(data)).toList();
+  static List<(TLev, int, int)> levelRangesFromData<TLev, TUnit extends Unit<TUnit>>(DataSeries<TUnit> dataPlusOne, LevelMap<TLev, TUnit> levelMap) {
+    final levels = dataPlusOne.datas().pairMap((a, b) => a.averageWith(b)).map((data) => levelMap.levelFor(data)).toList();
     return levelRangesFromLevels(levels);
   }
 
@@ -272,10 +272,10 @@ class HeatLevelInsight extends LevelsInsight<Heat?> {
   final Data<Temp> min;
   final Data<Temp> max;
 
-  HeatLevelInsight(DataSeries<Temp> data, LevelMap<Heat?, Temp> levelMap)
-      : min = data.datas().min,
-        max = data.datas().max,
-        super(levelRanges: LevelsInsight.levelRangesFromData(data, levelMap));
+  HeatLevelInsight(DataSeries<Temp> dataPlusOne, LevelMap<Heat?, Temp> levelMap)
+      : min = dataPlusOne.datas().min,
+        max = dataPlusOne.datas().max,
+        super(levelRanges: LevelsInsight.levelRangesFromData(dataPlusOne, levelMap));
 }
 
 enum Wind {
@@ -285,7 +285,7 @@ enum Wind {
 }
 
 class WindLevelInsight extends LevelsInsight<Wind?> {
-  WindLevelInsight(DataSeries<Speed> data, LevelMap<Wind?, Speed> levelMap) : super(levelRanges: LevelsInsight.levelRangesFromData(data, levelMap));
+  WindLevelInsight(DataSeries<Speed> dataPlusOne, LevelMap<Wind?, Speed> levelMap) : super(levelRanges: LevelsInsight.levelRangesFromData(dataPlusOne, levelMap));
 }
 
 enum Precipitation {
@@ -369,10 +369,10 @@ class WeatherInsightsPerLocation {
       futureTemp = weather.dryBulbTemp;
     }
 
-    // We DO NOT want to include the value at the final hour,
+    // We want to include the value at the final hour in the analysis,
     // .sublist() takes an exclusive end index
     // => use this as the sublist end
-    final sublistEndExcl = maxLookahead;
+    final sublistEndExcl = maxLookahead + 1;
 
     final heatInsight = HeatLevelInsight(
         futureTemp.sublist(0, sublistEndExcl),
@@ -427,7 +427,7 @@ class WeatherInsightsPerLocation {
       (index, len) {
         if (weather.precipitationProb[index].valueAs(Percent.outOf100) >= config.rainProbabilityThreshold.valueAs(Percent.outOf100)) {
           // If no precipitation is expected, but there is a high chance of precipitation, treat that as 0.5mm
-          return max(0.5, len);
+          return math.max(0.5, len);
         } else {
           return 0.0;
         }
@@ -440,8 +440,8 @@ class WeatherInsightsPerLocation {
 
     final insights = {for (final t in EventInsightType.values) t: ActiveHours({})};
 
-    // Measure insights up to and including the last data point
-    for (int hour = 0; hour < sublistEndExcl; hour++) {
+    // Measure event-based insights up to and EXCLUDING the last data point
+    for (int hour = 0; hour < sublistEndExcl - 1; hour++) {
       int indexForRainfallMM = hour + weather.precipitationUpToNow.length;
 
       // TODO MAKE THIS CONFIGURABLE
