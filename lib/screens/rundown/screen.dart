@@ -897,9 +897,9 @@ class RundownScreen extends StatelessWidget {
 
   static const uvInsightMap = {
     // UvLevel.low: (1, "Low UV", Symbols.brightness_5),
-    UvLevel.moderate: (2, "Moderate UV", Symbols.brightness_5),
+    UvLevel.moderate: (2, "Mild UV", Symbols.brightness_5),
     UvLevel.high: (3, "High UV", Symbols.brightness_7),
-    UvLevel.veryHigh: (4, "Very High UV", Symbols.brightness_alert),
+    UvLevel.veryHigh: (4, "Extreme UV", Symbols.brightness_alert),
   };
 
   List<Widget> _buildWeatherInsights(
