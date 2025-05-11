@@ -646,73 +646,71 @@ class RundownScreen extends StatelessWidget {
     }
   }
 
+  // Given the LevelsInsight for all locations, either
+  // render out the individual non-null ranges in each for each location as separate widgets
+  // or combine them all into one widget if they get too complicated.
+  // Complexity is measured by two metrics:
+  // 1. maxWidgets simply limits the number of widgets.
+  //    Screen real estate is limited, don't want a lot of individual widgets cluttrying things.
+  // 2. maxUniqueLevelsPerLocationBeforeCombining monitors the individual complexity of each widget.
+  //    If we have one super complex widget like (Chilly and Mild and Warm at X) with another (Mild at Y)
+  //    that could overload the user.
+  //    TODO maybe it's ok for (many) and (one)...
+  // TODO want to merge identical things e.g. (Boiling then Warm at London), (Boiling then Warm at Paris)?
   Iterable<InsightWidget> _buildWeatherWarningInsightForLevel<TLevel>(
-    LevelsInsight<TLevel> levels,
+    List<LevelsInsight<TLevel>> levelsByLocation,
     Map<TLevel, (int, String, IconData)> renderInfo,
     List<String> listOfLocations,
     List<LocalDateTime> dateTimesForEachHour,
-    int hoursLookedAhead,
-    String locationPostfix,
-  ) {
-    return levels.nonNullLevelRanges().map((range) {
-      final levelsForRange = range.$1;
-      late final String name;
-      if (levelsForRange.length > 3) {
-        final dedupedLevels = <TLevel>[];
-        for (final (level, _, _) in levelsForRange) {
-          if (!dedupedLevels.contains(level)) {
-            dedupedLevels.add(level);
-          }
-        }
-        name = dedupedLevels.map((level) => renderInfo[level]!.$2).join(" and ");
-      } else {
-        name = levelsForRange.map((levelStartEnd) => renderInfo[levelStartEnd.$1]!.$2).join(", then ");
-      }
+    int hoursLookedAhead, {
+    int maxWidgets = 2,
+    int maxUniqueLevelsPerLocationBeforeCombining = 2,
+  }) {
+    final uniqueLevelsPerLocation = <int, Set<TLevel>>{};
+    final individualWidgetPlansWhenNotCombined = levelsByLocation.indexed
+        .map((indexAndInsight) {
+          final (index, insight) = indexAndInsight;
+          uniqueLevelsPerLocation[index] = <TLevel>{};
+          return insight.nonNullLevelRanges().map((t) {
+            uniqueLevelsPerLocation[index]!.addAll(t.$1.map((levelRange) => levelRange.$1));
+            return (t.$1, t.$2, t.$3, listOfLocations[index]);
+          });
+        })
+        .flattened
+        .toList();
 
-      final title = "$name$locationPostfix";
-      String? subtitle = null;
-      if (levelsForRange.length > 1) {
-        // If this is for the whole range and there are multiple levels, we can convey more information
-        switch (levelsForRange.length) {
-          case 2:
-            // two possibilities here:
-            // [(hot, 0, 2), (cold, 3, 4)] i.e. an actual difference
-            // or [(breezy, 0, 2), (windy, 3, 4)] i.e. a difference removed by hysteresis
-            // or [(breezy, 0, 2), (breezy, 3, 4)] i.e. a difference removed by hysteresis between two of the same level
-            // in the latter case, don't use a different label
-            if (levelsForRange[0].$1 != levelsForRange[1].$1) {
-              final range = _renderTimeRange(
-                (levelsForRange[1].$2, levelsForRange[1].$3 + 1),
-                dateTimesForEachHour,
-                allowBareUntil: true,
-                endOfRange: hoursLookedAhead,
-              );
-              subtitle = "${renderInfo[levelsForRange[1].$1]!.$2} $range";
+    final maxUniqueLevelsPerLocation = uniqueLevelsPerLocation.values.map((levelSet) => levelSet.length).maxOrNull ?? 0;
+    if (individualWidgetPlansWhenNotCombined.length <= maxWidgets && maxUniqueLevelsPerLocation <= maxUniqueLevelsPerLocationBeforeCombining) {
+      return individualWidgetPlansWhenNotCombined.map((plan) {
+        final levelsForRange = plan.$1;
+        final location = plan.$4;
+        late final String name;
+        if (levelsForRange.length > 3) {
+          final dedupedLevels = <TLevel>[];
+          for (final (level, _, _) in levelsForRange) {
+            if (!dedupedLevels.contains(level)) {
+              dedupedLevels.add(level);
             }
-          case 3:
-            {
-              // four possibilities
-              if (levelsForRange[0].$1 == levelsForRange[1].$1 && levelsForRange[1].$1 != levelsForRange[2].$1) {
-                // [a, a, b] with a difference removed by hysteresis
-                final range = _renderTimeRange(
-                  (levelsForRange[2].$2, levelsForRange[2].$3 + 1),
-                  dateTimesForEachHour,
-                  allowBareUntil: true,
-                  endOfRange: hoursLookedAhead,
-                );
-                subtitle = "${renderInfo[levelsForRange[2].$1]!.$2} $range";
-              } else if (levelsForRange[1].$1 == levelsForRange[2].$1) {
-                // [a, b, b] with a difference removed by hysteresis
-                final range = _renderTimeRange(
-                  (levelsForRange[1].$2, levelsForRange[2].$3 + 1),
-                  dateTimesForEachHour,
-                  allowBareUntil: true,
-                  endOfRange: hoursLookedAhead,
-                );
-                subtitle = "${renderInfo[levelsForRange[1].$1]!.$2} $range";
-              } else {
-                // all levels are distinct
-                // [a, b, c]
+          }
+          name = dedupedLevels.map((level) => renderInfo[level]!.$2).join(" and ");
+        } else {
+          name = levelsForRange.map((levelStartEnd) => renderInfo[levelStartEnd.$1]!.$2).join(", then ");
+        }
+
+        final locationPostfix = listOfLocations.length > 1 ? " at $location" : "";
+
+        final title = "$name$locationPostfix";
+        String? subtitle = null;
+        if (levelsForRange.length > 1) {
+          // If this is for the whole range and there are multiple levels, we can convey more information
+          switch (levelsForRange.length) {
+            case 2:
+              // two possibilities here:
+              // [(hot, 0, 2), (cold, 3, 4)] i.e. an actual difference
+              // or [(breezy, 0, 2), (windy, 3, 4)] i.e. a difference removed by hysteresis
+              // or [(breezy, 0, 2), (breezy, 3, 4)] i.e. a difference removed by hysteresis between two of the same level
+              // in the latter case, don't use a different label
+              if (levelsForRange[0].$1 != levelsForRange[1].$1) {
                 final range = _renderTimeRange(
                   (levelsForRange[1].$2, levelsForRange[1].$3 + 1),
                   dateTimesForEachHour,
@@ -721,29 +719,100 @@ class RundownScreen extends StatelessWidget {
                 );
                 subtitle = "${renderInfo[levelsForRange[1].$1]!.$2} $range";
               }
-              // [a, a, a] means use the default subtitle
-            }
+            case 3:
+              {
+                // four possibilities
+                if (levelsForRange[0].$1 == levelsForRange[1].$1 && levelsForRange[1].$1 != levelsForRange[2].$1) {
+                  // [a, a, b] with a difference removed by hysteresis
+                  final range = _renderTimeRange(
+                    (levelsForRange[2].$2, levelsForRange[2].$3 + 1),
+                    dateTimesForEachHour,
+                    allowBareUntil: true,
+                    endOfRange: hoursLookedAhead,
+                  );
+                  subtitle = "${renderInfo[levelsForRange[2].$1]!.$2} $range";
+                } else if (levelsForRange[1].$1 == levelsForRange[2].$1) {
+                  // [a, b, b] with a difference removed by hysteresis
+                  final range = _renderTimeRange(
+                    (levelsForRange[1].$2, levelsForRange[2].$3 + 1),
+                    dateTimesForEachHour,
+                    allowBareUntil: true,
+                    endOfRange: hoursLookedAhead,
+                  );
+                  subtitle = "${renderInfo[levelsForRange[1].$1]!.$2} $range";
+                } else {
+                  // all levels are distinct
+                  // [a, b, c]
+                  final range = _renderTimeRange(
+                    (levelsForRange[1].$2, levelsForRange[1].$3 + 1),
+                    dateTimesForEachHour,
+                    allowBareUntil: true,
+                    endOfRange: hoursLookedAhead,
+                  );
+                  subtitle = "${renderInfo[levelsForRange[1].$1]!.$2} $range";
+                }
+                // [a, a, a] means use the default subtitle
+              }
 
-          default:
-            {}
+            default:
+              {}
+          }
         }
-      }
-      final nonNullSubtitle = subtitle ??
-          _renderTimeRange(
-            (range.$2, range.$3 + 1),
-            dateTimesForEachHour,
-            endOfRange: hoursLookedAhead,
-            allowBareUntil: true,
-          );
+        final nonNullSubtitle = subtitle ??
+            _renderTimeRange(
+              (plan.$2, plan.$3 + 1),
+              dateTimesForEachHour,
+              endOfRange: hoursLookedAhead,
+              allowBareUntil: true,
+            );
 
-      final sortedLevels = range.$1.map((levelStartEnd) => levelStartEnd.$1).toList();
-      const DefaultSortingStrategy().sort(sortedLevels, (level, otherLevel) => renderInfo[level]!.$1.compareTo(renderInfo[otherLevel]!.$1));
-      final mostSignificantLevel = sortedLevels.last;
+        final sortedLevels = plan.$1.map((levelStartEnd) => levelStartEnd.$1).toList();
+        const DefaultSortingStrategy().sort(sortedLevels, (level, otherLevel) => renderInfo[level]!.$1.compareTo(renderInfo[otherLevel]!.$1));
+        final mostSignificantLevel = sortedLevels.last;
+        return InsightWidget(
+          icon: Icon(renderInfo[mostSignificantLevel]!.$3),
+          title: title,
+          subtitle: nonNullSubtitle,
+          startTimeUtc: dateTimesForEachHour[plan.$2].toUtc(),
+        );
+      });
+    }
+
+    final combined = CombinedLevelsInsight.combine(levelsByLocation);
+    final allRangesToShow = combined.levelRanges.where((range) => range.$1 != {null}).toList();
+    late List<(Set<TLevel>, int, int)> combinedRangesToWidget;
+    if (allRangesToShow.length > maxWidgets) {
+      // Combine everything into one widget
+      final allLevels = allRangesToShow.fold(<TLevel>{}, (start, range) => start.union(range.$1));
+      combinedRangesToWidget = [
+        (
+          allLevels,
+          allRangesToShow.first.$2,
+          allRangesToShow.last.$3,
+        ),
+      ];
+    } else {
+      // One widget per range
+      combinedRangesToWidget = allRangesToShow;
+    }
+
+    return combinedRangesToWidget.map((range) {
+      final (dedupedLevels, rangeStart, rangeEnd) = range;
+      final nonNullLevels = dedupedLevels.whereNot((l) => l == null).toList();
+      final String title = nonNullLevels.map((level) => renderInfo[level]!.$2).join(" and ");
+      final String subtitle = _renderTimeRange(
+        (rangeStart, rangeEnd + 1),
+        dateTimesForEachHour,
+        endOfRange: hoursLookedAhead,
+        allowBareUntil: true,
+      );
+      const DefaultSortingStrategy().sort(nonNullLevels, (level, otherLevel) => renderInfo[level]!.$1.compareTo(renderInfo[otherLevel]!.$1));
+      final mostSignificantLevel = nonNullLevels.last;
       return InsightWidget(
         icon: Icon(renderInfo[mostSignificantLevel]!.$3),
         title: title,
-        subtitle: nonNullSubtitle,
-        startTimeUtc: dateTimesForEachHour[range.$2].toUtc(),
+        subtitle: subtitle,
+        startTimeUtc: dateTimesForEachHour[rangeStart].toUtc(),
       );
     });
   }
@@ -759,53 +828,51 @@ class RundownScreen extends StatelessWidget {
     final timestamp = UtcDateTime.timestamp();
     final timeRangeEndUtc = dateTimesForEachHour[hoursLookedAhead].toUtc();
 
+    // Add important insights first
+    insightWidgets.addAll(
+      _buildWeatherWarningInsightForLevel(
+        insights.insightsByLocation.map((insight) => insight.heat.levels).toList(),
+        heatInsightMap,
+        listOfLocations,
+        dateTimesForEachHour,
+        hoursLookedAhead,
+      ),
+    );
+    insightWidgets.addAll(
+      _buildWeatherWarningInsightForLevel(
+        insights.insightsByLocation.map((insight) => insight.precipitation).toList(),
+        precipInsightMap,
+        listOfLocations,
+        dateTimesForEachHour,
+        hoursLookedAhead,
+      ),
+    );
+    if (!insights.insightsByLocation.any((insight) => insight.uv == null)) {
+      insightWidgets.addAll(
+        _buildWeatherWarningInsightForLevel(
+          insights.insightsByLocation.map((insight) => insight.uv!).toList(),
+          uvInsightMap,
+          listOfLocations,
+          dateTimesForEachHour,
+          hoursLookedAhead,
+          maxWidgets: 1,
+        ),
+      );
+    }
+
+    insightWidgets.addAll(
+      _buildWeatherWarningInsightForLevel(
+        insights.insightsByLocation.map((insight) => insight.wind).toList(),
+        windInsightMap,
+        listOfLocations,
+        dateTimesForEachHour,
+        hoursLookedAhead,
+        maxWidgets: 1,
+      ),
+    );
+
     for (final (locationIndex, insight) in insights.insightsByLocation.indexed) {
       final locationPostfix = listOfLocations.length > 1 ? " at ${listOfLocations[locationIndex]}" : "";
-
-      // Add important insights first
-      insightWidgets.addAll(
-        _buildWeatherWarningInsightForLevel(
-          insight.heat,
-          heatInsightMap,
-          listOfLocations,
-          dateTimesForEachHour,
-          hoursLookedAhead,
-          locationPostfix,
-        ),
-      );
-      insightWidgets.addAll(
-        _buildWeatherWarningInsightForLevel(
-          insight.precipitation,
-          precipInsightMap,
-          listOfLocations,
-          dateTimesForEachHour,
-          hoursLookedAhead,
-          locationPostfix,
-        ),
-      );
-      if (insight.uv != null) {
-        insightWidgets.addAll(
-          _buildWeatherWarningInsightForLevel(
-            insight.uv!,
-            uvInsightMap,
-            listOfLocations,
-            dateTimesForEachHour,
-            hoursLookedAhead,
-            locationPostfix,
-          ),
-        );
-      }
-
-      insightWidgets.addAll(
-        _buildWeatherWarningInsightForLevel(
-          insight.wind,
-          windInsightMap,
-          listOfLocations,
-          dateTimesForEachHour,
-          hoursLookedAhead,
-          locationPostfix,
-        ),
-      );
 
       for (final entry in insight.eventInsights.entries) {
         if (entry.value.isNotEmpty) {

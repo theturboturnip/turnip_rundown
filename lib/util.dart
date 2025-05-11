@@ -140,3 +140,29 @@ T anyMax<T extends Comparable<T>>(T a, T b) {
     return b;
   }
 }
+
+List<(T, int, int)> buildLikeRanges<T, TElem>(Iterable<TElem> iter, {required T Function(TElem) firstFunc, required (bool, T) Function(T, TElem) shouldCombineFunc}) {
+  var ranges = <(T, int, int)>[];
+  var iterator = iter.iterator;
+  if (iterator.moveNext()) {
+    int currentRangeStart = 0;
+    T currentRangeVal = firstFunc(iterator.current);
+    int i = 1;
+    while (iterator.moveNext()) {
+      final (shouldCombine, next) = shouldCombineFunc(currentRangeVal, iterator.current);
+      // If we're still in the same range as the previous hour
+      if (shouldCombine) {
+        currentRangeVal = next;
+        continue;
+      } else {
+        ranges.add((currentRangeVal, currentRangeStart, i - 1));
+        currentRangeStart = i;
+        currentRangeVal = next;
+      }
+
+      i++;
+    }
+    ranges.add((currentRangeVal, currentRangeStart, i - 1));
+  }
+  return ranges;
+}

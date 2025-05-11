@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:json_annotation/json_annotation.dart';
 import 'package:turnip_rundown/data/units.dart';
 import 'package:turnip_rundown/data/weather/model.dart';
+import 'package:turnip_rundown/util.dart';
 
 part 'insights.g.dart';
 
@@ -190,12 +191,13 @@ class LevelMap<TLevel, TUnit extends Unit<TUnit>> {
   }
 }
 
-abstract class LevelsInsight<TLevel> {
+class LevelsInsight<TLevel> {
+  final List<TLevel> levels;
   // List of (level, firstHourWhereLevel, lastHourWhereLevel)
   // levels can repeat so [(breezy, 0, 1), (null, 2, 3), (breezy, 4, 7)] is possible
   final List<(TLevel, int, int)> levelRanges;
 
-  LevelsInsight({required this.levelRanges});
+  LevelsInsight({required this.levels, required this.levelRanges});
 
   // Takes the levelRanges and removes short ranges where the level == null
   // would be [([breezy, 0, 3), (breezy 4, 5)], 0, 5)] for the above level range
@@ -229,9 +231,9 @@ abstract class LevelsInsight<TLevel> {
     return nonNullRanges;
   }
 
-  static List<(TLev, int, int)> levelRangesFromData<TLev, TUnit extends Unit<TUnit>>(DataSeries<TUnit> dataPlusOne, LevelMap<TLev, TUnit> levelMap) {
+  static LevelsInsight<TLev> levelRangesFromData<TLev, TUnit extends Unit<TUnit>>(DataSeries<TUnit> dataPlusOne, LevelMap<TLev, TUnit> levelMap) {
     final levels = dataPlusOne.datas().pairMap((a, b) => a.averageWith(b)).map((data) => levelMap.levelFor(data)).toList();
-    return levelRangesFromLevels(levels);
+    return LevelsInsight(levels: levels, levelRanges: levelRangesFromLevels(levels));
   }
 
   static List<(TLev, int, int)> levelRangesFromLevels<TLev>(List<TLev> levels) {
@@ -250,6 +252,52 @@ abstract class LevelsInsight<TLevel> {
     }
     hourRanges.add((currentRangeLevel, currentRangeStart, levels.length - 1));
     return hourRanges;
+    // TODO why doesn't this work
+    return buildLikeRanges(levels,
+        firstFunc: (level) => level,
+        shouldCombineFunc: (lastLevel, newLevel) {
+          if (lastLevel == newLevel) {
+            return (true, lastLevel);
+          } else {
+            return (false, newLevel);
+          }
+        });
+  }
+}
+
+// LevelsInsight where each hour is a Set<TLevel> for every level at every location during that hour.
+//
+// Hours are combined into a range if
+// - the set of levels for that hour is a subset of that range's
+class CombinedLevelsInsight<TLevel> {
+  final List<LevelsInsight<TLevel>> bases;
+  final List<(Set<TLevel>, int, int)> levelRanges;
+
+  CombinedLevelsInsight._({required this.bases, required this.levelRanges});
+
+  static CombinedLevelsInsight<TLev> combine<TLev>(List<LevelsInsight<TLev>> bases) {
+    assert(bases.isNotEmpty);
+    assert(!bases.any((base) => base.levels.length != bases.first.levels.length));
+
+    // Iterator over (Set of levels at given hour i)
+    final perHourLevelSets = Iterable.generate(bases.first.levels.length).map((i) => bases.map((base) => base.levels[i]).toSet());
+    final levelRanges = buildLikeRanges(
+      perHourLevelSets,
+      firstFunc: (levelSet) => levelSet,
+      shouldCombineFunc: (oldLevelSet, newLevelSet) {
+        if (oldLevelSet == newLevelSet) {
+          return (true, oldLevelSet);
+        } else if (oldLevelSet.length > 1 && newLevelSet.length > 1 && oldLevelSet.intersection(newLevelSet).isNotEmpty) {
+          return (true, oldLevelSet.union(newLevelSet));
+        } else {
+          return (false, newLevelSet);
+        }
+      },
+    );
+    return CombinedLevelsInsight._(
+      bases: bases,
+      levelRanges: levelRanges,
+    );
   }
 }
 
@@ -268,14 +316,15 @@ enum Heat {
   boiling;
 }
 
-class HeatLevelInsight extends LevelsInsight<Heat?> {
+class HeatLevelInsight {
   final Data<Temp> min;
   final Data<Temp> max;
+  final LevelsInsight<Heat?> levels;
 
   HeatLevelInsight(DataSeries<Temp> dataPlusOne, LevelMap<Heat?, Temp> levelMap)
       : min = dataPlusOne.datas().min,
         max = dataPlusOne.datas().max,
-        super(levelRanges: LevelsInsight.levelRangesFromData(dataPlusOne, levelMap));
+        levels = LevelsInsight.levelRangesFromData(dataPlusOne, levelMap);
 }
 
 enum Wind {
@@ -284,9 +333,7 @@ enum Wind {
   galey;
 }
 
-class WindLevelInsight extends LevelsInsight<Wind?> {
-  WindLevelInsight(DataSeries<Speed> dataPlusOne, LevelMap<Wind?, Speed> levelMap) : super(levelRanges: LevelsInsight.levelRangesFromData(dataPlusOne, levelMap));
-}
+LevelsInsight<Wind?> windLevelInsight(DataSeries<Speed> dataPlusOne, LevelMap<Wind?, Speed> levelMap) => LevelsInsight.levelRangesFromData(dataPlusOne, levelMap);
 
 enum Precipitation {
   sprinkles,
@@ -300,37 +347,30 @@ enum Precipitation {
 // EventInsightType.mediumRain: ("Medium rain", Symbols.rainy_heavy),
 // EventInsightType.heavyRain: ("Heavy rain", Symbols.rainy_heavy),
 
-class PrecipitationLevelInsight extends LevelsInsight<Precipitation?> {
-  PrecipitationLevelInsight(WeatherInsightConfig config, DataSeries<Percent> precipChance, DataSeries<Length> precipitation)
-      : super(
-          levelRanges: LevelsInsight.levelRangesFromLevels(
-            overallPrecip(config, precipChance, precipitation),
-          ),
-        );
-
-  static List<Precipitation?> overallPrecip(WeatherInsightConfig config, DataSeries<Percent> precipChance, DataSeries<Length> precipitation) {
-    final precip = <Precipitation?>[];
-    assert(precipChance.length == precipitation.length);
-    for (int i = 0; i < precipitation.length; i++) {
-      final precipMM = precipitation[i].valueAs(Length.mm);
-      late final Precipitation? precipEnum;
-      if (precipChance[i].valueAs(Percent.outOf100) > config.rainProbabilityThreshold.valueAs(Percent.outOf100)) {
-        if (precipMM > config.heavyRainThreshold.valueAs(Length.mm)) {
-          precipEnum = Precipitation.heavyRain;
-        } else if (precipMM > config.mediumRainThreshold.valueAs(Length.mm)) {
-          precipEnum = Precipitation.mediumRain;
-        } else if (precipMM > 0) {
-          precipEnum = Precipitation.lightRain;
-        } else {
-          precipEnum = Precipitation.sprinkles;
-        }
+LevelsInsight<Precipitation?> precipitationLevelInsight(WeatherInsightConfig config, DataSeries<Percent> precipChance, DataSeries<Length> precipitation) {
+  final precip = <Precipitation?>[];
+  assert(precipChance.length == precipitation.length);
+  for (int i = 0; i < precipitation.length; i++) {
+    final precipMM = precipitation[i].valueAs(Length.mm);
+    late final Precipitation? precipEnum;
+    if (precipChance[i].valueAs(Percent.outOf100) > config.rainProbabilityThreshold.valueAs(Percent.outOf100)) {
+      if (precipMM > config.heavyRainThreshold.valueAs(Length.mm)) {
+        precipEnum = Precipitation.heavyRain;
+      } else if (precipMM > config.mediumRainThreshold.valueAs(Length.mm)) {
+        precipEnum = Precipitation.mediumRain;
+      } else if (precipMM > 0) {
+        precipEnum = Precipitation.lightRain;
       } else {
-        precipEnum = null;
+        precipEnum = Precipitation.sprinkles;
       }
-      precip.add(precipEnum);
+    } else {
+      precipEnum = null;
     }
-    return precip;
+    precip.add(precipEnum);
   }
+
+  final levelRanges = LevelsInsight.levelRangesFromLevels(precip);
+  return LevelsInsight(levelRanges: levelRanges, levels: precip);
 }
 
 enum UvLevel {
@@ -340,15 +380,13 @@ enum UvLevel {
   veryHigh;
 }
 
-class UvLevelInsight extends LevelsInsight<UvLevel?> {
-  UvLevelInsight(DataSeries<UVIndex> data, LevelMap<UvLevel?, UVIndex> levelMap) : super(levelRanges: LevelsInsight.levelRangesFromData(data, levelMap));
-}
+LevelsInsight<UvLevel?> uvLevelInsight(DataSeries<UVIndex> dataPlusOne, LevelMap<UvLevel?, UVIndex> levelMap) => LevelsInsight.levelRangesFromData(dataPlusOne, levelMap);
 
 class WeatherInsightsPerLocation {
   final HeatLevelInsight heat;
-  final WindLevelInsight wind;
-  final PrecipitationLevelInsight precipitation;
-  final UvLevelInsight? uv;
+  final LevelsInsight<Wind?> wind;
+  final LevelsInsight<Precipitation?> precipitation;
+  final LevelsInsight<UvLevel?>? uv;
   final Map<EventInsightType, ActiveHours> eventInsights;
   final SunriseSunset? sunriseSunset;
 
@@ -392,12 +430,12 @@ class WeatherInsightsPerLocation {
             Heat.boiling: config.boilingMinTemp,
           },
         ));
-    final precipInsight = PrecipitationLevelInsight(
+    final precipInsight = precipitationLevelInsight(
       config,
       weather.precipitationProb.sublist(0, sublistEndExcl),
       weather.precipitation.sublist(0, sublistEndExcl),
     );
-    final windInsight = WindLevelInsight(
+    final windInsight = windLevelInsight(
         weather.windspeed.sublist(0, sublistEndExcl),
         LevelMap(
           min: null,
@@ -409,7 +447,7 @@ class WeatherInsightsPerLocation {
         ));
     final uvInsight = weather.uvIndex == null
         ? null
-        : UvLevelInsight(
+        : uvLevelInsight(
             weather.uvIndex!.sublist(0, sublistEndExcl),
             LevelMap(
               min: null,
@@ -495,13 +533,13 @@ class WeatherInsightsPerLocation {
       }
     }
 
-    // if (kDebugMode) {
-    //   insights[EventInsightType.slippery]!.add(1);
-    //   insights[EventInsightType.snow]!.add(2);
-    //   insights[EventInsightType.sunny]!.add(3);
-    //   insights[EventInsightType.sweaty]!.add(4);
-    //   insights[EventInsightType.uncomfortablyHumid]!.add(5);
-    // }
+    if (kDebugMode) {
+      // insights[EventInsightType.slippery]!.add(1);
+      // insights[EventInsightType.snow]!.add(2);
+      // insights[EventInsightType.sunny]!.add(3);
+      // insights[EventInsightType.sweaty]!.add(4);
+      // insights[EventInsightType.uncomfortablyHumid]!.add(5);
+    }
 
     return WeatherInsightsPerLocation(
       heat: heatInsight,
