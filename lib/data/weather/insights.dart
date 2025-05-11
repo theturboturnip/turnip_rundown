@@ -369,10 +369,10 @@ class WeatherInsightsPerLocation {
       futureTemp = weather.dryBulbTemp;
     }
 
-    // We want to include the value at the final hour,
+    // We DO NOT want to include the value at the final hour,
     // .sublist() takes an exclusive end index
     // => use this as the sublist end
-    final sublistEndExcl = maxLookahead + 1;
+    final sublistEndExcl = maxLookahead;
 
     final heatInsight = HeatLevelInsight(
         futureTemp.sublist(0, sublistEndExcl),

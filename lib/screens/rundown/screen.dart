@@ -688,7 +688,7 @@ class RundownScreen extends StatelessWidget {
             // in the latter case, don't use a different label
             if (levelsForRange[0].$1 != levelsForRange[1].$1) {
               final range = _renderTimeRange(
-                (levelsForRange[1].$2, levelsForRange[1].$3),
+                (levelsForRange[1].$2, levelsForRange[1].$3 + 1),
                 dateTimesForEachHour,
                 allowBareUntil: true,
                 endOfRange: hoursLookedAhead,
@@ -701,7 +701,7 @@ class RundownScreen extends StatelessWidget {
               if (levelsForRange[0].$1 == levelsForRange[1].$1 && levelsForRange[1].$1 != levelsForRange[2].$1) {
                 // [a, a, b] with a difference removed by hysteresis
                 final range = _renderTimeRange(
-                  (levelsForRange[2].$2, levelsForRange[2].$3),
+                  (levelsForRange[2].$2, levelsForRange[2].$3 + 1),
                   dateTimesForEachHour,
                   allowBareUntil: true,
                   endOfRange: hoursLookedAhead,
@@ -710,7 +710,7 @@ class RundownScreen extends StatelessWidget {
               } else if (levelsForRange[1].$1 == levelsForRange[2].$1) {
                 // [a, b, b] with a difference removed by hysteresis
                 final range = _renderTimeRange(
-                  (levelsForRange[1].$2, levelsForRange[2].$3),
+                  (levelsForRange[1].$2, levelsForRange[2].$3 + 1),
                   dateTimesForEachHour,
                   allowBareUntil: true,
                   endOfRange: hoursLookedAhead,
@@ -720,7 +720,7 @@ class RundownScreen extends StatelessWidget {
                 // all levels are distinct
                 // [a, b, c]
                 final range = _renderTimeRange(
-                  (levelsForRange[1].$2, levelsForRange[1].$3),
+                  (levelsForRange[1].$2, levelsForRange[1].$3 + 1),
                   dateTimesForEachHour,
                   allowBareUntil: true,
                   endOfRange: hoursLookedAhead,
@@ -736,7 +736,7 @@ class RundownScreen extends StatelessWidget {
       }
       final nonNullSubtitle = subtitle ??
           _renderTimeRange(
-            (range.$2, range.$3),
+            (range.$2, range.$3 + 1),
             dateTimesForEachHour,
             endOfRange: hoursLookedAhead,
             allowBareUntil: true,
