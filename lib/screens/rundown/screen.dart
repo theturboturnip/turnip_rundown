@@ -217,87 +217,81 @@ class RundownScreen extends StatelessWidget {
     List<LocalDateTime> dateTimesForEachHour,
   ) {
     final currentNumLookaheadHours = settings.wakingHours.numHoursToLookahead(hoursLookaheadState.lockedUtcLookaheadTo);
-    return [
-      Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10.0),
-        child: Wrap(
-          alignment: WrapAlignment.spaceEvenly,
-          spacing: 40.0,
-          children: settings.temperatureUnit.displayUnits().map(
-            (unit) {
-              final minString = insightsResult.insights?.minTemp?.valueAs(unit).toStringAsFixed(1);
-              final maxString = insightsResult.insights?.maxTemp?.valueAs(unit).toStringAsFixed(1);
-              return Text(
-                "${minString ?? "..."}–${maxString ?? "..."}${unit.display}",
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 50),
-              );
-            },
-          ).toList(),
-        ),
-      ),
-      Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10.0),
-        child: Wrap(
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: [
-            IconButton(
-              icon: Icon((hoursLookaheadState.decrementWillResultInReset) ? Icons.replay : Icons.remove),
-              color: hoursLookaheadState.lockedUtcLookaheadTo == null ? Colors.grey : Colors.grey[700],
-              onPressed: () {
-                context.read<HoursLookaheadBloc>().add(
-                      DecrementLockedLookaheadEvent(
-                        hour0InLocalTime: dateTimesForEachHour[0],
-                        currentNumLookaheadHours: currentNumLookaheadHours,
-                      ),
-                    );
-              },
+    return settings.temperatureUnit.displayUnits().map((unit) {
+          final minString = insightsResult.insights?.minTemp?.valueAs(unit).toStringAsFixed(1);
+          final maxString = insightsResult.insights?.maxTemp?.valueAs(unit).toStringAsFixed(1);
+          return Padding(
+            padding: const EdgeInsets.all(10.0),
+            child: Text(
+              "${minString ?? "..."}–${maxString ?? "..."}${unit.display}",
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 50),
             ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10.0),
-              child: Text(
-                (hoursLookaheadState.lockedUtcLookaheadTo != null)
-                    ? "until ${hoursLookaheadState.lockedUtcLookaheadTo!.toLocal().jmFormat()}"
-                    : _renderTimeRange(
-                        (0, currentNumLookaheadHours),
-                        dateTimesForEachHour,
-                        allowBareUntil: true,
-                      ),
-                style: const TextStyle(fontWeight: FontWeight.bold),
-                // The plan:
-                // have a button which when pressed triggers an action IncrementPlannedHoursLookedAhead.
-                // if the weatherConfigState indicates the hoursLookedAhead is locked, have a button which when pressed DecrementPlannedHoursLookedAhead
-                // which may decrement it past now, in which case it resets and is not locked.
-                // the bloc has a timer which periodically triggers CheckLockedPlannedHoursLookedAhead
-                // which compares the current time to the locked time and resets to not-locked if current time > locked time.
-              ),
+          ) as Widget;
+        }).toList() +
+        [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10.0),
+            child: Wrap(
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                IconButton(
+                  icon: Icon((hoursLookaheadState.decrementWillResultInReset) ? Icons.replay : Icons.remove),
+                  color: hoursLookaheadState.lockedUtcLookaheadTo == null ? Colors.grey : Colors.grey[700],
+                  onPressed: () {
+                    context.read<HoursLookaheadBloc>().add(
+                          DecrementLockedLookaheadEvent(
+                            hour0InLocalTime: dateTimesForEachHour[0],
+                            currentNumLookaheadHours: currentNumLookaheadHours,
+                          ),
+                        );
+                  },
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 10.0),
+                  child: Text(
+                    (hoursLookaheadState.lockedUtcLookaheadTo != null)
+                        ? "until ${hoursLookaheadState.lockedUtcLookaheadTo!.toLocal().jmFormat()}"
+                        : _renderTimeRange(
+                            (0, currentNumLookaheadHours),
+                            dateTimesForEachHour,
+                            allowBareUntil: true,
+                          ),
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                    // The plan:
+                    // have a button which when pressed triggers an action IncrementPlannedHoursLookedAhead.
+                    // if the weatherConfigState indicates the hoursLookedAhead is locked, have a button which when pressed DecrementPlannedHoursLookedAhead
+                    // which may decrement it past now, in which case it resets and is not locked.
+                    // the bloc has a timer which periodically triggers CheckLockedPlannedHoursLookedAhead
+                    // which compares the current time to the locked time and resets to not-locked if current time > locked time.
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.add),
+                  color: hoursLookaheadState.lockedUtcLookaheadTo == null ? Colors.grey : Colors.grey[700],
+                  onPressed: () {
+                    context.read<HoursLookaheadBloc>().add(
+                          IncrementLockedLookaheadEvent(
+                            hour0InLocalTime: dateTimesForEachHour[0],
+                            currentNumLookaheadHours: currentNumLookaheadHours,
+                          ),
+                        );
+                  },
+                ),
+                IconButton(
+                  icon: const Icon(Icons.refresh),
+                  onPressed: () {
+                    context.read<WeatherPredictBloc>().add(
+                          const RefreshPredictedWeather(
+                            config: null,
+                            forceRefreshCache: true,
+                          ),
+                        );
+                  },
+                )
+              ],
             ),
-            IconButton(
-              icon: const Icon(Icons.add),
-              color: hoursLookaheadState.lockedUtcLookaheadTo == null ? Colors.grey : Colors.grey[700],
-              onPressed: () {
-                context.read<HoursLookaheadBloc>().add(
-                      IncrementLockedLookaheadEvent(
-                        hour0InLocalTime: dateTimesForEachHour[0],
-                        currentNumLookaheadHours: currentNumLookaheadHours,
-                      ),
-                    );
-              },
-            ),
-            IconButton(
-              icon: const Icon(Icons.refresh),
-              onPressed: () {
-                context.read<WeatherPredictBloc>().add(
-                      const RefreshPredictedWeather(
-                        config: null,
-                        forceRefreshCache: true,
-                      ),
-                    );
-              },
-            )
-          ],
-        ),
-      ),
-    ];
+          ),
+        ];
   }
 
   List<Widget> _buildLocationsDisplay(BuildContext context, LocationListState state) {
