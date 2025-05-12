@@ -225,7 +225,7 @@ class LevelsInsight<TLevel> {
       }
     }
     if (current != null) {
-      current = (current.$1, current.$2, levelRanges.last.$3);
+      // current = (current.$1, current.$2, levelRanges.last.$3);
       nonNullRanges.add(current);
     }
     return nonNullRanges;

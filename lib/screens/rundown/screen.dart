@@ -871,6 +871,8 @@ class RundownScreen extends StatelessWidget {
       ),
     );
 
+    // TODO merge sunsets if close
+
     for (final (locationIndex, insight) in insights.insightsByLocation.indexed) {
       final locationPostfix = listOfLocations.length > 1 ? " at ${listOfLocations[locationIndex]}" : "";
 
@@ -986,9 +988,9 @@ class RundownScreen extends StatelessWidget {
         listOfLocations,
         dateTimesForEachHour,
         config.hoursToLookAhead,
-      );
+      ).cast<Widget>();
     } else {
-      widgets = [];
+      widgets = <Widget>[];
     }
 
     if (insightsResult.weatherMayBeStale) {
