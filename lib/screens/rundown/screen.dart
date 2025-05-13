@@ -6,6 +6,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:material_charts/material_charts.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:sorted/sorted.dart';
 import 'package:turnip_rundown/data.dart';
@@ -1083,135 +1084,190 @@ class RundownScreen extends StatelessWidget {
 
     final usingTwoUnits = (otherUnit != null) && (otherUnit != asUnit);
 
-    // const bool useOldChart = true;
+    const bool useOldChart = true;
 
-    // if (useOldChart) {
-    return SizedBox(
-      key: key,
-      height: 200,
-      child: LineChart(
-        LineChartData(
-          lineBarsData: dataPointss
-              .mapIndexed((index, dataPoints) => LineChartBarData(
-                    spots: dataPoints.indexed.take(numDataPoints!).map((item) => FlSpot(item.$1.toDouble(), item.$2)).toList(),
+    if (useOldChart) {
+      return SizedBox(
+        key: key,
+        height: 200,
+        child: LineChart(
+          LineChartData(
+            lineBarsData: dataPointss
+                .mapIndexed(
+                  (index, dataPoints) => LineChartBarData(
+                    spots: dataPoints.indexed
+                        .take(numDataPoints!)
+                        .map((item) => FlSpot(
+                              item.$1.toDouble(),
+                              item.$2,
+                            ))
+                        .toList(),
                     isCurved: true,
                     preventCurveOverShooting: true,
                     dotData: const FlDotData(show: false),
                     color: nthWeatherResultColor(index),
                     curveSmoothness: 0,
-                  ))
-              .toList(),
-          titlesData: FlTitlesData(
-            topTitles: AxisTitles(
-              axisNameWidget: Text(title + (usingTwoUnits ? "" : " (${asUnit.display})")),
-              axisNameSize: 20,
-              sideTitles: const SideTitles(showTitles: false),
-            ),
-            leftTitles: AxisTitles(
-              // axisNameWidget: usingTwoUnits ? Text(asUnit.display) : null,
-              sideTitles: SideTitles(
-                reservedSize: 55,
-                showTitles: true,
-                getTitlesWidget: (value, meta) {
-                  return SideTitleWidget(
-                    axisSide: meta.axisSide,
-                    child: Text(
-                      meta.formattedValue + (usingTwoUnits ? asUnit.display : ""),
-                    ),
-                  );
-                },
+                  ),
+                )
+                .toList(),
+            titlesData: FlTitlesData(
+              topTitles: AxisTitles(
+                axisNameWidget: Text(title + (usingTwoUnits ? "" : " (${asUnit.display})")),
+                axisNameSize: 20,
+                sideTitles: const SideTitles(showTitles: false),
               ),
-            ),
-            rightTitles: AxisTitles(
-              // axisNameWidget: usingTwoUnits ? Text(otherUnit.display) : null,
-              sideTitles: SideTitles(
-                reservedSize: 55,
-                showTitles: true,
-                getTitlesWidget: (value, meta) {
-                  return SideTitleWidget(
-                    axisSide: meta.axisSide,
-                    child: Text(
-                      usingTwoUnits ? "${Data(value, asUnit).valueAs(otherUnit).toStringAsFixed(0)}${otherUnit.display}" : meta.formattedValue,
-                    ),
-                  );
-                },
-              ),
-            ),
-            bottomTitles: AxisTitles(
-              sideTitles: SideTitles(
-                showTitles: true,
-                reservedSize: 30,
-                getTitlesWidget: (value, meta) {
-                  final hour = value.floor();
-                  final remainder = value - hour;
-                  return SideTitleWidget(
-                    axisSide: meta.axisSide,
-                    child: Text(
-                      dateTimesForEachHour[hour]
-                          .add(
-                            Duration(
-                              seconds: (3600 * remainder).round(),
-                            ),
-                          )
-                          .jmFormat(),
-                    ),
-                  );
-                },
-                // Make sure the time text doesn't overlap
-                interval: (MediaQuery.of(context).size.width < 600 && numDataPoints > 12) ? 8 : 4,
-              ),
-            ),
-          ),
-          minY: (overallMin / 5).floorToDouble() * 5,
-          maxY: (overallMax / 5).ceilToDouble() * 5,
-          baselineY: baseline?.valueAs(asUnit).roundToDouble(),
-          lineTouchData: LineTouchData(
-            touchTooltipData: LineTouchTooltipData(
-              getTooltipItems: (spots) => spots.map((spot) {
-                final textStyle = TextStyle(
-                  color: spot.bar.gradient?.colors.first ?? spot.bar.color ?? Colors.blueGrey,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                );
-
-                final hour = spot.x.floor();
-                final remainder = spot.x - hour;
-                final dateTimeForPoint = dateTimesForEachHour[hour]
-                    .add(
-                      Duration(
-                        seconds: (3600 * remainder).round(),
+              leftTitles: AxisTitles(
+                // axisNameWidget: usingTwoUnits ? Text(asUnit.display) : null,
+                sideTitles: SideTitles(
+                  reservedSize: 55,
+                  showTitles: true,
+                  getTitlesWidget: (value, meta) {
+                    return SideTitleWidget(
+                      axisSide: meta.axisSide,
+                      child: Text(
+                        meta.formattedValue + (usingTwoUnits ? asUnit.display : ""),
                       ),
-                    )
-                    .jmFormat();
-
-                return LineTooltipItem(
-                  "${spot.barIndex == 0 ? "$dateTimeForPoint\n" : ""}"
-                  "${spot.y.toStringAsFixed(1)}${asUnit.display}"
-                  "${usingTwoUnits ? "/${Data(spot.y, asUnit).valueAs(otherUnit).toStringAsFixed(1)}${otherUnit.display}" : ""}",
-                  textStyle,
-                );
-              }).toList(),
-            ),
-          ),
-          rangeAnnotations: RangeAnnotations(verticalRangeAnnotations: [
-            if (hoursLookedAhead != numDataPoints)
-              VerticalRangeAnnotation(
-                x1: hoursLookedAhead.toDouble(),
-                x2: numDataPoints.toDouble() - 1,
-                color: Colors.grey.withOpacity(0.5),
+                    );
+                  },
+                ),
               ),
-          ]),
-          gridData: const FlGridData(
-            drawHorizontalLine: true,
-            horizontalInterval: null,
-            drawVerticalLine: true,
-            verticalInterval: 1,
+              rightTitles: AxisTitles(
+                // axisNameWidget: usingTwoUnits ? Text(otherUnit.display) : null,
+                sideTitles: SideTitles(
+                  reservedSize: 55,
+                  showTitles: true,
+                  getTitlesWidget: (value, meta) {
+                    return SideTitleWidget(
+                      axisSide: meta.axisSide,
+                      child: Text(
+                        usingTwoUnits ? "${Data(value, asUnit).valueAs(otherUnit).toStringAsFixed(0)}${otherUnit.display}" : meta.formattedValue,
+                      ),
+                    );
+                  },
+                ),
+              ),
+              bottomTitles: AxisTitles(
+                sideTitles: SideTitles(
+                  showTitles: true,
+                  reservedSize: 30,
+                  getTitlesWidget: (value, meta) {
+                    final hour = value.floor();
+                    final remainder = value - hour;
+                    return SideTitleWidget(
+                      axisSide: meta.axisSide,
+                      child: Text(
+                        dateTimesForEachHour[hour]
+                            .add(
+                              Duration(
+                                seconds: (3600 * remainder).round(),
+                              ),
+                            )
+                            .jmFormat(),
+                      ),
+                    );
+                  },
+                  // Make sure the time text doesn't overlap
+                  interval: (MediaQuery.of(context).size.width < 600 && numDataPoints > 12) ? 8 : 4,
+                ),
+              ),
+            ),
+            minY: (overallMin / 5).floorToDouble() * 5,
+            maxY: (overallMax / 5).ceilToDouble() * 5,
+            baselineY: baseline?.valueAs(asUnit).roundToDouble(),
+            lineTouchData: LineTouchData(
+              touchTooltipData: LineTouchTooltipData(
+                getTooltipItems: (spots) => spots.map((spot) {
+                  final textStyle = TextStyle(
+                    color: spot.bar.gradient?.colors.first ?? spot.bar.color ?? Colors.blueGrey,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  );
+
+                  final hour = spot.x.floor();
+                  final remainder = spot.x - hour;
+                  final dateTimeForPoint = dateTimesForEachHour[hour]
+                      .add(
+                        Duration(
+                          seconds: (3600 * remainder).round(),
+                        ),
+                      )
+                      .jmFormat();
+
+                  return LineTooltipItem(
+                    "${spot.barIndex == 0 ? "$dateTimeForPoint\n" : ""}"
+                    "${spot.y.toStringAsFixed(1)}${asUnit.display}"
+                    "${usingTwoUnits ? "/${Data(spot.y, asUnit).valueAs(otherUnit).toStringAsFixed(1)}${otherUnit.display}" : ""}",
+                    textStyle,
+                  );
+                }).toList(),
+              ),
+            ),
+            rangeAnnotations: RangeAnnotations(verticalRangeAnnotations: [
+              if (hoursLookedAhead != numDataPoints)
+                VerticalRangeAnnotation(
+                  x1: hoursLookedAhead.toDouble(),
+                  x2: numDataPoints.toDouble() - 1,
+                  color: Colors.grey.withValues(alpha: 0.5),
+                ),
+            ]),
+            gridData: const FlGridData(
+              drawHorizontalLine: true,
+              horizontalInterval: null,
+              drawVerticalLine: true,
+              verticalInterval: 1,
+            ),
           ),
         ),
-      ),
-    );
+      );
+    } else {
+      return MultiLineChart(
+        key: key,
+        height: 200,
+        width: null,
+        series: dataPointss
+            .mapIndexed(
+              (index, dataPoints) => ChartSeries(
+                name: "",
+                dataPoints: dataPoints.indexed.take(numDataPoints!).map((item) {
+                  final hour = item.$1;
+                  final dateTimeForPoint = dateTimesForEachHour[hour].jmFormat();
+
+                  final label = "${index == 0 ? "$dateTimeForPoint\n" : ""}"
+                      "${index..toStringAsFixed(1)}${asUnit.display}"
+                      "${usingTwoUnits ? "/${Data(item.$2, asUnit).valueAs(otherUnit).toStringAsFixed(1)}${otherUnit.display}" : ""}";
+
+                  return ChartDataPoint(
+                    // value: item.$1.toDouble(),
+                    value: item.$2,
+                    label: label,
+                  );
+                }).toList(),
+                // isCurved: true,
+                // preventCurveOverShooting: true,
+                // dotData: const FlDotData(show: false),
+                color: nthWeatherResultColor(index),
+                // curveSmoothness: 0,
+              ),
+            )
+            .toList(),
+        style: MultiLineChartStyle(
+            colors: Iterable.generate(dataPointss.length).map((idx) => nthWeatherResultColor(idx)).toList(),
+            showPoints: false,
+            labelStyle: const TextStyle(
+              color: null,
+              fontWeight: FontWeight.bold,
+              fontSize: 14,
+            ),
+            showLegend: false),
+        enableZoom: true,
+        enablePan: true,
+        // startYAxisFromZero: true,
+        onPointTap: (point) {
+          // print('Tapped point: ${ point.value}');
+        },
+      );
+    }
   }
-  // }
 }
 
 class GrabbingWidget extends StatelessWidget {

@@ -59,6 +59,7 @@ dependencies:
   url_launcher: ^6.3.1
   flutter_launcher_icons: ^0.14.3
   sorted: ^2.1.0
+  material_charts: ^0.0.26
 
 dev_dependencies:
   flutter_test:
