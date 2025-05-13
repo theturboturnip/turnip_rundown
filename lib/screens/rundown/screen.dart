@@ -42,6 +42,7 @@ class InsightWidget extends StatelessWidget {
   final String title;
   final String subtitle;
   final UtcDateTime startTimeUtc;
+  final GlobalKey? jumpTo;
 
   const InsightWidget({
     super.key,
@@ -49,6 +50,7 @@ class InsightWidget extends StatelessWidget {
     required this.title,
     required this.subtitle,
     required this.startTimeUtc,
+    required this.jumpTo,
   });
 
   @override
@@ -57,12 +59,31 @@ class InsightWidget extends StatelessWidget {
       leading: icon,
       title: Text(title),
       subtitle: Text(subtitle),
+      onTap: (jumpTo == null)
+          ? null
+          : () {
+              final ctx = jumpTo?.currentContext;
+              if (ctx != null) {
+                Scrollable.ensureVisible(
+                  ctx,
+                  alignment: 0.5,
+                  alignmentPolicy: ScrollPositionAlignmentPolicy.explicit,
+                  duration: const Duration(milliseconds: 200),
+                );
+              }
+            },
     );
   }
 }
 
 class RundownScreen extends StatelessWidget {
-  const RundownScreen({super.key});
+  RundownScreen({super.key});
+
+  final GlobalKey graphTemp = GlobalKey(debugLabel: "graphTemp");
+  final GlobalKey graphHumid = GlobalKey(debugLabel: "graphHumid");
+  final GlobalKey graphWindSpeed = GlobalKey(debugLabel: "graphWindSpeed");
+  final GlobalKey graphSunny = GlobalKey(debugLabel: "graphSunny");
+  final GlobalKey graphPrecip = GlobalKey(debugLabel: "graphPrecip");
 
   @override
   Widget build(BuildContext context) {
@@ -488,6 +509,7 @@ class RundownScreen extends StatelessWidget {
             defaultMax: const Data(25, Temp.celsius),
             hoursLookedAhead: config.hoursToLookAhead,
             otherUnit: (settings.temperatureUnit == TempDisplay.both ? Temp.farenheit : null),
+            key: graphTemp,
           ),
         if (settings.weatherConfig.useEstimatedWetBulbTemp)
           chartOf(
@@ -501,6 +523,7 @@ class RundownScreen extends StatelessWidget {
             defaultMax: const Data(25, Temp.celsius),
             hoursLookedAhead: config.hoursToLookAhead,
             otherUnit: (settings.temperatureUnit == TempDisplay.both ? Temp.farenheit : null),
+            key: graphTemp,
           ),
         chartOf(
           context,
@@ -511,6 +534,7 @@ class RundownScreen extends StatelessWidget {
           defaultMin: const Data(0, Percent.outOf100),
           defaultMax: const Data(100, Percent.outOf100),
           hoursLookedAhead: config.hoursToLookAhead,
+          key: graphHumid,
         ),
         chartOf(
           context,
@@ -521,6 +545,7 @@ class RundownScreen extends StatelessWidget {
           defaultMin: const Data(0, Speed.milesPerHour),
           defaultMax: const Data(10, Speed.milesPerHour),
           hoursLookedAhead: config.hoursToLookAhead,
+          key: graphWindSpeed,
         ),
         if (!insightsResult.weathersByHour!.any((weather) => weather.directRadiation == null))
           chartOf(
@@ -532,6 +557,7 @@ class RundownScreen extends StatelessWidget {
             defaultMin: const Data(0, SolarRadiation.wPerM2),
             defaultMax: const Data(1000, SolarRadiation.wPerM2),
             hoursLookedAhead: config.hoursToLookAhead,
+            key: graphSunny,
           ),
         if (!insightsResult.weathersByHour!.any((weather) => weather.cloudCover == null))
           chartOf(
@@ -543,6 +569,7 @@ class RundownScreen extends StatelessWidget {
             defaultMin: const Data(0, Percent.outOf100),
             defaultMax: const Data(100, Percent.outOf100),
             hoursLookedAhead: config.hoursToLookAhead,
+            key: null,
           ),
         chartOf(
           context,
@@ -553,6 +580,7 @@ class RundownScreen extends StatelessWidget {
           defaultMin: const Data(0, Percent.outOf100),
           defaultMax: const Data(100, Percent.outOf100),
           hoursLookedAhead: config.hoursToLookAhead,
+          key: graphPrecip,
         ),
         chartOf(
           context,
@@ -563,6 +591,7 @@ class RundownScreen extends StatelessWidget {
           defaultMin: const Data(0, Length.mm),
           defaultMax: const Data(10, Length.mm),
           hoursLookedAhead: config.hoursToLookAhead,
+          key: null,
         ),
         chartOf(
           context,
@@ -573,6 +602,7 @@ class RundownScreen extends StatelessWidget {
           defaultMin: const Data(0, Length.mm),
           defaultMax: const Data(10, Length.mm),
           hoursLookedAhead: config.hoursToLookAhead,
+          key: null,
         ),
         chartOf(
           context,
@@ -584,6 +614,7 @@ class RundownScreen extends StatelessWidget {
           defaultMax: const Data(10, Length.mm),
           numDataPoints: insightsResult.weathersByHour!.first.precipitationUpToNow.length,
           hoursLookedAhead: insightsResult.weathersByHour!.first.precipitationUpToNow.length,
+          key: null,
         ),
       ]
     ];
@@ -665,6 +696,7 @@ class RundownScreen extends StatelessWidget {
     int hoursLookedAhead, {
     int maxWidgets = 2,
     int maxUniqueLevelsPerLocationBeforeCombining = 2,
+    required GlobalKey jumpTo,
   }) {
     final uniqueLevelsPerLocation = <int, Set<TLevel>>{};
     final individualWidgetPlansWhenNotCombined = levelsByLocation.indexed
@@ -774,6 +806,7 @@ class RundownScreen extends StatelessWidget {
           title: title,
           subtitle: nonNullSubtitle,
           startTimeUtc: dateTimesForEachHour[plan.$2].toUtc(),
+          jumpTo: jumpTo,
         );
       });
     }
@@ -814,6 +847,7 @@ class RundownScreen extends StatelessWidget {
         title: title,
         subtitle: subtitle,
         startTimeUtc: dateTimesForEachHour[rangeStart].toUtc(),
+        jumpTo: jumpTo,
       );
     });
   }
@@ -837,6 +871,7 @@ class RundownScreen extends StatelessWidget {
         listOfLocations,
         dateTimesForEachHour,
         hoursLookedAhead,
+        jumpTo: graphTemp,
       ),
     );
     insightWidgets.addAll(
@@ -846,6 +881,7 @@ class RundownScreen extends StatelessWidget {
         listOfLocations,
         dateTimesForEachHour,
         hoursLookedAhead,
+        jumpTo: graphPrecip,
       ),
     );
     if (!insights.insightsByLocation.any((insight) => insight.uv == null)) {
@@ -857,6 +893,7 @@ class RundownScreen extends StatelessWidget {
           dateTimesForEachHour,
           hoursLookedAhead,
           maxWidgets: 1,
+          jumpTo: graphSunny, // TODO UV GRAPH
         ),
       );
     }
@@ -869,8 +906,19 @@ class RundownScreen extends StatelessWidget {
         dateTimesForEachHour,
         hoursLookedAhead,
         maxWidgets: 1,
+        jumpTo: graphWindSpeed,
       ),
     );
+
+    final eventTypeToKey = {
+      EventInsightType.slippery: graphPrecip,
+      EventInsightType.snow: graphPrecip,
+      EventInsightType.sunny: graphSunny,
+      EventInsightType.sweaty: graphHumid,
+      EventInsightType.uncomfortablyHumid: graphHumid,
+    };
+    // Check they're all defined
+    assert(!EventInsightType.values.any((eventType) => !eventTypeToKey.containsKey(eventType)));
 
     // TODO merge sunsets if close
 
@@ -892,6 +940,7 @@ class RundownScreen extends StatelessWidget {
             title: title,
             subtitle: subtitle,
             startTimeUtc: dateTimesForEachHour[entry.value.firstHour!].toUtc(),
+            jumpTo: eventTypeToKey[entry.key]!,
           ));
         }
       }
@@ -908,6 +957,7 @@ class RundownScreen extends StatelessWidget {
             title: title,
             subtitle: subtitle,
             startTimeUtc: sunrise,
+            jumpTo: null,
           ),
         );
       }
@@ -921,6 +971,7 @@ class RundownScreen extends StatelessWidget {
             title: title,
             subtitle: subtitle,
             startTimeUtc: sunset,
+            jumpTo: null,
           ),
         );
       }
@@ -1018,6 +1069,7 @@ class RundownScreen extends StatelessWidget {
     int? numDataPoints,
     required Data<TUnit> defaultMin,
     required Data<TUnit> defaultMax,
+    required GlobalKey? key,
     Data<TUnit>? baseline,
     TUnit? otherUnit,
   }) {
@@ -1031,7 +1083,11 @@ class RundownScreen extends StatelessWidget {
 
     final usingTwoUnits = (otherUnit != null) && (otherUnit != asUnit);
 
+    // const bool useOldChart = true;
+
+    // if (useOldChart) {
     return SizedBox(
+      key: key,
       height: 200,
       child: LineChart(
         LineChartData(
@@ -1042,6 +1098,7 @@ class RundownScreen extends StatelessWidget {
                     preventCurveOverShooting: true,
                     dotData: const FlDotData(show: false),
                     color: nthWeatherResultColor(index),
+                    curveSmoothness: 0,
                   ))
               .toList(),
           titlesData: FlTitlesData(
@@ -1154,6 +1211,7 @@ class RundownScreen extends StatelessWidget {
       ),
     );
   }
+  // }
 }
 
 class GrabbingWidget extends StatelessWidget {

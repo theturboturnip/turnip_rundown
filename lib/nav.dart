@@ -45,7 +45,7 @@ final router = GoRouter(
             GoRoute(
               name: "rundown",
               path: "/rundown",
-              builder: (context, state) => const RundownScreen(),
+              builder: (context, state) => RundownScreen(),
             )
           ],
         ),
