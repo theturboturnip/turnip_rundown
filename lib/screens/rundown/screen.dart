@@ -256,6 +256,7 @@ class RundownScreen extends StatelessWidget {
   final GlobalKey graphHumid = GlobalKey(debugLabel: "graphHumid");
   final GlobalKey graphWindSpeed = GlobalKey(debugLabel: "graphWindSpeed");
   final GlobalKey graphSunny = GlobalKey(debugLabel: "graphSunny");
+  final GlobalKey graphUv = GlobalKey(debugLabel: "graphUv");
   final GlobalKey graphPrecip = GlobalKey(debugLabel: "graphPrecip");
 
   @override
@@ -716,6 +717,17 @@ class RundownScreen extends StatelessWidget {
           hoursLookedAhead: config.hoursToLookAhead,
           key: graphWindSpeed,
         ),
+        if (!insightsResult.weathersByHour!.any((weather) => weather.uvIndex == null))
+          DataGraph(
+            title: "UV Index",
+            datas: insightsResult.weathersByHour!.map((weather) => weather.uvIndex!).toList(),
+            asUnit: UVIndex.uv,
+            dateTimesForEachHour: dateTimesForEachHour,
+            defaultMin: const Data(0, UVIndex.uv),
+            defaultMax: const Data(9, UVIndex.uv),
+            hoursLookedAhead: config.hoursToLookAhead,
+            key: graphUv,
+          ),
         if (!insightsResult.weathersByHour!.any((weather) => weather.directRadiation == null))
           DataGraph(
             title: "Direct Radiation",
@@ -1056,7 +1068,7 @@ class RundownScreen extends StatelessWidget {
           dateTimesForEachHour,
           hoursLookedAhead,
           maxWidgets: 1,
-          jumpTo: graphSunny, // TODO UV GRAPH
+          jumpTo: graphUv,
         ),
       );
     }
