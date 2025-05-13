@@ -202,6 +202,7 @@ class LevelsInsight<TLevel> {
   // Takes the levelRanges and removes short ranges where the level == null
   // would be [([breezy, 0, 3), (breezy 4, 5)], 0, 5)] for the above level range
   List<(List<(TLevel, int, int)>, int, int)> nonNullLevelRanges({int hysterisis = 1}) {
+    print(levelRanges);
     final nonNullRanges = <(List<(TLevel, int, int)>, int, int)>[];
     (List<(TLevel, int, int)>, int, int)? current;
     for (final (level, start, end) in levelRanges) {
@@ -232,7 +233,8 @@ class LevelsInsight<TLevel> {
   }
 
   static LevelsInsight<TLev> levelRangesFromData<TLev, TUnit extends Unit<TUnit>>(DataSeries<TUnit> dataPlusOne, LevelMap<TLev, TUnit> levelMap) {
-    final levels = dataPlusOne.datas().pairMap((a, b) => a.averageWith(b)).map((data) => levelMap.levelFor(data)).toList();
+    assert(dataPlusOne.length >= 1);
+    final levels = dataPlusOne.datas().map((data) => levelMap.levelFor(data)).take(dataPlusOne.length - 1).toList();
     return LevelsInsight(levels: levels, levelRanges: levelRangesFromLevels(levels));
   }
 

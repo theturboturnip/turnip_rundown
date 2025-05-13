@@ -96,6 +96,7 @@ void main() {
             9.5,
             // mild
             10.5,
+            10.5, // ignored
           ],
           Temp.celsius,
         ),
@@ -103,7 +104,7 @@ void main() {
       );
       expect(insight.min.valueAs(Temp.celsius), approxEquals(1.5));
       expect(insight.max.valueAs(Temp.celsius), approxEquals(10.5));
-      expect(insight.levelRanges, [
+      expect(insight.levels.levelRanges, [
         (Heat.freezing, 0, 3),
         (Heat.chilly, 4, 8),
         (Heat.mild, 9, 9),
@@ -113,14 +114,14 @@ void main() {
       //   ([Heat.freezing, Heat.chilly, Heat.mild], 0, 10),
       // ]);
       // so instead
-      expect(insight.nonNullLevelRanges().length, 1);
-      expect(insight.nonNullLevelRanges().first.$1, [
+      expect(insight.levels.nonNullLevelRanges().length, 1);
+      expect(insight.levels.nonNullLevelRanges().first.$1, [
         (Heat.freezing, 0, 3),
         (Heat.chilly, 4, 8),
         (Heat.mild, 9, 9),
       ]);
-      expect(insight.nonNullLevelRanges().first.$2, 0);
-      expect(insight.nonNullLevelRanges().first.$3, 9);
+      expect(insight.levels.nonNullLevelRanges().first.$2, 0);
+      expect(insight.levels.nonNullLevelRanges().first.$3, 9);
     },
   );
 
@@ -136,7 +137,7 @@ void main() {
   test(
     "wind insight",
     () {
-      final insight = WindLevelInsight(
+      final insight = windLevelInsight(
         const DataSeries(
           [
             // null
@@ -154,6 +155,7 @@ void main() {
             32.5,
             // windy
             14.5,
+            14.5, // ignored
           ],
           Speed.milesPerHour,
         ),
@@ -186,7 +188,7 @@ void main() {
   test(
     "wind insight with mid null",
     () {
-      final insight = WindLevelInsight(
+      final insight = windLevelInsight(
         const DataSeries(
           [
             // null
@@ -202,6 +204,7 @@ void main() {
             0,
             // breezy
             4.5,
+            4.5, // ignored
           ],
           Speed.milesPerHour,
         ),
@@ -211,7 +214,7 @@ void main() {
         (null, 0, 2),
         (Wind.breezy, 3, 6),
         (null, 7, 7),
-        (Wind.windy, 8, 8),
+        (Wind.breezy, 8, 8),
       ]);
       // Can't do this, list equality doesn't happen right
       // expect(insight.nonNullLevelRanges(), [
@@ -221,7 +224,7 @@ void main() {
       expect(insight.nonNullLevelRanges().length, 1);
       expect(insight.nonNullLevelRanges().first.$1, [
         (Wind.breezy, 3, 6),
-        (Wind.windy, 8, 8),
+        (Wind.breezy, 8, 8),
       ]);
       expect(insight.nonNullLevelRanges().first.$2, 3);
       expect(insight.nonNullLevelRanges().first.$3, 8);
