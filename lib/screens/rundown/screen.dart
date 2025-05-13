@@ -354,13 +354,15 @@ class RundownScreen extends StatelessWidget {
                                     dateTimesForEachHour,
                                   ),
                                   if (weatherState.isLoading)
-                                    const LinearProgressIndicator(
-                                      value: null,
-                                      minHeight: 4,
-                                    ),
-                                  if (!weatherState.isLoading)
-                                    const SizedBox(
-                                      height: 4,
+                                    Visibility(
+                                      visible: weatherState.isLoading,
+                                      maintainSize: true,
+                                      maintainAnimation: true,
+                                      maintainState: true,
+                                      child: const LinearProgressIndicator(
+                                        value: null,
+                                        minHeight: 4,
+                                      ),
                                     ),
                                   ..._buildWeatherInsights(
                                     context,
@@ -437,12 +439,12 @@ class RundownScreen extends StatelessWidget {
             child: Wrap(
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
-                if (hoursLookaheadState.lockedUtcLookaheadTo == null)
-                  const SizedBox(
-                    width: 40.0,
-                  ),
-                if (hoursLookaheadState.lockedUtcLookaheadTo != null)
-                  IconButton(
+                Visibility(
+                  visible: (hoursLookaheadState.lockedUtcLookaheadTo != null),
+                  maintainSize: true,
+                  maintainAnimation: true,
+                  maintainState: true,
+                  child: IconButton(
                     icon: const Icon(Icons.lock_reset),
                     color: Colors.grey[700],
                     onPressed: () {
@@ -451,6 +453,7 @@ class RundownScreen extends StatelessWidget {
                           );
                     },
                   ),
+                ),
                 IconButton(
                   icon: const Icon(Icons.remove),
                   color: hoursLookaheadState.lockedUtcLookaheadTo == null ? Colors.grey : Colors.grey[700],
