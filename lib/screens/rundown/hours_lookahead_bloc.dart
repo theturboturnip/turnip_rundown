@@ -46,6 +46,10 @@ final class DecrementLockedLookaheadEvent extends ChangeLockedLookaheadEvent {
   final int currentNumLookaheadHours;
 }
 
+final class ClearLockedLookaheadEvent extends ChangeLockedLookaheadEvent {
+  const ClearLockedLookaheadEvent();
+}
+
 class HoursLookaheadBloc extends Bloc<ChangeLockedLookaheadEvent, HoursLookaheadState> {
   final Stream _refreshStream;
   // This field keeps a stream-subscription alive to keep a timer going for this bloc. Every minute it rechecks the lockedUtcLookaheadTo to see if we've passed it.
@@ -79,6 +83,8 @@ class HoursLookaheadBloc extends Bloc<ChangeLockedLookaheadEvent, HoursLookahead
             } else {
               lockedUtcLookaheadTo = lockedUtcLookaheadTo.subtract(const Duration(hours: 1));
             }
+          case ClearLockedLookaheadEvent():
+            lockedUtcLookaheadTo = null;
         }
         if (lockedUtcLookaheadTo != null && timestamp.isAfter(lockedUtcLookaheadTo)) {
           lockedUtcLookaheadTo = null;

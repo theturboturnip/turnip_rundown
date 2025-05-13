@@ -412,6 +412,14 @@ class RundownScreen extends StatelessWidget {
     List<LocalDateTime> dateTimesForEachHour,
   ) {
     final currentNumLookaheadHours = settings.wakingHours.numHoursToLookahead(hoursLookaheadState.lockedUtcLookaheadTo);
+    const lookaheadTextStyle = TextStyle(fontWeight: FontWeight.bold);
+    final maxLookaheadTimeSize = (TextPainter(
+      text: const TextSpan(text: "WWuntil 00:00WWWW", style: lookaheadTextStyle),
+      maxLines: 1,
+      textScaler: MediaQuery.of(context).textScaler,
+      textDirection: TextDirection.ltr,
+    )..layout())
+        .size;
     return settings.temperatureUnit.displayUnits().map((unit) {
           final minString = insightsResult.insights?.minTemp?.valueAs(unit).toStringAsFixed(1);
           final maxString = insightsResult.insights?.maxTemp?.valueAs(unit).toStringAsFixed(1);
@@ -429,35 +437,47 @@ class RundownScreen extends StatelessWidget {
             child: Wrap(
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
+                if (hoursLookaheadState.lockedUtcLookaheadTo == null)
+                  const SizedBox(
+                    width: 40.0,
+                  ),
+                if (hoursLookaheadState.lockedUtcLookaheadTo != null)
+                  IconButton(
+                    icon: const Icon(Icons.lock_reset),
+                    color: Colors.grey[700],
+                    onPressed: () {
+                      context.read<HoursLookaheadBloc>().add(
+                            const ClearLockedLookaheadEvent(),
+                          );
+                    },
+                  ),
                 IconButton(
-                  icon: Icon((hoursLookaheadState.decrementWillResultInReset) ? Icons.replay : Icons.remove),
+                  icon: const Icon(Icons.remove),
                   color: hoursLookaheadState.lockedUtcLookaheadTo == null ? Colors.grey : Colors.grey[700],
-                  onPressed: () {
-                    context.read<HoursLookaheadBloc>().add(
-                          DecrementLockedLookaheadEvent(
-                            hour0InLocalTime: dateTimesForEachHour[0],
-                            currentNumLookaheadHours: currentNumLookaheadHours,
-                          ),
-                        );
-                  },
+                  onPressed: (hoursLookaheadState.decrementWillResultInReset)
+                      ? null
+                      : () {
+                          context.read<HoursLookaheadBloc>().add(
+                                DecrementLockedLookaheadEvent(
+                                  hour0InLocalTime: dateTimesForEachHour[0],
+                                  currentNumLookaheadHours: currentNumLookaheadHours,
+                                ),
+                              );
+                        },
                 ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 10.0),
-                  child: Text(
-                    (hoursLookaheadState.lockedUtcLookaheadTo != null)
-                        ? "until ${hoursLookaheadState.lockedUtcLookaheadTo!.toLocal().jmFormat()}"
-                        : _renderTimeRange(
-                            (0, currentNumLookaheadHours),
-                            dateTimesForEachHour,
-                            allowBareUntil: true,
-                          ),
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                    // The plan:
-                    // have a button which when pressed triggers an action IncrementPlannedHoursLookedAhead.
-                    // if the weatherConfigState indicates the hoursLookedAhead is locked, have a button which when pressed DecrementPlannedHoursLookedAhead
-                    // which may decrement it past now, in which case it resets and is not locked.
-                    // the bloc has a timer which periodically triggers CheckLockedPlannedHoursLookedAhead
-                    // which compares the current time to the locked time and resets to not-locked if current time > locked time.
+                SizedBox.fromSize(
+                  size: maxLookaheadTimeSize,
+                  child: Center(
+                    child: Text(
+                      (hoursLookaheadState.lockedUtcLookaheadTo != null)
+                          ? "until ${hoursLookaheadState.lockedUtcLookaheadTo!.toLocal().jmFormat()}"
+                          : _renderTimeRange(
+                              (0, currentNumLookaheadHours),
+                              dateTimesForEachHour,
+                              allowBareUntil: true,
+                            ),
+                      style: lookaheadTextStyle,
+                    ),
                   ),
                 ),
                 IconButton(
@@ -474,6 +494,7 @@ class RundownScreen extends StatelessWidget {
                 ),
                 IconButton(
                   icon: const Icon(Icons.refresh),
+                  color: Colors.grey,
                   onPressed: () {
                     context.read<WeatherPredictBloc>().add(
                           const RefreshPredictedWeather(
@@ -645,32 +666,6 @@ class RundownScreen extends StatelessWidget {
       if (insightsResult.error != null) Text("Cannot retrieve weather: ${insightsResult.error}"),
       if (insightsResult.weathersByHour != null && insightsResult.weathersByHour!.isEmpty) const Text("No locations selected!"),
       if (insightsResult.weathersByHour != null && insightsResult.weathersByHour!.isNotEmpty) ...[
-        // Wrap(
-        //   crossAxisAlignment: WrapCrossAlignment.center,
-        //   spacing: 10.0,
-        //   runSpacing: 10.0,
-        //   children: state.legend
-        //       .mapIndexed(
-        //         (index, legendElem) => Chip(
-        //           avatar: Container(
-        //             width: 10,
-        //             height: 10,
-        //             padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
-        //             color: nthWeatherResultColor(index),
-        //           ),
-        //           label: Text(legendElem.location.name),
-        //           backgroundColor: Colors.transparent,
-        //         ),
-        //         // if (legendElem.isYourCoordinate)
-        //         //   Icon(
-        //         //     Icons.near_me,
-        //         //     size: 15,
-        //         //     color: Colors.grey[700]!,
-        //         //   ),
-        //         // ],
-        //       )
-        //       .toList(),
-        // ),
         if (!settings.weatherConfig.useEstimatedWetBulbTemp)
           DataGraph(
             title: "Dry Bulb Temperature",
@@ -1247,7 +1242,7 @@ class GrabbingWidget extends StatelessWidget {
         color: Colors.white,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(20), bottom: Radius.circular(0)),
         boxShadow: [
-          BoxShadow(blurRadius: 25, color: Colors.black.withOpacity(0.2)),
+          BoxShadow(blurRadius: 25, color: Colors.black.withValues(alpha: 0.2)),
         ],
       ),
       child: Column(
