@@ -285,7 +285,7 @@ class CombinedLevelsInsight<TLevel> {
       perHourLevelSets,
       firstFunc: (levelSet) => levelSet,
       shouldCombineFunc: (oldLevelSet, newLevelSet) {
-        if (oldLevelSet == newLevelSet) {
+        if (setEquals(oldLevelSet, newLevelSet)) {
           return (true, oldLevelSet);
         } else if (oldLevelSet.length > 1 && newLevelSet.length > 1 && oldLevelSet.intersection(newLevelSet).isNotEmpty) {
           return (true, oldLevelSet.union(newLevelSet));

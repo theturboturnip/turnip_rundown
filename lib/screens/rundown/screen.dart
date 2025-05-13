@@ -783,12 +783,13 @@ class RundownScreen extends StatelessWidget {
     late List<(Set<TLevel>, int, int)> combinedRangesToWidget;
     if (allRangesToShow.length > maxWidgets) {
       // Combine everything into one widget
+      print("folding $allRangesToShow");
       final allLevels = allRangesToShow.fold(<TLevel>{}, (start, range) => start.union(range.$1));
       combinedRangesToWidget = [
         (
           allLevels,
-          allRangesToShow.first.$2,
-          allRangesToShow.last.$3,
+          allRangesToShow.map((r) => r.$2).min,
+          allRangesToShow.map((r) => r.$3).max,
         ),
       ];
     } else {

@@ -153,7 +153,6 @@ List<(T, int, int)> buildLikeRanges<T, TElem>(Iterable<TElem> iter, {required T 
       // If we're still in the same range as the previous hour
       if (shouldCombine) {
         currentRangeVal = next;
-        continue;
       } else {
         ranges.add((currentRangeVal, currentRangeStart, i - 1));
         currentRangeStart = i;
