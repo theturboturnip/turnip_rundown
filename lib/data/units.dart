@@ -465,6 +465,41 @@ class Coordinate extends Equatable {
   List<Object?> get props => [lat, long];
 }
 
+extension CmpMinMax<T extends Comparable<T>> on Iterable<T> {
+  /// The minimal and maximal elements of the iterable.
+  ///
+  /// If any element is [NaN](double.nan), the result is NaN.#
+  ///
+  /// If the iterable is empty, returns null.
+  (T, T)? get cmpMinMaxOrNull {
+    var iterator = this.iterator;
+    if (iterator.moveNext()) {
+      var min = iterator.current;
+      var max = iterator.current;
+
+      while (iterator.moveNext()) {
+        var newMin = iterator.current;
+        var newMax = iterator.current;
+        if (newMin.compareTo(min) < 0) {
+          min = newMin;
+        }
+        if (newMax.compareTo(max) > 1) {
+          max = newMax;
+        }
+      }
+      return (min, max);
+    }
+    return null;
+  }
+
+  /// The minimal and maximal elements of the iterable.
+  ///
+  /// If any element is [NaN](double.nan), the result is NaN.
+  ///
+  /// The iterable must not be empty.
+  (T, T) get cmpMinMax => cmpMinMaxOrNull ?? (throw StateError('minMax on empty feature'));
+}
+
 extension MinMax on Iterable<num> {
   /// The minimal and maximal elements of the iterable.
   ///

@@ -770,7 +770,7 @@ class RundownScreen extends StatelessWidget {
         DataGraph(
           title: "Snowfall",
           datas: insightsResult.weathersByHour!.map((weather) => weather.snowfall).toList(),
-          asUnit: settings.rainfallUnit, // TODO
+          asUnit: settings.rainfallUnit,
           dateTimesForEachHour: dateTimesForEachHour,
           defaultMin: const Data(0, Length.mm),
           defaultMax: const Data(10, Length.mm),
@@ -1090,8 +1090,7 @@ class RundownScreen extends StatelessWidget {
     // Check they're all defined
     assert(!EventInsightType.values.any((eventType) => !eventTypeToKey.containsKey(eventType)));
 
-    // TODO merge sunsets if close
-
+    // Create event insights
     for (final (locationIndex, insight) in insights.insightsByLocation.indexed) {
       final locationPostfix = listOfLocations.length > 1 ? " at ${listOfLocations[locationIndex]}" : "";
 
@@ -1114,36 +1113,82 @@ class RundownScreen extends StatelessWidget {
           ));
         }
       }
+    }
 
-      final sunrise = insight.sunriseSunset?.nextSunrise;
-      final sunset = insight.sunriseSunset?.nextSunset;
-
-      if (sunrise?.isBefore(timeRangeEndUtc) == true && sunrise?.isAfter(timestamp) == true) {
-        var title = "Sunrise ${listOfLocations.length > 1 ? "at ${listOfLocations[locationIndex]} " : ""}";
-        var subtitle = sunrise!.toLocal().jmFormat();
-        insightWidgets.add(
-          InsightWidget(
-            icon: const Icon(Symbols.wb_twilight),
-            title: title,
-            subtitle: subtitle,
-            startTimeUtc: sunrise,
-            jumpTo: null,
-          ),
-        );
+    // Handle sunrises, merging them if they are all close together
+    {
+      final sunrises = insights.insightsByLocation.indexed.map((indexAndInsight) => (indexAndInsight.$1, indexAndInsight.$2.sunriseSunset?.nextSunrise)).where((indexAndSunrise) {
+        final (index, sunrise) = indexAndSunrise;
+        return sunrise?.isBefore(timeRangeEndUtc) == true && sunrise?.isAfter(timestamp) == true;
+      }).toList();
+      if (sunrises.isNotEmpty) {
+        final (startSunrise, endSunrise) = sunrises.map((indexAndSunrise) => indexAndSunrise.$2!).cmpMinMax;
+        if (sunrises.length > 1 && endSunrise.difference(startSunrise) < const Duration(minutes: 30)) {
+          // all-in-one
+          var title = "Sunrise";
+          var subtitle = sunrises.map((indexAndSunrise) => "${indexAndSunrise.$2!.toLocal().jmFormat()} at ${listOfLocations[indexAndSunrise.$1]}").join(", ");
+          insightWidgets.add(
+            InsightWidget(
+              icon: const Icon(Symbols.wb_twilight),
+              title: title,
+              subtitle: subtitle,
+              startTimeUtc: startSunrise,
+              jumpTo: null,
+            ),
+          );
+        } else {
+          for (final (locationIndex, sunrise) in sunrises) {
+            var title = "Sunrise ${listOfLocations.length > 1 ? "at ${listOfLocations[locationIndex]} " : ""}";
+            var subtitle = sunrise!.toLocal().jmFormat();
+            insightWidgets.add(
+              InsightWidget(
+                icon: const Icon(Symbols.wb_twilight),
+                title: title,
+                subtitle: subtitle,
+                startTimeUtc: sunrise,
+                jumpTo: null,
+              ),
+            );
+          }
+        }
       }
-
-      if (sunset?.isBefore(timeRangeEndUtc) == true && sunset?.isAfter(timestamp) == true) {
-        var title = "Sunset ${listOfLocations.length > 1 ? "at ${listOfLocations[locationIndex]} " : ""}";
-        var subtitle = sunset!.toLocal().jmFormat();
-        insightWidgets.add(
-          InsightWidget(
-            icon: const Icon(Symbols.wb_twilight),
-            title: title,
-            subtitle: subtitle,
-            startTimeUtc: sunset,
-            jumpTo: null,
-          ),
-        );
+    }
+    // Handle sunsets, merging them if they are all close together
+    {
+      final sunsets = insights.insightsByLocation.indexed.map((indexAndInsight) => (indexAndInsight.$1, indexAndInsight.$2.sunriseSunset?.nextSunset)).where((indexAndSunset) {
+        final (index, sunset) = indexAndSunset;
+        return sunset?.isBefore(timeRangeEndUtc) == true && sunset?.isAfter(timestamp) == true;
+      }).toList();
+      if (sunsets.isNotEmpty) {
+        final (startSunset, endSunset) = sunsets.map((indexAndSunset) => indexAndSunset.$2!).cmpMinMax;
+        if (sunsets.length > 1 && endSunset.difference(startSunset) < const Duration(minutes: 30)) {
+          // all-in-one
+          var title = "Sunset";
+          var subtitle = sunsets.map((indexAndSunset) => "${indexAndSunset.$2!.toLocal().jmFormat()} at ${listOfLocations[indexAndSunset.$1]}").join(", ");
+          insightWidgets.add(
+            InsightWidget(
+              icon: const Icon(Symbols.wb_twilight),
+              title: title,
+              subtitle: subtitle,
+              startTimeUtc: startSunset,
+              jumpTo: null,
+            ),
+          );
+        } else {
+          for (final (locationIndex, sunset) in sunsets) {
+            var title = "Sunset ${listOfLocations.length > 1 ? "at ${listOfLocations[locationIndex]} " : ""}";
+            var subtitle = sunset!.toLocal().jmFormat();
+            insightWidgets.add(
+              InsightWidget(
+                icon: const Icon(Symbols.wb_twilight),
+                title: title,
+                subtitle: subtitle,
+                startTimeUtc: sunset,
+                jumpTo: null,
+              ),
+            );
+          }
+        }
       }
     }
 
