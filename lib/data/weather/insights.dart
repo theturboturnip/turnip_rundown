@@ -202,11 +202,12 @@ class LevelsInsight<TLevel> {
   // Takes the levelRanges and removes short ranges where the level == null
   // would be [([breezy, 0, 3), (breezy 4, 5)], 0, 5)] for the above level range
   List<(List<(TLevel, int, int)>, int, int)> nonNullLevelRanges({int hysterisis = 1}) {
-    print(levelRanges);
     final nonNullRanges = <(List<(TLevel, int, int)>, int, int)>[];
     (List<(TLevel, int, int)>, int, int)? current;
     for (final (level, start, end) in levelRanges) {
       if (level == null) {
+        // Under hysterisis we can merge (Breezy, null, Breezy) together into one if the null is short enough.
+        // TODO this hysteresis is only for null, not short-term bumps. is that ok?
         if (current != null && end - start > hysterisis) {
           nonNullRanges.add(current);
           current = null;
@@ -217,16 +218,11 @@ class LevelsInsight<TLevel> {
       if (current == null) {
         current = ([(level, start, end)], start, end);
       } else {
-        // Under hysterisis we can merge (Breezy, null, Breezy) together into one if the null is short enough.
-        // TODO this hysteresis is only for null, not short-term bumps. is that ok?
-        if (level != current.$1.last.$1) {
-          current.$1.add((level, start, end));
-        }
+        current.$1.add((level, start, end));
         current = (current.$1, current.$2, end);
       }
     }
     if (current != null) {
-      // current = (current.$1, current.$2, levelRanges.last.$3);
       nonNullRanges.add(current);
     }
     return nonNullRanges;
