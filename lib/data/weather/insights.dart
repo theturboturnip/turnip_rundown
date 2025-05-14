@@ -218,7 +218,11 @@ class LevelsInsight<TLevel> {
       if (current == null) {
         current = ([(level, start, end)], start, end);
       } else {
-        current.$1.add((level, start, end));
+        if (level == current.$1.last.$1) {
+          current.$1.last = (current.$1.last.$1, current.$1.last.$2, end);
+        } else {
+          current.$1.add((level, start, end));
+        }
         current = (current.$1, current.$2, end);
       }
     }

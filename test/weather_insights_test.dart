@@ -223,8 +223,7 @@ void main() {
       // so instead
       expect(insight.nonNullLevelRanges().length, 1);
       expect(insight.nonNullLevelRanges().first.$1, [
-        (Wind.breezy, 3, 6),
-        (Wind.breezy, 8, 8),
+        (Wind.breezy, 3, 8),
       ]);
       expect(insight.nonNullLevelRanges().first.$2, 3);
       expect(insight.nonNullLevelRanges().first.$3, 8);
