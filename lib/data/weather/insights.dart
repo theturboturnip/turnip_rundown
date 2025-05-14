@@ -207,7 +207,6 @@ class LevelsInsight<TLevel> {
     for (final (level, start, end) in levelRanges) {
       if (level == null) {
         // Under hysterisis we can merge (Breezy, null, Breezy) together into one if the null is short enough.
-        // TODO this hysteresis is only for null, not short-term bumps. is that ok?
         if (current != null && end - start > hysterisis) {
           nonNullRanges.add(current);
           current = null;

@@ -6,7 +6,6 @@ import 'package:turnip_rundown/data.dart';
 
 import 'package:turnip_rundown/data/http_cache_repository.dart';
 import 'package:turnip_rundown/data/settings/repository.dart';
-import 'package:turnip_rundown/data/units.dart';
 import 'package:turnip_rundown/data/weather_data_bank_repository.dart';
 import 'package:turnip_rundown/util.dart';
 
@@ -71,17 +70,24 @@ class SqfliteApiCacheAndSettingsRepository extends WeatherDataBankRepository imp
     final lastGeocoordLookup = lastGeocoordLookupJson.isNotEmpty ? Coordinate.fromJson(jsonDecode(lastGeocoordLookupJson)) : null;
 
     final cachedWeatherRows = await db.query("weatherData", columns: ["backend", "coordJson", "dataJson", "utcSoftTimeout"]);
-    final cachedWeather = <(RequestedWeatherBackend, Coordinate), (WeatherDataBank, UtcDateTime)>{
-      for (final row in cachedWeatherRows)
-        (
-          RequestedWeatherBackend.values.byName(row["backend"] as String),
-          Coordinate.fromJson(jsonDecode(row["coordJson"] as String)),
-        ): (
-          //todo allow invalidation if this is broken
-          WeatherDataBank.fromJson(jsonDecode(row["dataJson"] as String)),
-          UtcDateTime.parseAndCoerceFullIso8601(row["utcSoftTimeout"] as String),
-        ),
-    };
+    late final Map<(RequestedWeatherBackend, Coordinate), (WeatherDataBank, UtcDateTime)> cachedWeather;
+    try {
+      cachedWeather = <(RequestedWeatherBackend, Coordinate), (WeatherDataBank, UtcDateTime)>{
+        for (final row in cachedWeatherRows)
+          (
+            RequestedWeatherBackend.values.byName(row["backend"] as String),
+            Coordinate.fromJson(jsonDecode(row["coordJson"] as String)),
+          ): (
+            WeatherDataBank.fromJson(jsonDecode(row["dataJson"] as String)),
+            UtcDateTime.parseAndCoerceFullIso8601(row["utcSoftTimeout"] as String),
+          ),
+      };
+    } catch (ex) {
+      print("Got exception decoding cached weather: $ex");
+      print("Clearing cached weather");
+      await db.execute("DELETE FROM weatherData");
+      cachedWeather = {};
+    }
 
     final repo = SqfliteApiCacheAndSettingsRepository(
       db,
