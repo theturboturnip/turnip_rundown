@@ -715,17 +715,16 @@ class RundownScreen extends StatelessWidget {
           hoursLookedAhead: config.hoursToLookAhead,
           key: graphWindSpeed,
         ),
-        if (!insightsResult.weathersByHour!.any((weather) => weather.uvIndex == null))
-          DataGraph(
-            title: "UV Index",
-            datas: insightsResult.weathersByHour!.map((weather) => weather.uvIndex!).toList(),
-            asUnit: UVIndex.uv,
-            dateTimesForEachHour: dateTimesForEachHour,
-            defaultMin: const Data(0, UVIndex.uv),
-            defaultMax: const Data(9, UVIndex.uv),
-            hoursLookedAhead: config.hoursToLookAhead,
-            key: graphUv,
-          ),
+        DataGraph(
+          title: "UV Index",
+          datas: insightsResult.weathersByHour!.map((weather) => weather.uvIndex).toList(),
+          asUnit: UVIndex.uv,
+          dateTimesForEachHour: dateTimesForEachHour,
+          defaultMin: const Data(0, UVIndex.uv),
+          defaultMax: const Data(9, UVIndex.uv),
+          hoursLookedAhead: config.hoursToLookAhead,
+          key: graphUv,
+        ),
         if (!insightsResult.weathersByHour!.any((weather) => weather.directRadiation == null))
           DataGraph(
             title: "Direct Radiation",
@@ -1057,19 +1056,17 @@ class RundownScreen extends StatelessWidget {
         jumpTo: graphPrecip,
       ),
     );
-    if (!insights.insightsByLocation.any((insight) => insight.uv == null)) {
-      insightWidgets.addAll(
-        _buildWeatherWarningInsightForLevel(
-          insights.insightsByLocation.map((insight) => insight.uv!).toList(),
-          uvInsightMap,
-          listOfLocations,
-          dateTimesForEachHour,
-          hoursLookedAhead,
-          maxWidgets: 1,
-          jumpTo: graphUv,
-        ),
-      );
-    }
+    insightWidgets.addAll(
+      _buildWeatherWarningInsightForLevel(
+        insights.insightsByLocation.map((insight) => insight.uv!).toList(),
+        uvInsightMap,
+        listOfLocations,
+        dateTimesForEachHour,
+        hoursLookedAhead,
+        maxWidgets: 1,
+        jumpTo: graphUv,
+      ),
+    );
 
     insightWidgets.addAll(
       _buildWeatherWarningInsightForLevel(

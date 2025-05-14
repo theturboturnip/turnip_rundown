@@ -373,7 +373,7 @@ class WeatherInsightsPerLocation {
   final HeatLevelInsight heat;
   final LevelsInsight<Wind?> wind;
   final LevelsInsight<Precipitation?> precipitation;
-  final LevelsInsight<UvLevel?>? uv;
+  final LevelsInsight<UvLevel?> uv;
   final Map<EventInsightType, ActiveHours> eventInsights;
   final SunriseSunset? sunriseSunset;
 
@@ -432,21 +432,19 @@ class WeatherInsightsPerLocation {
             Wind.galey: config.minimumGaleyWindspeed,
           },
         ));
-    final uvInsight = weather.uvIndex == null
-        ? null
-        : uvLevelInsight(
-            weather.uvIndex!.sublist(0, sublistEndExcl),
-            LevelMap(
-              min: null,
-              minValueForLevel: {
-                // TODO MAKE THIS CONFIGURABLE
-                // https://www.cancerresearchuk.org/about-cancer/causes-of-cancer/sun-uv-and-cancer/the-uv-index-and-sunburn-risk
-                // UvLevel.low: const Data(1.0, UVIndex.uv),
-                UvLevel.moderate: const Data(3.0, UVIndex.uv),
-                UvLevel.high: const Data(6.0, UVIndex.uv),
-                UvLevel.veryHigh: const Data(8.0, UVIndex.uv),
-              },
-            ));
+    final uvInsight = uvLevelInsight(
+        weather.uvIndex.sublist(0, sublistEndExcl),
+        LevelMap(
+          min: null,
+          minValueForLevel: {
+            // TODO MAKE THIS CONFIGURABLE
+            // https://www.cancerresearchuk.org/about-cancer/causes-of-cancer/sun-uv-and-cancer/the-uv-index-and-sunburn-risk
+            // UvLevel.low: const Data(1.0, UVIndex.uv),
+            UvLevel.moderate: const Data(3.0, UVIndex.uv),
+            UvLevel.high: const Data(6.0, UVIndex.uv),
+            UvLevel.veryHigh: const Data(8.0, UVIndex.uv),
+          },
+        ));
 
     final futureRainfallMM = weather.precipitation.valuesAs(Length.mm).mapIndexed(
       (index, len) {
