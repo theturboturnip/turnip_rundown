@@ -230,4 +230,29 @@ void main() {
       expect(insight.nonNullLevelRanges().first.$3, 8);
     },
   );
+  test(
+    "level-ranges-from-levels",
+    () {
+      final levels = [
+        Heat.boiling,
+        Heat.boiling,
+        Heat.boiling,
+        Heat.chilly,
+        Heat.chilly,
+        Heat.chilly,
+        Heat.mild,
+        Heat.freezing,
+        Heat.freezing,
+        Heat.mild,
+      ];
+      final actual = LevelsInsight(levels: levels, levelRanges: LevelsInsight.levelRangesFromLevels(levels));
+      expect(actual.levelRanges, [
+        (Heat.boiling, 0, 2),
+        (Heat.chilly, 3, 5),
+        (Heat.mild, 6, 6),
+        (Heat.freezing, 7, 8),
+        (Heat.mild, 9, 9),
+      ]);
+    },
+  );
 }

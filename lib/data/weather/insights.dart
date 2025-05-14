@@ -235,31 +235,17 @@ class LevelsInsight<TLevel> {
   }
 
   static List<(TLev, int, int)> levelRangesFromLevels<TLev>(List<TLev> levels) {
-    var hourRanges = <(TLev, int, int)>[];
-    int currentRangeStart = 0;
-    TLev currentRangeLevel = levels[0];
-    for (int i = 1; i < levels.length; i++) {
-      // If we're still in the same range as the previous hour
-      if (currentRangeLevel == levels[i]) {
-        continue;
-      } else {
-        hourRanges.add((currentRangeLevel, currentRangeStart, i - 1));
-        currentRangeStart = i;
-        currentRangeLevel = levels[i];
-      }
-    }
-    hourRanges.add((currentRangeLevel, currentRangeStart, levels.length - 1));
-    return hourRanges;
-    // TODO why doesn't this work
-    return buildLikeRanges(levels,
-        firstFunc: (level) => level,
-        shouldCombineFunc: (lastLevel, newLevel) {
-          if (lastLevel == newLevel) {
-            return (true, lastLevel);
-          } else {
-            return (false, newLevel);
-          }
-        });
+    return buildLikeRanges(
+      levels,
+      firstFunc: (level) => level,
+      shouldCombineFunc: (lastLevel, newLevel) {
+        if (lastLevel == newLevel) {
+          return (true, lastLevel);
+        } else {
+          return (false, newLevel);
+        }
+      },
+    );
   }
 }
 
