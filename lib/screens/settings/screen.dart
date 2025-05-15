@@ -287,7 +287,7 @@ class SettingsScreen extends StatelessWidget {
                         ),
                       ],
                       onSelected: (backend) {
-                        context.read<SettingsBloc>().add(SettingsEvent(backend: backend));
+                        context.read<SettingsBloc>().add(TweakSettingsEvent(backend: backend));
                       },
                     ),
                   ),
@@ -319,7 +319,7 @@ class SettingsScreen extends StatelessWidget {
                         DropdownMenuEntry(value: TempDisplay.both, label: "°C and °F"),
                       ],
                       onSelected: (s) {
-                        context.read<SettingsBloc>().add(SettingsEvent(temperatureUnit: s));
+                        context.read<SettingsBloc>().add(TweakSettingsEvent(temperatureUnit: s));
                       },
                     ),
                   ),
@@ -333,7 +333,7 @@ class SettingsScreen extends StatelessWidget {
                         DropdownMenuEntry(value: Rainfall.inch, label: "in"),
                       ],
                       onSelected: (s) {
-                        context.read<SettingsBloc>().add(SettingsEvent(rainfallUnit: s));
+                        context.read<SettingsBloc>().add(TweakSettingsEvent(rainfallUnit: s));
                       },
                     ),
                   ),
@@ -366,7 +366,7 @@ class SettingsScreen extends StatelessWidget {
                       onPressed: () async {
                         final selectedTime = await showTimePicker(context: context, initialTime: TimeOfDay(hour: state.wakingHours.start, minute: 0));
                         if (selectedTime != null && context.mounted) {
-                          context.read<SettingsBloc>().add(SettingsEvent(wakingHourStart: selectedTime.hour));
+                          context.read<SettingsBloc>().add(TweakSettingsEvent(wakingHourStart: selectedTime.hour));
                         }
                       },
                     ),
@@ -380,7 +380,7 @@ class SettingsScreen extends StatelessWidget {
                       onPressed: () async {
                         final selectedTime = await showTimePicker(context: context, initialTime: TimeOfDay(hour: state.wakingHours.end, minute: 0));
                         if (selectedTime != null && context.mounted) {
-                          context.read<SettingsBloc>().add(SettingsEvent(wakingHourEnd: selectedTime.hour));
+                          context.read<SettingsBloc>().add(TweakSettingsEvent(wakingHourEnd: selectedTime.hour));
                         }
                       },
                     ),
@@ -395,7 +395,7 @@ class SettingsScreen extends StatelessWidget {
                     input: Switch(
                       value: state.weatherConfig.useEstimatedWetBulbTemp,
                       onChanged: (value) {
-                        context.read<SettingsBloc>().add(SettingsEvent(useEstimatedWetBulbTemp: value));
+                        context.read<SettingsBloc>().add(TweakSettingsEvent(useEstimatedWetBulbTemp: value));
                       },
                     ),
                   ),
@@ -404,9 +404,9 @@ class SettingsScreen extends StatelessWidget {
                     title: const Text("Temperature - Freezing"),
                     description: const Text("Temperatures above this threshold show a Freezing insight."),
                     input: DataPickerWidget(
-                      initial: state.weatherConfig.freezingMaxTemp,
+                      initial: state.weatherConfig.tempMinChilly,
                       onChanged: (value) {
-                        context.read<SettingsBloc>().add(SettingsEvent(freezingMaxTemp: value));
+                        context.read<SettingsBloc>().add(TweakSettingsEvent(freezingMaxTemp: value));
                       },
                     ),
                   ),
@@ -415,9 +415,9 @@ class SettingsScreen extends StatelessWidget {
                     title: const Text("Temperature - Boiling"),
                     description: const Text("Temperatures above this threshold show a Boiling insight."),
                     input: DataPickerWidget(
-                      initial: state.weatherConfig.boilingMinTemp,
+                      initial: state.weatherConfig.tempMinBoiling,
                       onChanged: (value) {
-                        context.read<SettingsBloc>().add(SettingsEvent(boilingMinTemp: value));
+                        context.read<SettingsBloc>().add(TweakSettingsEvent(boilingMinTemp: value));
                       },
                     ),
                   ),
@@ -428,7 +428,7 @@ class SettingsScreen extends StatelessWidget {
                     input: DataPickerWidget(
                       initial: state.weatherConfig.priorRainThreshold,
                       onChanged: (value) {
-                        context.read<SettingsBloc>().add(SettingsEvent(priorRainThreshold: value));
+                        context.read<SettingsBloc>().add(TweakSettingsEvent(priorRainThreshold: value));
                       },
                     ),
                   ),
@@ -443,7 +443,7 @@ class SettingsScreen extends StatelessWidget {
                           icon: const Icon(Icons.remove),
                           onPressed: () {
                             context.read<SettingsBloc>().add(
-                                  SettingsEvent(
+                                  TweakSettingsEvent(
                                     numberOfHoursPriorRainThreshold: math.max(state.weatherConfig.numberOfHoursPriorRainThreshold - 1, 0),
                                   ),
                                 );
@@ -457,7 +457,7 @@ class SettingsScreen extends StatelessWidget {
                           icon: const Icon(Icons.add),
                           onPressed: () {
                             context.read<SettingsBloc>().add(
-                                  SettingsEvent(
+                                  TweakSettingsEvent(
                                     numberOfHoursPriorRainThreshold: math.min(state.weatherConfig.numberOfHoursPriorRainThreshold + 1, 24),
                                   ),
                                 );
@@ -473,7 +473,7 @@ class SettingsScreen extends StatelessWidget {
                     input: DataPickerWidget(
                       initial: state.weatherConfig.rainProbabilityThreshold,
                       onChanged: (value) {
-                        context.read<SettingsBloc>().add(SettingsEvent(rainProbabilityThreshold: value));
+                        context.read<SettingsBloc>().add(TweakSettingsEvent(rainProbabilityThreshold: value));
                       },
                     ),
                   ),
@@ -484,7 +484,7 @@ class SettingsScreen extends StatelessWidget {
                     input: DataPickerWidget(
                       initial: state.weatherConfig.mediumRainThreshold,
                       onChanged: (value) {
-                        context.read<SettingsBloc>().add(SettingsEvent(mediumRainThreshold: value));
+                        context.read<SettingsBloc>().add(TweakSettingsEvent(mediumRainThreshold: value));
                       },
                     ),
                   ),
@@ -495,7 +495,7 @@ class SettingsScreen extends StatelessWidget {
                     input: DataPickerWidget(
                       initial: state.weatherConfig.heavyRainThreshold,
                       onChanged: (value) {
-                        context.read<SettingsBloc>().add(SettingsEvent(heavyRainThreshold: value));
+                        context.read<SettingsBloc>().add(TweakSettingsEvent(heavyRainThreshold: value));
                       },
                     ),
                   ),
@@ -508,7 +508,7 @@ class SettingsScreen extends StatelessWidget {
                     input: DataPickerWidget(
                       initial: state.weatherConfig.highHumidityThreshold,
                       onChanged: (value) {
-                        context.read<SettingsBloc>().add(SettingsEvent(highHumidityThreshold: value));
+                        context.read<SettingsBloc>().add(TweakSettingsEvent(highHumidityThreshold: value));
                       },
                     ),
                   ),
@@ -519,7 +519,7 @@ class SettingsScreen extends StatelessWidget {
                     input: DataPickerWidget(
                       initial: state.weatherConfig.maxTemperatureForHighHumidityMist,
                       onChanged: (value) {
-                        context.read<SettingsBloc>().add(SettingsEvent(maxTemperatureForHighHumidityMist: value));
+                        context.read<SettingsBloc>().add(TweakSettingsEvent(maxTemperatureForHighHumidityMist: value));
                       },
                     ),
                   ),
@@ -532,7 +532,7 @@ class SettingsScreen extends StatelessWidget {
                     input: DataPickerWidget(
                       initial: state.weatherConfig.minTemperatureForHighHumiditySweat,
                       onChanged: (value) {
-                        context.read<SettingsBloc>().add(SettingsEvent(minTemperatureForHighHumiditySweat: value));
+                        context.read<SettingsBloc>().add(TweakSettingsEvent(minTemperatureForHighHumiditySweat: value));
                       },
                     ),
                   ),
@@ -543,7 +543,7 @@ class SettingsScreen extends StatelessWidget {
                     input: DataPickerWidget(
                       initial: state.weatherConfig.minimumBreezyWindspeed,
                       onChanged: (value) {
-                        context.read<SettingsBloc>().add(SettingsEvent(minimumBreezyWindspeed: value));
+                        context.read<SettingsBloc>().add(TweakSettingsEvent(minimumBreezyWindspeed: value));
                       },
                     ),
                   ),
@@ -554,7 +554,7 @@ class SettingsScreen extends StatelessWidget {
                     input: DataPickerWidget(
                       initial: state.weatherConfig.minimumWindyWindspeed,
                       onChanged: (value) {
-                        context.read<SettingsBloc>().add(SettingsEvent(minimumWindyWindspeed: value));
+                        context.read<SettingsBloc>().add(TweakSettingsEvent(minimumWindyWindspeed: value));
                       },
                     ),
                   ),
@@ -565,14 +565,14 @@ class SettingsScreen extends StatelessWidget {
                     input: DataPickerWidget(
                       initial: state.weatherConfig.minimumGaleyWindspeed,
                       onChanged: (value) {
-                        context.read<SettingsBloc>().add(SettingsEvent(minimumGaleyWindspeed: value));
+                        context.read<SettingsBloc>().add(TweakSettingsEvent(minimumGaleyWindspeed: value));
                       },
                     ),
                   ),
                   _settingsButton(
                     child: const Text("Reset insight parameters"),
                     onPressed: () {
-                      context.read<SettingsBloc>().add(SettingsEvent.withInitialWeatherConfig());
+                      context.read<SettingsBloc>().add(const ResetSettingsWeatherConfigEvent());
                     },
                   ),
                   _settingsButton(

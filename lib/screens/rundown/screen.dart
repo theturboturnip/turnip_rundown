@@ -1058,7 +1058,7 @@ class RundownScreen extends StatelessWidget {
     );
     insightWidgets.addAll(
       _buildWeatherWarningInsightForLevel(
-        insights.insightsByLocation.map((insight) => insight.uv!).toList(),
+        insights.insightsByLocation.map((insight) => insight.uv).toList(),
         uvInsightMap,
         listOfLocations,
         dateTimesForEachHour,

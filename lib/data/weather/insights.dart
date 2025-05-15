@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:collection/collection.dart';
+import 'package:equatable/equatable.dart';
 import 'package:flutter/foundation.dart';
 import 'package:json_annotation/json_annotation.dart';
 import 'package:turnip_rundown/data/units.dart';
@@ -13,8 +14,8 @@ part 'insights.g.dart';
 // TODO use the significantWeatherCode from the MET
 
 @JsonSerializable()
-class WeatherInsightConfig {
-  const WeatherInsightConfig({
+class WeatherInsightConfigV1 {
+  const WeatherInsightConfigV1({
     required this.useEstimatedWetBulbTemp,
     required this.numberOfHoursPriorRainThreshold,
     required this.priorRainThreshold,
@@ -27,8 +28,8 @@ class WeatherInsightConfig {
     required this.minimumBreezyWindspeed,
     required this.minimumWindyWindspeed,
     required this.minimumGaleyWindspeed,
-    this.boilingMinTemp = const Data(20, Temp.celsius),
-    this.freezingMaxTemp = const Data(5, Temp.celsius),
+    this.boilingMinTemp,
+    this.freezingMaxTemp,
   });
 
   final bool useEstimatedWetBulbTemp;
@@ -50,36 +51,36 @@ class WeatherInsightConfig {
   final Data<Speed> minimumWindyWindspeed;
   final Data<Speed> minimumGaleyWindspeed;
 
-  final Data<Temp> boilingMinTemp;
-  final Data<Temp> freezingMaxTemp;
+  final Data<Temp>? boilingMinTemp;
+  final Data<Temp>? freezingMaxTemp;
 
-  factory WeatherInsightConfig.initial() => const WeatherInsightConfig(
-        useEstimatedWetBulbTemp: true,
-        // Guessed
-        numberOfHoursPriorRainThreshold: 8,
-        priorRainThreshold: Data(2.5, Length.mm),
-        rainProbabilityThreshold: Data(15, Percent.outOf100),
-        // From https://en.wikipedia.org/wiki/Rain#Intensity
-        mediumRainThreshold: Data(2.5, Length.mm),
-        heavyRainThreshold: Data(7.6, Length.mm),
-        // Guessed
-        highHumidityThreshold: Data(80, Percent.outOf100),
-        maxTemperatureForHighHumidityMist: Data(10, Temp.celsius),
-        minTemperatureForHighHumiditySweat: Data(17, Temp.celsius),
-        // https://www.weather.gov/pqr/wind
-        minimumBreezyWindspeed: Data(4, Speed.milesPerHour),
-        minimumWindyWindspeed: Data(13, Speed.milesPerHour),
-        minimumGaleyWindspeed: Data(32, Speed.milesPerHour),
-        // Guessed
-        boilingMinTemp: Data(20, Temp.celsius),
-        freezingMaxTemp: Data(5, Temp.celsius),
-      );
+  static const WeatherInsightConfigV1 initial = WeatherInsightConfigV1(
+    useEstimatedWetBulbTemp: true,
+    // Guessed
+    numberOfHoursPriorRainThreshold: 8,
+    priorRainThreshold: Data(2.5, Length.mm),
+    rainProbabilityThreshold: Data(15, Percent.outOf100),
+    // From https://en.wikipedia.org/wiki/Rain#Intensity
+    mediumRainThreshold: Data(2.5, Length.mm),
+    heavyRainThreshold: Data(7.6, Length.mm),
+    // Guessed
+    highHumidityThreshold: Data(80, Percent.outOf100),
+    maxTemperatureForHighHumidityMist: Data(10, Temp.celsius),
+    minTemperatureForHighHumiditySweat: Data(17, Temp.celsius),
+    // https://www.weather.gov/pqr/wind
+    minimumBreezyWindspeed: Data(4, Speed.milesPerHour),
+    minimumWindyWindspeed: Data(13, Speed.milesPerHour),
+    minimumGaleyWindspeed: Data(32, Speed.milesPerHour),
+    // Guessed
+    boilingMinTemp: Data(20, Temp.celsius),
+    freezingMaxTemp: Data(5, Temp.celsius),
+  );
   // }
 
-  factory WeatherInsightConfig.fromJson(Map<String, dynamic> json) => _$WeatherInsightConfigFromJson(json);
-  Map<String, dynamic> toJson() => _$WeatherInsightConfigToJson(this);
+  factory WeatherInsightConfigV1.fromJsonUnversioned(Map<String, dynamic> json) => _$WeatherInsightConfigV1FromJson(json);
+  Map<String, dynamic> toJson() => _$WeatherInsightConfigV1ToJson(this);
 
-  WeatherInsightConfig copyWith({
+  WeatherInsightConfigV1 copyWith({
     bool? useEstimatedWetBulbTemp,
     int? numberOfHoursPriorRainThreshold,
     Data<Rainfall>? priorRainThreshold,
@@ -95,7 +96,7 @@ class WeatherInsightConfig {
     Data<Temp>? boilingMinTemp,
     Data<Temp>? freezingMaxTemp,
   }) =>
-      WeatherInsightConfig(
+      WeatherInsightConfigV1(
         useEstimatedWetBulbTemp: useEstimatedWetBulbTemp ?? this.useEstimatedWetBulbTemp,
         numberOfHoursPriorRainThreshold: numberOfHoursPriorRainThreshold ?? this.numberOfHoursPriorRainThreshold,
         priorRainThreshold: priorRainThreshold ?? this.priorRainThreshold,
@@ -112,6 +113,242 @@ class WeatherInsightConfig {
         freezingMaxTemp: freezingMaxTemp ?? this.freezingMaxTemp,
       );
 }
+
+@JsonSerializable()
+class WeatherInsightConfigV2 extends Equatable {
+  const WeatherInsightConfigV2({
+    required this.useEstimatedWetBulbTemp,
+    required this.numberOfHoursPriorRainThreshold,
+    required this.priorRainThreshold,
+    required this.rainProbabilityThreshold,
+    required this.mediumRainThreshold,
+    required this.heavyRainThreshold,
+    required this.highHumidityThreshold,
+    required this.maxTemperatureForHighHumidityMist,
+    required this.minTemperatureForHighHumiditySweat,
+    required this.minimumBreezyWindspeed,
+    required this.minimumWindyWindspeed,
+    required this.minimumGaleyWindspeed,
+    required this.tempMinBoiling,
+    required this.tempMinHot,
+    required this.tempMinWarm,
+    required this.tempMinMild,
+    required this.tempMinChilly,
+    required this.uvMinModerate,
+    required this.uvMinHigh,
+    required this.uvMinVeryHigh,
+  });
+
+  @JsonKey(includeFromJson: false, includeToJson: true)
+  final version = 2;
+
+  final bool useEstimatedWetBulbTemp;
+
+  final int numberOfHoursPriorRainThreshold;
+  final Data<Rainfall> priorRainThreshold;
+
+  final Data<Percent> rainProbabilityThreshold;
+  final Data<Rainfall> mediumRainThreshold;
+  final Data<Rainfall> heavyRainThreshold;
+
+  final Data<Percent> highHumidityThreshold;
+  // We used to have a "cool mist" insight for (low temp + high humidity) that was quite inaccurate.
+  // Now we got rid of that and this insight is really the minimum temperature for humidity to be relevant.
+  final Data<Temp> maxTemperatureForHighHumidityMist;
+  final Data<Temp> minTemperatureForHighHumiditySweat;
+
+  final Data<Speed> minimumBreezyWindspeed;
+  final Data<Speed> minimumWindyWindspeed;
+  final Data<Speed> minimumGaleyWindspeed;
+
+  final Data<Temp> tempMinChilly;
+  final Data<Temp> tempMinMild;
+  final Data<Temp> tempMinWarm;
+  final Data<Temp> tempMinHot;
+  final Data<Temp> tempMinBoiling;
+
+  final Data<UVIndex> uvMinModerate;
+  final Data<UVIndex> uvMinHigh;
+  final Data<UVIndex> uvMinVeryHigh;
+
+  factory WeatherInsightConfigV2.fromV1(WeatherInsightConfigV1 v1) {
+    var v1Boiling = v1.boilingMinTemp;
+    var v1Chilly = v1.freezingMaxTemp;
+
+    late Data<Temp> tempMinChilly, tempMinMild, tempMinWarm, tempMinHot, tempMinBoiling;
+
+    // If we aren't using the default values for the temperature range, migrate to the new default.
+    final notUsingDefaultV1Boiling = (v1Boiling != null && (v1Boiling.valueAs(Temp.celsius) - 20.0).abs() > 0.1);
+    final notUsingDefaultV1Chilly = (v1Chilly != null && (v1Chilly.valueAs(Temp.celsius) - 5.0).abs() > 0.1);
+    if (notUsingDefaultV1Boiling || notUsingDefaultV1Chilly) {
+      v1Boiling ??= WeatherInsightConfigV1.initial.boilingMinTemp!;
+      v1Chilly ??= WeatherInsightConfigV1.initial.freezingMaxTemp!;
+      if (v1Boiling.compareTo(v1Chilly) < 0) {
+        // Completely give up and enforce defaults
+        tempMinChilly = WeatherInsightConfigV2.initial.tempMinChilly;
+        tempMinMild = WeatherInsightConfigV2.initial.tempMinMild;
+        tempMinWarm = WeatherInsightConfigV2.initial.tempMinWarm;
+        tempMinHot = WeatherInsightConfigV2.initial.tempMinHot;
+        tempMinBoiling = WeatherInsightConfigV2.initial.tempMinBoiling;
+      } else {
+        // Evenly spread out the temperatures within the range
+        final unit = v1Boiling.unit;
+        final chillyAsUnit = v1Chilly.valueAs(unit);
+        final boilingAsUnit = v1Boiling.valueAs(unit);
+        final tempStep = (boilingAsUnit - chillyAsUnit) / 4;
+        tempMinChilly = v1Chilly;
+        tempMinMild = Data(chillyAsUnit + tempStep * 1, unit);
+        tempMinWarm = Data(chillyAsUnit + tempStep * 2, unit);
+        tempMinHot = Data(chillyAsUnit + tempStep * 3, unit);
+        tempMinBoiling = v1Boiling; // i.e. chillyAsUnit + tempStep * 4
+      }
+    } else {
+      tempMinChilly = WeatherInsightConfigV2.initial.tempMinChilly;
+      tempMinMild = WeatherInsightConfigV2.initial.tempMinMild;
+      tempMinWarm = WeatherInsightConfigV2.initial.tempMinWarm;
+      tempMinHot = WeatherInsightConfigV2.initial.tempMinHot;
+      tempMinBoiling = WeatherInsightConfigV2.initial.tempMinBoiling;
+    }
+
+    return WeatherInsightConfigV2(
+      useEstimatedWetBulbTemp: v1.useEstimatedWetBulbTemp,
+      numberOfHoursPriorRainThreshold: v1.numberOfHoursPriorRainThreshold,
+      priorRainThreshold: v1.priorRainThreshold,
+      rainProbabilityThreshold: v1.rainProbabilityThreshold,
+      mediumRainThreshold: v1.mediumRainThreshold,
+      heavyRainThreshold: v1.heavyRainThreshold,
+      highHumidityThreshold: v1.highHumidityThreshold,
+      maxTemperatureForHighHumidityMist: v1.maxTemperatureForHighHumidityMist,
+      minTemperatureForHighHumiditySweat: v1.minTemperatureForHighHumiditySweat,
+      minimumBreezyWindspeed: v1.minimumBreezyWindspeed,
+      minimumWindyWindspeed: v1.minimumWindyWindspeed,
+      minimumGaleyWindspeed: v1.minimumGaleyWindspeed,
+      tempMinBoiling: tempMinBoiling,
+      tempMinHot: tempMinHot,
+      tempMinWarm: tempMinWarm,
+      tempMinMild: tempMinMild,
+      tempMinChilly: tempMinChilly,
+      uvMinModerate: initial.uvMinModerate,
+      uvMinHigh: initial.uvMinHigh,
+      uvMinVeryHigh: initial.uvMinVeryHigh,
+    );
+  }
+
+  static const WeatherInsightConfigV2 initial = WeatherInsightConfigV2(
+    useEstimatedWetBulbTemp: true,
+    // Guessed
+    numberOfHoursPriorRainThreshold: 8,
+    priorRainThreshold: Data(2.5, Length.mm),
+    rainProbabilityThreshold: Data(15, Percent.outOf100),
+    // From https://en.wikipedia.org/wiki/Rain#Intensity
+    mediumRainThreshold: Data(2.5, Length.mm),
+    heavyRainThreshold: Data(7.6, Length.mm),
+    // Guessed
+    highHumidityThreshold: Data(80, Percent.outOf100),
+    maxTemperatureForHighHumidityMist: Data(10, Temp.celsius),
+    minTemperatureForHighHumiditySweat: Data(17, Temp.celsius),
+    // https://www.weather.gov/pqr/wind
+    minimumBreezyWindspeed: Data(4, Speed.milesPerHour),
+    minimumWindyWindspeed: Data(13, Speed.milesPerHour),
+    minimumGaleyWindspeed: Data(32, Speed.milesPerHour),
+    // Guessed
+    tempMinBoiling: Data(25, Temp.celsius),
+    tempMinHot: Data(20, Temp.celsius),
+    tempMinWarm: Data(15, Temp.celsius),
+    tempMinMild: Data(10, Temp.celsius),
+    tempMinChilly: Data(5, Temp.celsius),
+    // https://www.cancerresearchuk.org/about-cancer/causes-of-cancer/sun-uv-and-cancer/the-uv-index-and-sunburn-risk
+    // UvLevel.low: const Data(1.0, UVIndex.uv),
+    uvMinModerate: Data(3.0, UVIndex.uv),
+    uvMinHigh: Data(6.0, UVIndex.uv),
+    uvMinVeryHigh: Data(8.0, UVIndex.uv),
+  );
+
+  static WeatherInsightConfigV2 migrateFromJson(Map<String, dynamic> json) => weatherInsightLoader.fromJson(json);
+
+  factory WeatherInsightConfigV2.fromJsonUnversioned(Map<String, dynamic> json) => _$WeatherInsightConfigV2FromJson(json);
+  Map<String, dynamic> toJson() => _$WeatherInsightConfigV2ToJson(this);
+
+  WeatherInsightConfigV2 copyWith({
+    bool? useEstimatedWetBulbTemp,
+    int? numberOfHoursPriorRainThreshold,
+    Data<Rainfall>? priorRainThreshold,
+    Data<Percent>? rainProbabilityThreshold,
+    Data<Rainfall>? mediumRainThreshold,
+    Data<Rainfall>? heavyRainThreshold,
+    Data<Percent>? highHumidityThreshold,
+    Data<Temp>? maxTemperatureForHighHumidityMist,
+    Data<Temp>? minTemperatureForHighHumiditySweat,
+    Data<Speed>? minimumBreezyWindspeed,
+    Data<Speed>? minimumWindyWindspeed,
+    Data<Speed>? minimumGaleyWindspeed,
+    Data<Temp>? tempMinBoiling,
+    Data<Temp>? tempMinHot,
+    Data<Temp>? tempMinWarm,
+    Data<Temp>? tempMinMild,
+    Data<Temp>? tempMinChilly,
+    Data<UVIndex>? uvMinModerate,
+    Data<UVIndex>? uvMinHigh,
+    Data<UVIndex>? uvMinVeryHigh,
+  }) =>
+      WeatherInsightConfigV2(
+        useEstimatedWetBulbTemp: useEstimatedWetBulbTemp ?? this.useEstimatedWetBulbTemp,
+        numberOfHoursPriorRainThreshold: numberOfHoursPriorRainThreshold ?? this.numberOfHoursPriorRainThreshold,
+        priorRainThreshold: priorRainThreshold ?? this.priorRainThreshold,
+        rainProbabilityThreshold: rainProbabilityThreshold ?? this.rainProbabilityThreshold,
+        mediumRainThreshold: mediumRainThreshold ?? this.mediumRainThreshold,
+        heavyRainThreshold: heavyRainThreshold ?? this.heavyRainThreshold,
+        highHumidityThreshold: highHumidityThreshold ?? this.highHumidityThreshold,
+        maxTemperatureForHighHumidityMist: maxTemperatureForHighHumidityMist ?? this.maxTemperatureForHighHumidityMist,
+        minTemperatureForHighHumiditySweat: minTemperatureForHighHumiditySweat ?? this.minTemperatureForHighHumiditySweat,
+        minimumBreezyWindspeed: minimumBreezyWindspeed ?? this.minimumBreezyWindspeed,
+        minimumWindyWindspeed: minimumWindyWindspeed ?? this.minimumWindyWindspeed,
+        minimumGaleyWindspeed: minimumGaleyWindspeed ?? this.minimumGaleyWindspeed,
+        tempMinBoiling: tempMinBoiling ?? this.tempMinBoiling,
+        tempMinHot: tempMinHot ?? this.tempMinHot,
+        tempMinWarm: tempMinWarm ?? this.tempMinWarm,
+        tempMinMild: tempMinMild ?? this.tempMinMild,
+        tempMinChilly: tempMinChilly ?? this.tempMinChilly,
+        uvMinModerate: uvMinModerate ?? this.uvMinModerate,
+        uvMinHigh: uvMinHigh ?? this.uvMinHigh,
+        uvMinVeryHigh: uvMinVeryHigh ?? this.uvMinVeryHigh,
+      );
+
+  @override
+  List<Object?> get props => [
+        useEstimatedWetBulbTemp,
+        numberOfHoursPriorRainThreshold,
+        priorRainThreshold,
+        rainProbabilityThreshold,
+        mediumRainThreshold,
+        heavyRainThreshold,
+        highHumidityThreshold,
+        maxTemperatureForHighHumidityMist,
+        minTemperatureForHighHumiditySweat,
+        minimumBreezyWindspeed,
+        minimumWindyWindspeed,
+        minimumGaleyWindspeed,
+        tempMinBoiling,
+        tempMinHot,
+        tempMinWarm,
+        tempMinMild,
+        tempMinChilly,
+        uvMinModerate,
+        uvMinHigh,
+        uvMinVeryHigh,
+      ];
+}
+
+final weatherInsightLoader = const JsonMigration.chainStart(
+  load: WeatherInsightConfigV1.fromJsonUnversioned,
+  migrate: WeatherInsightConfigV2.fromV1,
+).complete(
+  load: WeatherInsightConfigV2.fromJsonUnversioned,
+  versionKey: "version",
+  // Older JSONs didn't have a version key
+  fallbackVersionIfNonePresent: 1,
+  makeDefault: () => WeatherInsightConfigV2.initial,
+);
 
 class ActiveHours {
   ActiveHours(this._hours);
@@ -334,7 +571,7 @@ enum Precipitation {
 // EventInsightType.mediumRain: ("Medium rain", Symbols.rainy_heavy),
 // EventInsightType.heavyRain: ("Heavy rain", Symbols.rainy_heavy),
 
-LevelsInsight<Precipitation?> precipitationLevelInsight(WeatherInsightConfig config, DataSeries<Percent> precipChance, DataSeries<Length> precipitation) {
+LevelsInsight<Precipitation?> precipitationLevelInsight(WeatherInsightConfigV2 config, DataSeries<Percent> precipChance, DataSeries<Length> precipitation) {
   final precip = <Precipitation?>[];
   assert(precipChance.length == precipitation.length);
   for (int i = 0; i < precipitation.length; i++) {
@@ -386,7 +623,7 @@ class WeatherInsightsPerLocation {
     required this.sunriseSunset,
   });
 
-  static WeatherInsightsPerLocation fromAnalysis(HourlyPredictedWeather weather, WeatherInsightConfig config, int maxLookahead) {
+  static WeatherInsightsPerLocation fromAnalysis(HourlyPredictedWeather weather, WeatherInsightConfigV2 config, int maxLookahead) {
     late final DataSeries<Temp> futureTemp;
     if (config.useEstimatedWetBulbTemp) {
       futureTemp = weather.estimatedWetBulbGlobeTemp;
@@ -407,14 +644,13 @@ class WeatherInsightsPerLocation {
             // for compatibility with previous setup, use this:
             // null: config.freezingMaxTemp,
             // for new setup use this:
-            Heat.chilly: config.freezingMaxTemp,
-            // TODO MAKE THIS CONFIGURABLE
-            Heat.mild: const Data(10, Temp.celsius),
-            Heat.warm: const Data(15, Temp.celsius),
-            Heat.hot: const Data(20, Temp.celsius),
+            Heat.chilly: config.tempMinChilly,
+            Heat.mild: config.tempMinMild,
+            Heat.warm: config.tempMinWarm,
+            Heat.hot: config.tempMinHot,
 
             // this should always be there
-            Heat.boiling: config.boilingMinTemp,
+            Heat.boiling: config.tempMinBoiling,
           },
         ));
     final precipInsight = precipitationLevelInsight(
@@ -437,12 +673,11 @@ class WeatherInsightsPerLocation {
         LevelMap(
           min: null,
           minValueForLevel: {
-            // TODO MAKE THIS CONFIGURABLE
             // https://www.cancerresearchuk.org/about-cancer/causes-of-cancer/sun-uv-and-cancer/the-uv-index-and-sunburn-risk
             // UvLevel.low: const Data(1.0, UVIndex.uv),
-            UvLevel.moderate: const Data(3.0, UVIndex.uv),
-            UvLevel.high: const Data(6.0, UVIndex.uv),
-            UvLevel.veryHigh: const Data(8.0, UVIndex.uv),
+            UvLevel.moderate: config.uvMinModerate,
+            UvLevel.high: config.uvMinHigh,
+            UvLevel.veryHigh: config.uvMinVeryHigh,
           },
         ));
 
@@ -547,7 +782,7 @@ final class WeatherInsights {
 
   final List<WeatherInsightsPerLocation> insightsByLocation;
 
-  static WeatherInsights fromAnalysis(List<HourlyPredictedWeather> weathers, WeatherInsightConfig config, {int maxLookahead = 24}) {
+  static WeatherInsights fromAnalysis(List<HourlyPredictedWeather> weathers, WeatherInsightConfigV2 config, {int maxLookahead = 24}) {
     if (maxLookahead < 0 || maxLookahead > 24) {
       maxLookahead = 24;
     }

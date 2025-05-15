@@ -171,9 +171,9 @@ class JsonMigration<TLoad, TMigrateTo> {
   final TLoad Function(Map<String, dynamic>) load;
   final TMigrateTo Function(TLoad) migrate;
 
-  JsonMigration._({required this.base, required this.load, required this.migrate});
+  const JsonMigration._({required this.base, required this.load, required this.migrate});
 
-  JsonMigration.chainStart({required this.load, required this.migrate}) : base = null;
+  const JsonMigration.chainStart({required this.load, required this.migrate}) : base = null;
 
   JsonMigration<TMigrateTo, TNextMigrateTo> chain<TNextMigrateTo>({
     required TMigrateTo Function(Map<String, dynamic>) load,
@@ -253,6 +253,13 @@ class TopLevelJsonMigration<TTarget> {
     required this.makeDefault,
     this.fallbackVersionIfNonePresent,
   });
+
+  TopLevelJsonMigration<TTarget> withoutDefault() => TopLevelJsonMigration._(
+        versionKey: versionKey,
+        migrationFromVersion: migrationFromVersion,
+        fallbackVersionIfNonePresent: fallbackVersionIfNonePresent,
+        makeDefault: null,
+      );
 
   TTarget _makeDefaultOrThrow(String msg) {
     if (makeDefault != null) {

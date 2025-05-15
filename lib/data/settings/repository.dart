@@ -148,8 +148,8 @@ class Settings {
 
   // TODO round current location preference
 
-  @JsonKey(defaultValue: WeatherInsightConfig.initial)
-  final WeatherInsightConfig weatherConfig;
+  @JsonKey(fromJson: WeatherInsightConfigV2.migrateFromJson)
+  final WeatherInsightConfigV2 weatherConfig;
 
   @JsonKey(defaultValue: WakingHours.initial)
   final WakingHours wakingHours;

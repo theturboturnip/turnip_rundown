@@ -1,0 +1,9 @@
+targets:
+  $default:
+    builders:
+      json_serializable:
+        options:
+          # ensure that generated JSON serialize functions recursively call toJson,
+          # this wouldn't be necessary if we were always using dart:convert but in tests
+          # we like to call fromJson(x.toJson()) which breaks if this isn't set.
+          explicit_to_json: true

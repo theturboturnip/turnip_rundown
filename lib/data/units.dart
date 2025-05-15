@@ -326,7 +326,7 @@ class Data<TUnit extends Unit<TUnit>> extends Equatable implements Comparable<Da
   final TUnit _unit;
 
   factory Data.fromJson(Map<String, dynamic> json) => _$DataFromJson<TUnit>(json);
-  Map<String, dynamic> toJson() => _$DataToJson(this);
+  Map<String, dynamic> toJson() => _$DataToJson<TUnit>(this);
 
   @override
   List<Object?> get props => [_value, _unit];

@@ -24,10 +24,8 @@ Settings _$SettingsFromJson(Map<String, dynamic> json) => Settings(
       rainfallUnit:
           $enumDecodeNullable(_$LengthEnumMap, json['rainfallUnit']) ??
               Length.mm,
-      weatherConfig: json['weatherConfig'] == null
-          ? WeatherInsightConfig.initial()
-          : WeatherInsightConfig.fromJson(
-              json['weatherConfig'] as Map<String, dynamic>),
+      weatherConfig: WeatherInsightConfigV2.migrateFromJson(
+          json['weatherConfig'] as Map<String, dynamic>),
       wakingHours: json['wakingHours'] == null
           ? WakingHours.initial()
           : WakingHours.fromJson(json['wakingHours'] as Map<String, dynamic>),
@@ -39,8 +37,8 @@ Settings _$SettingsFromJson(Map<String, dynamic> json) => Settings(
 Map<String, dynamic> _$SettingsToJson(Settings instance) => <String, dynamic>{
       'temperatureUnit': _$TempDisplayEnumMap[instance.temperatureUnit]!,
       'rainfallUnit': _$LengthEnumMap[instance.rainfallUnit]!,
-      'weatherConfig': instance.weatherConfig,
-      'wakingHours': instance.wakingHours,
+      'weatherConfig': instance.weatherConfig.toJson(),
+      'wakingHours': instance.wakingHours.toJson(),
       'backend': _$RequestedWeatherBackendEnumMap[instance.backend]!,
     };
 

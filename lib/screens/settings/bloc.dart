@@ -4,8 +4,29 @@ import 'package:turnip_rundown/data/settings/repository.dart';
 import 'package:turnip_rundown/data/units.dart';
 import 'package:turnip_rundown/data/weather/insights.dart';
 
-final class SettingsEvent {
-  SettingsEvent({
+abstract class SettingsEvent {
+  const SettingsEvent();
+
+  Settings newSettings(Settings old);
+}
+
+final class ResetSettingsWeatherConfigEvent extends SettingsEvent {
+  const ResetSettingsWeatherConfigEvent();
+
+  @override
+  Settings newSettings(Settings old) {
+    return Settings(
+      temperatureUnit: old.temperatureUnit,
+      rainfallUnit: old.rainfallUnit,
+      weatherConfig: WeatherInsightConfigV2.initial,
+      wakingHours: old.wakingHours,
+      backend: old.backend,
+    );
+  }
+}
+
+final class TweakSettingsEvent extends SettingsEvent {
+  TweakSettingsEvent({
     this.temperatureUnit,
     this.rainfallUnit,
     this.backend,
@@ -27,24 +48,6 @@ final class SettingsEvent {
     this.freezingMaxTemp,
   });
 
-  factory SettingsEvent.withInitialWeatherConfig() {
-    final config = WeatherInsightConfig.initial();
-    return SettingsEvent(
-      useEstimatedWetBulbTemp: config.useEstimatedWetBulbTemp,
-      numberOfHoursPriorRainThreshold: config.numberOfHoursPriorRainThreshold,
-      priorRainThreshold: config.priorRainThreshold,
-      rainProbabilityThreshold: config.rainProbabilityThreshold,
-      mediumRainThreshold: config.mediumRainThreshold,
-      heavyRainThreshold: config.heavyRainThreshold,
-      highHumidityThreshold: config.highHumidityThreshold,
-      maxTemperatureForHighHumidityMist: config.maxTemperatureForHighHumidityMist,
-      minTemperatureForHighHumiditySweat: config.minTemperatureForHighHumiditySweat,
-      minimumBreezyWindspeed: config.minimumBreezyWindspeed,
-      minimumWindyWindspeed: config.minimumWindyWindspeed,
-      minimumGaleyWindspeed: config.minimumGaleyWindspeed,
-    );
-  }
-
   final TempDisplay? temperatureUnit;
   final Rainfall? rainfallUnit;
   final RequestedWeatherBackend? backend;
@@ -65,12 +68,13 @@ final class SettingsEvent {
   final Data<Temp>? boilingMinTemp;
   final Data<Temp>? freezingMaxTemp;
 
-  Settings copyOf(Settings base) {
+  @override
+  Settings newSettings(Settings old) {
     return Settings(
-      temperatureUnit: temperatureUnit ?? base.temperatureUnit,
-      rainfallUnit: rainfallUnit ?? base.rainfallUnit,
-      backend: backend ?? base.backend,
-      weatherConfig: base.weatherConfig.copyWith(
+      temperatureUnit: temperatureUnit ?? old.temperatureUnit,
+      rainfallUnit: rainfallUnit ?? old.rainfallUnit,
+      backend: backend ?? old.backend,
+      weatherConfig: old.weatherConfig.copyWith(
         useEstimatedWetBulbTemp: useEstimatedWetBulbTemp,
         numberOfHoursPriorRainThreshold: numberOfHoursPriorRainThreshold,
         priorRainThreshold: priorRainThreshold,
@@ -83,10 +87,10 @@ final class SettingsEvent {
         minimumBreezyWindspeed: minimumBreezyWindspeed,
         minimumWindyWindspeed: minimumWindyWindspeed,
         minimumGaleyWindspeed: minimumGaleyWindspeed,
-        boilingMinTemp: boilingMinTemp,
-        freezingMaxTemp: freezingMaxTemp,
+        tempMinBoiling: boilingMinTemp,
+        tempMinChilly: freezingMaxTemp,
       ),
-      wakingHours: base.wakingHours.copyWith(
+      wakingHours: old.wakingHours.copyWith(
         start: wakingHourStart,
         end: wakingHourEnd,
       ),
@@ -98,7 +102,7 @@ class SettingsBloc extends Bloc<SettingsEvent, Settings> {
   SettingsBloc(SettingsRepository repo) : super(repo.settings) {
     on<SettingsEvent>(
       (event, emit) async {
-        final newState = event.copyOf(state);
+        final newState = event.newSettings(state);
         // Don't emit state until it's stored
         // because repo.storeSettings also updates
         // the repo.settings getter that some components use

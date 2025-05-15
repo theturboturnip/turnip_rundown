@@ -32,7 +32,7 @@ Map<String, dynamic> _$OpenMeteoHourlyRequestToJson(
       'timezone_abbreviation': instance.timezone_abbreviation,
       'elevation': instance.elevation,
       'hourly_units': instance.hourly_units,
-      'hourly': instance.hourly,
+      'hourly': instance.hourly.toJson(),
     };
 
 OpenMeteoHourlyDatapoints _$OpenMeteoHourlyDatapointsFromJson(

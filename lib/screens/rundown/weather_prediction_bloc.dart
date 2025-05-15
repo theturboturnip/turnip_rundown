@@ -18,7 +18,7 @@ class WeatherPredictConfig extends Equatable {
 
   final List<LegendElement> legend;
   final int hoursToLookAhead;
-  final WeatherInsightConfig insightConfig;
+  final WeatherInsightConfigV2 insightConfig;
 
   @override
   List<Object?> get props => [legend, hoursToLookAhead, insightConfig];
@@ -69,8 +69,8 @@ final class RefreshPredictedWeather {
 
 class WeatherPredictBloc extends Bloc<RefreshPredictedWeather, WeatherPredictState> {
   WeatherPredictBloc(SettingsRepository settings, WeatherDataBankRepository weather)
-      : super(WeatherPredictState(
-          config: WeatherPredictConfig(legend: const [], hoursToLookAhead: 24, insightConfig: WeatherInsightConfig.initial()),
+      : super(const WeatherPredictState(
+          config: WeatherPredictConfig(legend: [], hoursToLookAhead: 24, insightConfig: WeatherInsightConfigV2.initial),
           isLoading: true,
           mostRecentWeatherResult: null,
         )) {
