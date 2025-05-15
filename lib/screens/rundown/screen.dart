@@ -445,7 +445,7 @@ class RundownScreen extends StatelessWidget {
                   maintainAnimation: true,
                   maintainState: true,
                   child: IconButton(
-                    icon: const Icon(Icons.lock_reset),
+                    icon: const Icon(Icons.lock_outline),
                     color: Colors.grey[700],
                     onPressed: () {
                       context.read<HoursLookaheadBloc>().add(

@@ -73,22 +73,24 @@ WeatherInsightConfigV2 _$WeatherInsightConfigV2FromJson(
           json['priorRainThreshold'] as Map<String, dynamic>),
       rainProbabilityThreshold: Data<Percent>.fromJson(
           json['rainProbabilityThreshold'] as Map<String, dynamic>),
-      mediumRainThreshold: Data<Length>.fromJson(
-          json['mediumRainThreshold'] as Map<String, dynamic>),
-      heavyRainThreshold: Data<Length>.fromJson(
-          json['heavyRainThreshold'] as Map<String, dynamic>),
+      rainMinLight:
+          Data<Length>.fromJson(json['rainMinLight'] as Map<String, dynamic>),
+      rainMinMedium:
+          Data<Length>.fromJson(json['rainMinMedium'] as Map<String, dynamic>),
+      rainMinHeavy:
+          Data<Length>.fromJson(json['rainMinHeavy'] as Map<String, dynamic>),
       highHumidityThreshold: Data<Percent>.fromJson(
           json['highHumidityThreshold'] as Map<String, dynamic>),
       maxTemperatureForHighHumidityMist: Data<Temp>.fromJson(
           json['maxTemperatureForHighHumidityMist'] as Map<String, dynamic>),
       minTemperatureForHighHumiditySweat: Data<Temp>.fromJson(
           json['minTemperatureForHighHumiditySweat'] as Map<String, dynamic>),
-      minimumBreezyWindspeed: Data<Speed>.fromJson(
-          json['minimumBreezyWindspeed'] as Map<String, dynamic>),
-      minimumWindyWindspeed: Data<Speed>.fromJson(
-          json['minimumWindyWindspeed'] as Map<String, dynamic>),
-      minimumGaleyWindspeed: Data<Speed>.fromJson(
-          json['minimumGaleyWindspeed'] as Map<String, dynamic>),
+      windMinBreezy:
+          Data<Speed>.fromJson(json['windMinBreezy'] as Map<String, dynamic>),
+      windMinWindy:
+          Data<Speed>.fromJson(json['windMinWindy'] as Map<String, dynamic>),
+      windMinGaley:
+          Data<Speed>.fromJson(json['windMinGaley'] as Map<String, dynamic>),
       tempMinBoiling:
           Data<Temp>.fromJson(json['tempMinBoiling'] as Map<String, dynamic>),
       tempMinHot:
@@ -116,16 +118,17 @@ Map<String, dynamic> _$WeatherInsightConfigV2ToJson(
           instance.numberOfHoursPriorRainThreshold,
       'priorRainThreshold': instance.priorRainThreshold.toJson(),
       'rainProbabilityThreshold': instance.rainProbabilityThreshold.toJson(),
-      'mediumRainThreshold': instance.mediumRainThreshold.toJson(),
-      'heavyRainThreshold': instance.heavyRainThreshold.toJson(),
+      'rainMinLight': instance.rainMinLight.toJson(),
+      'rainMinMedium': instance.rainMinMedium.toJson(),
+      'rainMinHeavy': instance.rainMinHeavy.toJson(),
       'highHumidityThreshold': instance.highHumidityThreshold.toJson(),
       'maxTemperatureForHighHumidityMist':
           instance.maxTemperatureForHighHumidityMist.toJson(),
       'minTemperatureForHighHumiditySweat':
           instance.minTemperatureForHighHumiditySweat.toJson(),
-      'minimumBreezyWindspeed': instance.minimumBreezyWindspeed.toJson(),
-      'minimumWindyWindspeed': instance.minimumWindyWindspeed.toJson(),
-      'minimumGaleyWindspeed': instance.minimumGaleyWindspeed.toJson(),
+      'windMinBreezy': instance.windMinBreezy.toJson(),
+      'windMinWindy': instance.windMinWindy.toJson(),
+      'windMinGaley': instance.windMinGaley.toJson(),
       'tempMinChilly': instance.tempMinChilly.toJson(),
       'tempMinMild': instance.tempMinMild.toJson(),
       'tempMinWarm': instance.tempMinWarm.toJson(),

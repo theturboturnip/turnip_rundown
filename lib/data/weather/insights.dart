@@ -121,14 +121,15 @@ class WeatherInsightConfigV2 extends Equatable {
     required this.numberOfHoursPriorRainThreshold,
     required this.priorRainThreshold,
     required this.rainProbabilityThreshold,
-    required this.mediumRainThreshold,
-    required this.heavyRainThreshold,
+    required this.rainMinLight,
+    required this.rainMinMedium,
+    required this.rainMinHeavy,
     required this.highHumidityThreshold,
     required this.maxTemperatureForHighHumidityMist,
     required this.minTemperatureForHighHumiditySweat,
-    required this.minimumBreezyWindspeed,
-    required this.minimumWindyWindspeed,
-    required this.minimumGaleyWindspeed,
+    required this.windMinBreezy,
+    required this.windMinWindy,
+    required this.windMinGaley,
     required this.tempMinBoiling,
     required this.tempMinHot,
     required this.tempMinWarm,
@@ -148,8 +149,9 @@ class WeatherInsightConfigV2 extends Equatable {
   final Data<Rainfall> priorRainThreshold;
 
   final Data<Percent> rainProbabilityThreshold;
-  final Data<Rainfall> mediumRainThreshold;
-  final Data<Rainfall> heavyRainThreshold;
+  final Data<Rainfall> rainMinLight;
+  final Data<Rainfall> rainMinMedium;
+  final Data<Rainfall> rainMinHeavy;
 
   final Data<Percent> highHumidityThreshold;
   // We used to have a "cool mist" insight for (low temp + high humidity) that was quite inaccurate.
@@ -157,9 +159,9 @@ class WeatherInsightConfigV2 extends Equatable {
   final Data<Temp> maxTemperatureForHighHumidityMist;
   final Data<Temp> minTemperatureForHighHumiditySweat;
 
-  final Data<Speed> minimumBreezyWindspeed;
-  final Data<Speed> minimumWindyWindspeed;
-  final Data<Speed> minimumGaleyWindspeed;
+  final Data<Speed> windMinBreezy;
+  final Data<Speed> windMinWindy;
+  final Data<Speed> windMinGaley;
 
   final Data<Temp> tempMinChilly;
   final Data<Temp> tempMinMild;
@@ -215,14 +217,15 @@ class WeatherInsightConfigV2 extends Equatable {
       numberOfHoursPriorRainThreshold: v1.numberOfHoursPriorRainThreshold,
       priorRainThreshold: v1.priorRainThreshold,
       rainProbabilityThreshold: v1.rainProbabilityThreshold,
-      mediumRainThreshold: v1.mediumRainThreshold,
-      heavyRainThreshold: v1.heavyRainThreshold,
+      rainMinLight: initial.rainMinLight,
+      rainMinMedium: v1.mediumRainThreshold,
+      rainMinHeavy: v1.heavyRainThreshold,
       highHumidityThreshold: v1.highHumidityThreshold,
       maxTemperatureForHighHumidityMist: v1.maxTemperatureForHighHumidityMist,
       minTemperatureForHighHumiditySweat: v1.minTemperatureForHighHumiditySweat,
-      minimumBreezyWindspeed: v1.minimumBreezyWindspeed,
-      minimumWindyWindspeed: v1.minimumWindyWindspeed,
-      minimumGaleyWindspeed: v1.minimumGaleyWindspeed,
+      windMinBreezy: v1.minimumBreezyWindspeed,
+      windMinWindy: v1.minimumWindyWindspeed,
+      windMinGaley: v1.minimumGaleyWindspeed,
       tempMinBoiling: tempMinBoiling,
       tempMinHot: tempMinHot,
       tempMinWarm: tempMinWarm,
@@ -241,16 +244,17 @@ class WeatherInsightConfigV2 extends Equatable {
     priorRainThreshold: Data(2.5, Length.mm),
     rainProbabilityThreshold: Data(15, Percent.outOf100),
     // From https://en.wikipedia.org/wiki/Rain#Intensity
-    mediumRainThreshold: Data(2.5, Length.mm),
-    heavyRainThreshold: Data(7.6, Length.mm),
+    rainMinLight: Data(0.1, Length.mm),
+    rainMinMedium: Data(2.5, Length.mm),
+    rainMinHeavy: Data(7.6, Length.mm),
     // Guessed
     highHumidityThreshold: Data(80, Percent.outOf100),
     maxTemperatureForHighHumidityMist: Data(10, Temp.celsius),
     minTemperatureForHighHumiditySweat: Data(17, Temp.celsius),
     // https://www.weather.gov/pqr/wind
-    minimumBreezyWindspeed: Data(4, Speed.milesPerHour),
-    minimumWindyWindspeed: Data(13, Speed.milesPerHour),
-    minimumGaleyWindspeed: Data(32, Speed.milesPerHour),
+    windMinBreezy: Data(4, Speed.milesPerHour),
+    windMinWindy: Data(13, Speed.milesPerHour),
+    windMinGaley: Data(32, Speed.milesPerHour),
     // Guessed
     tempMinBoiling: Data(25, Temp.celsius),
     tempMinHot: Data(20, Temp.celsius),
@@ -274,14 +278,15 @@ class WeatherInsightConfigV2 extends Equatable {
     int? numberOfHoursPriorRainThreshold,
     Data<Rainfall>? priorRainThreshold,
     Data<Percent>? rainProbabilityThreshold,
-    Data<Rainfall>? mediumRainThreshold,
-    Data<Rainfall>? heavyRainThreshold,
+    Data<Rainfall>? rainMinLight,
+    Data<Rainfall>? rainMinMedium,
+    Data<Rainfall>? rainMinHeavy,
     Data<Percent>? highHumidityThreshold,
     Data<Temp>? maxTemperatureForHighHumidityMist,
     Data<Temp>? minTemperatureForHighHumiditySweat,
-    Data<Speed>? minimumBreezyWindspeed,
-    Data<Speed>? minimumWindyWindspeed,
-    Data<Speed>? minimumGaleyWindspeed,
+    Data<Speed>? windMinBreezy,
+    Data<Speed>? windMinWindy,
+    Data<Speed>? windMinGaley,
     Data<Temp>? tempMinBoiling,
     Data<Temp>? tempMinHot,
     Data<Temp>? tempMinWarm,
@@ -296,14 +301,15 @@ class WeatherInsightConfigV2 extends Equatable {
         numberOfHoursPriorRainThreshold: numberOfHoursPriorRainThreshold ?? this.numberOfHoursPriorRainThreshold,
         priorRainThreshold: priorRainThreshold ?? this.priorRainThreshold,
         rainProbabilityThreshold: rainProbabilityThreshold ?? this.rainProbabilityThreshold,
-        mediumRainThreshold: mediumRainThreshold ?? this.mediumRainThreshold,
-        heavyRainThreshold: heavyRainThreshold ?? this.heavyRainThreshold,
+        rainMinLight: rainMinLight ?? this.rainMinLight,
+        rainMinMedium: rainMinMedium ?? this.rainMinMedium,
+        rainMinHeavy: rainMinHeavy ?? this.rainMinHeavy,
         highHumidityThreshold: highHumidityThreshold ?? this.highHumidityThreshold,
         maxTemperatureForHighHumidityMist: maxTemperatureForHighHumidityMist ?? this.maxTemperatureForHighHumidityMist,
         minTemperatureForHighHumiditySweat: minTemperatureForHighHumiditySweat ?? this.minTemperatureForHighHumiditySweat,
-        minimumBreezyWindspeed: minimumBreezyWindspeed ?? this.minimumBreezyWindspeed,
-        minimumWindyWindspeed: minimumWindyWindspeed ?? this.minimumWindyWindspeed,
-        minimumGaleyWindspeed: minimumGaleyWindspeed ?? this.minimumGaleyWindspeed,
+        windMinBreezy: windMinBreezy ?? this.windMinBreezy,
+        windMinWindy: windMinWindy ?? this.windMinWindy,
+        windMinGaley: windMinGaley ?? this.windMinGaley,
         tempMinBoiling: tempMinBoiling ?? this.tempMinBoiling,
         tempMinHot: tempMinHot ?? this.tempMinHot,
         tempMinWarm: tempMinWarm ?? this.tempMinWarm,
@@ -320,14 +326,14 @@ class WeatherInsightConfigV2 extends Equatable {
         numberOfHoursPriorRainThreshold,
         priorRainThreshold,
         rainProbabilityThreshold,
-        mediumRainThreshold,
-        heavyRainThreshold,
+        rainMinMedium,
+        rainMinHeavy,
         highHumidityThreshold,
         maxTemperatureForHighHumidityMist,
         minTemperatureForHighHumiditySweat,
-        minimumBreezyWindspeed,
-        minimumWindyWindspeed,
-        minimumGaleyWindspeed,
+        windMinBreezy,
+        windMinWindy,
+        windMinGaley,
         tempMinBoiling,
         tempMinHot,
         tempMinWarm,
@@ -578,11 +584,11 @@ LevelsInsight<Precipitation?> precipitationLevelInsight(WeatherInsightConfigV2 c
     final precipMM = precipitation[i].valueAs(Length.mm);
     late final Precipitation? precipEnum;
     if (precipChance[i].valueAs(Percent.outOf100) > config.rainProbabilityThreshold.valueAs(Percent.outOf100)) {
-      if (precipMM > config.heavyRainThreshold.valueAs(Length.mm)) {
+      if (precipMM > config.rainMinHeavy.valueAs(Length.mm)) {
         precipEnum = Precipitation.heavyRain;
-      } else if (precipMM > config.mediumRainThreshold.valueAs(Length.mm)) {
+      } else if (precipMM > config.rainMinMedium.valueAs(Length.mm)) {
         precipEnum = Precipitation.mediumRain;
-      } else if (precipMM > 0) {
+      } else if (precipMM > config.rainMinLight.valueAs(Length.mm)) {
         precipEnum = Precipitation.lightRain;
       } else {
         precipEnum = Precipitation.sprinkles;
@@ -663,9 +669,9 @@ class WeatherInsightsPerLocation {
         LevelMap(
           min: null,
           minValueForLevel: {
-            Wind.breezy: config.minimumBreezyWindspeed,
-            Wind.windy: config.minimumWindyWindspeed,
-            Wind.galey: config.minimumGaleyWindspeed,
+            Wind.breezy: config.windMinBreezy,
+            Wind.windy: config.windMinWindy,
+            Wind.galey: config.windMinGaley,
           },
         ));
     final uvInsight = uvLevelInsight(

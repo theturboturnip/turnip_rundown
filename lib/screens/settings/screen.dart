@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -71,12 +72,14 @@ class DataPickerWidget<T extends Unit<T>> extends StatefulWidget {
     required this.onChanged,
     this.textWidth = 60,
     this.unitWidth = 100,
+    this.includeBaseline = true,
   });
 
   final Data<T> initial;
   final void Function(Data<T>) onChanged;
   final double textWidth;
   final double unitWidth;
+  final bool includeBaseline;
 
   @override
   State<StatefulWidget> createState() => DataPickerWidgetState<T>();
@@ -126,6 +129,7 @@ class DataPickerWidgetState<T extends Unit<T>> extends State<DataPickerWidget<T>
                 widget.onChanged(_value);
               });
             },
+            decoration: (widget.includeBaseline ? const InputDecoration() : null),
           ),
         ),
         DropdownMenu<T>(
@@ -148,10 +152,10 @@ class DataPickerWidgetState<T extends Unit<T>> extends State<DataPickerWidget<T>
             isDense: true,
             contentPadding: const EdgeInsets.symmetric(horizontal: 8),
             constraints: BoxConstraints.tight(const Size.fromHeight(48)),
-
             // border: OutlineInputBorder(
             //   borderRadius: BorderRadius.circular(8),
             // ),
+            border: (widget.includeBaseline ? null : InputBorder.none),
           ),
         ),
       ],
@@ -166,6 +170,129 @@ Widget percentDataPickerSlider(Data<Percent> value, void Function(Data<Percent> 
   );
 }
 
+class RangeConfigPopup<TUnit extends Unit<TUnit>> extends StatefulWidget {
+  final List<(String, IconData)?> stepNames; // The name of each step. Contains one more element than the thresholds
+  final List<Data<TUnit>> initialThresholds;
+  final FutureOr<void> Function(List<Data<TUnit>>) updateThresholds;
+
+  const RangeConfigPopup({
+    super.key,
+    required this.stepNames,
+    required this.initialThresholds,
+    required this.updateThresholds,
+  });
+
+  @override
+  State<StatefulWidget> createState() => RangeConfigPopupState<TUnit>();
+}
+
+class RangeConfigPopupState<TUnit extends Unit<TUnit>> extends State<RangeConfigPopup<TUnit>> {
+  late List<Data<TUnit>> wipThresholds;
+
+  @override
+  void initState() {
+    super.initState();
+    wipThresholds = widget.initialThresholds.toList();
+  }
+
+  @override
+  void didUpdateWidget(covariant RangeConfigPopup<TUnit> oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialThresholds != oldWidget.initialThresholds) {
+      setState(() {
+        wipThresholds = widget.initialThresholds.toList();
+      });
+    }
+  }
+
+  Future<void> updateThreshold(int index, Data<TUnit> newVal) async {
+    setState(() {
+      wipThresholds[index] = newVal;
+    });
+    await widget.updateThresholds(wipThresholds);
+  }
+
+  Widget _labelWidget((String, IconData)? label) {
+    return Padding(
+        padding: const EdgeInsets.all(64.0),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            // Icon(label.$2),
+            Text(
+              label?.$1 ?? "Nothing",
+              style: TextStyle(
+                fontSize: 18.0,
+                color: (label == null) ? Colors.grey : null,
+              ),
+            ),
+            // Icon(label.$2),
+          ],
+        ));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final widgets = <Widget>[];
+    for (final (index, threshold) in wipThresholds.indexed) {
+      final label = widget.stepNames[index];
+      widgets.add(_labelWidget(label));
+
+      widgets.add(
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          spacing: 16.0,
+          children: [
+            Expanded(
+              child: Divider(
+                color: Colors.grey[700],
+              ),
+            ),
+            // Material(
+            //   shape: ContinuousRectangleBorder(
+            //     borderRadius: BorderRadius.circular(28.0),
+            //   ),
+            DecoratedBox(
+              //   decoration: ShapeDecoration(
+              //     shape: RoundedRectangleBorder(
+              //       borderRadius: BorderRadius.all(Radius.circular(10.0)),
+              //     ),
+              //     // color: Colors.black,
+              //   ),
+
+              decoration: BoxDecoration(
+                border: Border.all(
+                  color: Colors.grey,
+                ),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Padding(
+                padding: EdgeInsets.all(4),
+                child: DataPickerWidget(
+                  initial: threshold,
+                  onChanged: (newVal) => updateThreshold(index, newVal),
+                  includeBaseline: false,
+                ),
+              ),
+            ),
+            Expanded(
+              child: Divider(
+                color: Colors.grey[700],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+    widgets.add(_labelWidget(widget.stepNames.last));
+    return SingleChildScrollView(
+      child: Column(
+        children: widgets,
+      ),
+    );
+  }
+}
+
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
 
@@ -176,22 +303,20 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 
-  Widget _settingsTile(BuildContext context, {required Widget title, Widget? description, required Widget input}) {
-    // if (description == null) {
-    //   return ListTile(
-    //     title: title,
-    //     trailing: input,
-    //     minTileHeight: 70,
-    //   );
-    // } else {
-    // return ListTile(
-    //   title: title,
-    //   trailing: input,
-    //   minTileHeight: 70,
-    // );
-    return Padding(
+  Widget _settingsTile(
+    BuildContext context, {
+    required Widget title,
+    Widget? description,
+    Widget? input,
+    void Function()? onPressed,
+  }) {
+    if (onPressed == null && input == null) {
+      throw "Cannot create _settingsTile without an input or an onClick";
+    }
+
+    final tile = Padding(
       padding: const EdgeInsets.symmetric(
-        horizontal: 16,
+        horizontal: 0,
         vertical: 8,
       ),
       child: Row(
@@ -211,35 +336,22 @@ class SettingsScreen extends StatelessWidget {
             ),
           ),
           // IconButton(onPressed: () {}, icon: Icon(Icons.info_outline)),
-          SizedBox(
-            width: 200,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [input],
+          if (input != null)
+            Container(
+              constraints: const BoxConstraints(minWidth: 100, maxWidth: 300),
+              alignment: Alignment.centerRight,
+              child: input,
             ),
-          ),
         ],
       ),
     );
-    //   return ExpansionTile(
-    //     // title: Row(
-    //     //   children: [
-    //     //     title,
-    //     //     const Spacer(),
-    //     //     SizedBox(
-    //     //       width: 160,
-    //     //       height: null,
-    //     //       child: input,
-    //     //     ),
-    //     //   ],
-    //     // ),
-    //     title: title,
-    //     trailing: input,
-    //     controlAffinity: ListTileControlAffinity.leading,
-    //     minTileHeight: 70,
-    //     children: [description],
-    //   );
-    // }
+    if (onPressed != null) {
+      return Material(
+        child: InkWell(onTap: onPressed, child: tile),
+      );
+    } else {
+      return tile;
+    }
   }
 
   Widget _settingsButton({required Widget child, required void Function() onPressed}) {
@@ -401,25 +513,117 @@ class SettingsScreen extends StatelessWidget {
                   ),
                   _settingsTile(
                     context,
-                    title: const Text("Temperature - Freezing"),
-                    description: const Text("Temperatures above this threshold show a Freezing insight."),
-                    input: DataPickerWidget(
-                      initial: state.weatherConfig.tempMinChilly,
-                      onChanged: (value) {
-                        context.read<SettingsBloc>().add(TweakSettingsEvent(freezingMaxTemp: value));
-                      },
-                    ),
+                    title: const Text("Update Temperature Levels"),
+                    description: const Text("Tap to change the temperature range that are counted as chilly, mild, warm, etc."),
+                    onPressed: () {
+                      showDialog(
+                        context: context,
+                        builder: (context) {
+                          return Dialog(
+                            child: RangeConfigPopup(
+                              stepNames: const [
+                                ("Freezing", Icons.snowboarding),
+                                ("Chilly", Icons.snowboarding),
+                                ("Mild", Icons.snowboarding),
+                                ("Warm", Icons.snowboarding),
+                                ("Hot", Icons.snowboarding),
+                                ("Boiling", Icons.snowboarding),
+                              ],
+                              initialThresholds: [
+                                state.weatherConfig.tempMinChilly,
+                                state.weatherConfig.tempMinMild,
+                                state.weatherConfig.tempMinWarm,
+                                state.weatherConfig.tempMinHot,
+                                state.weatherConfig.tempMinBoiling,
+                              ],
+                              updateThresholds: (newThresholds) {
+                                context.read<SettingsBloc>().add(
+                                      TweakSettingsEvent(
+                                        tempMinChilly: newThresholds[0],
+                                        tempMinMild: newThresholds[1],
+                                        tempMinWarm: newThresholds[2],
+                                        tempMinHot: newThresholds[3],
+                                        tempMinBoiling: newThresholds[4],
+                                      ),
+                                    );
+                              },
+                            ),
+                          );
+                        },
+                      );
+                    },
                   ),
                   _settingsTile(
                     context,
-                    title: const Text("Temperature - Boiling"),
-                    description: const Text("Temperatures above this threshold show a Boiling insight."),
-                    input: DataPickerWidget(
-                      initial: state.weatherConfig.tempMinBoiling,
-                      onChanged: (value) {
-                        context.read<SettingsBloc>().add(TweakSettingsEvent(boilingMinTemp: value));
-                      },
-                    ),
+                    title: const Text("Update UV Levels"),
+                    description: const Text("Tap to change the UV ranges that are counted as mild, high, and extreme."),
+                    onPressed: () {
+                      showDialog(
+                        context: context,
+                        builder: (context) {
+                          return Dialog(
+                            child: RangeConfigPopup(
+                              stepNames: const [
+                                null,
+                                ("Mild UV", Icons.snowboarding),
+                                ("High UV", Icons.snowboarding),
+                                ("Extreme UV", Icons.snowboarding),
+                              ],
+                              initialThresholds: [
+                                state.weatherConfig.uvMinModerate,
+                                state.weatherConfig.uvMinHigh,
+                                state.weatherConfig.uvMinVeryHigh,
+                              ],
+                              updateThresholds: (newThresholds) {
+                                context.read<SettingsBloc>().add(
+                                      TweakSettingsEvent(
+                                        uvMinModerate: newThresholds[0],
+                                        uvMinHigh: newThresholds[1],
+                                        uvMinVeryHigh: newThresholds[2],
+                                      ),
+                                    );
+                              },
+                            ),
+                          );
+                        },
+                      );
+                    },
+                  ),
+                  _settingsTile(
+                    context,
+                    title: const Text("Update Wind Speed Levels"),
+                    description: const Text("Tap to change the windspeeds ranges that are counted as breezy, windy, and gale-y."),
+                    onPressed: () {
+                      showDialog(
+                        context: context,
+                        builder: (context) {
+                          return Dialog(
+                            child: RangeConfigPopup(
+                              stepNames: const [
+                                null,
+                                ("Breezy", Icons.snowboarding),
+                                ("Windy", Icons.snowboarding),
+                                ("Gale-y", Icons.snowboarding),
+                              ],
+                              initialThresholds: [
+                                state.weatherConfig.windMinBreezy,
+                                state.weatherConfig.windMinWindy,
+                                state.weatherConfig.windMinGaley,
+                              ],
+                              updateThresholds: (newThresholds) {
+                                context.read<SettingsBloc>().add(
+                                      TweakSettingsEvent(
+                                        windMinBreezy: newThresholds[0],
+                                        windMinWindy: newThresholds[1],
+                                        windMinGaley: newThresholds[2],
+                                      ),
+                                    );
+                              },
+                            ),
+                          );
+                        },
+                      );
+                    },
                   ),
                   _settingsTile(
                     context,
@@ -438,6 +642,8 @@ class SettingsScreen extends StatelessWidget {
                     description: const Text("Rainfall this many hours ago will be counted towards the Slippery insight total."),
                     input: Row(
                       mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      spacing: 30.0,
                       children: [
                         IconButton(
                           icon: const Icon(Icons.remove),
@@ -479,12 +685,48 @@ class SettingsScreen extends StatelessWidget {
                   ),
                   _settingsTile(
                     context,
+                    title: const Text("Update Rain Thresholds"),
+                    description: const Text("Tap to change the precipitation levels that are counted as sprinkly, light, medium, and heavy."),
+                    onPressed: () {
+                      showDialog(
+                        context: context,
+                        builder: (context) {
+                          return Dialog(
+                            child: RangeConfigPopup(
+                              stepNames: const [
+                                ("Sprinkles", Icons.snowboarding),
+                                ("Light", Icons.snowboarding),
+                                ("Medium", Icons.snowboarding),
+                                ("Heavy", Icons.snowboarding),
+                              ],
+                              initialThresholds: [
+                                state.weatherConfig.rainMinLight,
+                                state.weatherConfig.rainMinMedium,
+                                state.weatherConfig.rainMinHeavy,
+                              ],
+                              updateThresholds: (newThresholds) {
+                                context.read<SettingsBloc>().add(
+                                      TweakSettingsEvent(
+                                        rainMinLight: newThresholds[0],
+                                        rainMinMedium: newThresholds[1],
+                                        rainMinHeavy: newThresholds[2],
+                                      ),
+                                    );
+                              },
+                            ),
+                          );
+                        },
+                      );
+                    },
+                  ),
+                  _settingsTile(
+                    context,
                     title: const Text("Rain Threshold - Medium"),
                     description: const Text("Predicted rainfall above this value shows a Medium Rain insight, and Light Rain otherwise."),
                     input: DataPickerWidget(
-                      initial: state.weatherConfig.mediumRainThreshold,
+                      initial: state.weatherConfig.rainMinMedium,
                       onChanged: (value) {
-                        context.read<SettingsBloc>().add(TweakSettingsEvent(mediumRainThreshold: value));
+                        context.read<SettingsBloc>().add(TweakSettingsEvent(rainMinMedium: value));
                       },
                     ),
                   ),
@@ -493,9 +735,9 @@ class SettingsScreen extends StatelessWidget {
                     title: const Text("Rain Threshold - Heavy"),
                     description: const Text("Predicted rainfall below this value shows a Heavy Rain insight."),
                     input: DataPickerWidget(
-                      initial: state.weatherConfig.heavyRainThreshold,
+                      initial: state.weatherConfig.rainMinHeavy,
                       onChanged: (value) {
-                        context.read<SettingsBloc>().add(TweakSettingsEvent(heavyRainThreshold: value));
+                        context.read<SettingsBloc>().add(TweakSettingsEvent(rainMinHeavy: value));
                       },
                     ),
                   ),
@@ -533,39 +775,6 @@ class SettingsScreen extends StatelessWidget {
                       initial: state.weatherConfig.minTemperatureForHighHumiditySweat,
                       onChanged: (value) {
                         context.read<SettingsBloc>().add(TweakSettingsEvent(minTemperatureForHighHumiditySweat: value));
-                      },
-                    ),
-                  ),
-                  _settingsTile(
-                    context,
-                    title: const Text("Windspeed - Breezy"),
-                    description: const Text("Any wind faster than this will show a Breezy insight. Wind slower than this will be ignored."),
-                    input: DataPickerWidget(
-                      initial: state.weatherConfig.minimumBreezyWindspeed,
-                      onChanged: (value) {
-                        context.read<SettingsBloc>().add(TweakSettingsEvent(minimumBreezyWindspeed: value));
-                      },
-                    ),
-                  ),
-                  _settingsTile(
-                    context,
-                    title: const Text("Windspeed - Windy"),
-                    description: const Text("Any wind faster than this will show a Windy insight."),
-                    input: DataPickerWidget(
-                      initial: state.weatherConfig.minimumWindyWindspeed,
-                      onChanged: (value) {
-                        context.read<SettingsBloc>().add(TweakSettingsEvent(minimumWindyWindspeed: value));
-                      },
-                    ),
-                  ),
-                  _settingsTile(
-                    context,
-                    title: const Text("Windspeed - Gale"),
-                    description: const Text("Any wind faster than this will show a Gale-y insight."),
-                    input: DataPickerWidget(
-                      initial: state.weatherConfig.minimumGaleyWindspeed,
-                      onChanged: (value) {
-                        context.read<SettingsBloc>().add(TweakSettingsEvent(minimumGaleyWindspeed: value));
                       },
                     ),
                   ),

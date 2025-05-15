@@ -34,18 +34,25 @@ final class TweakSettingsEvent extends SettingsEvent {
     this.numberOfHoursPriorRainThreshold,
     this.priorRainThreshold,
     this.rainProbabilityThreshold,
-    this.mediumRainThreshold,
-    this.heavyRainThreshold,
+    this.rainMinLight,
+    this.rainMinMedium,
+    this.rainMinHeavy,
     this.highHumidityThreshold,
     this.maxTemperatureForHighHumidityMist,
     this.minTemperatureForHighHumiditySweat,
-    this.minimumBreezyWindspeed,
-    this.minimumWindyWindspeed,
-    this.minimumGaleyWindspeed,
+    this.windMinBreezy,
+    this.windMinWindy,
+    this.windMinGaley,
     this.wakingHourStart,
     this.wakingHourEnd,
-    this.boilingMinTemp,
-    this.freezingMaxTemp,
+    this.tempMinBoiling,
+    this.tempMinHot,
+    this.tempMinWarm,
+    this.tempMinMild,
+    this.tempMinChilly,
+    this.uvMinModerate,
+    this.uvMinHigh,
+    this.uvMinVeryHigh,
   });
 
   final TempDisplay? temperatureUnit;
@@ -55,18 +62,25 @@ final class TweakSettingsEvent extends SettingsEvent {
   final int? numberOfHoursPriorRainThreshold;
   final Data<Rainfall>? priorRainThreshold;
   final Data<Percent>? rainProbabilityThreshold;
-  final Data<Rainfall>? mediumRainThreshold;
-  final Data<Rainfall>? heavyRainThreshold;
+  final Data<Rainfall>? rainMinLight;
+  final Data<Rainfall>? rainMinMedium;
+  final Data<Rainfall>? rainMinHeavy;
   final Data<Percent>? highHumidityThreshold;
   final Data<Temp>? maxTemperatureForHighHumidityMist;
   final Data<Temp>? minTemperatureForHighHumiditySweat;
-  final Data<Speed>? minimumBreezyWindspeed;
-  final Data<Speed>? minimumWindyWindspeed;
-  final Data<Speed>? minimumGaleyWindspeed;
+  final Data<Speed>? windMinBreezy;
+  final Data<Speed>? windMinWindy;
+  final Data<Speed>? windMinGaley;
   final int? wakingHourStart;
   final int? wakingHourEnd;
-  final Data<Temp>? boilingMinTemp;
-  final Data<Temp>? freezingMaxTemp;
+  final Data<Temp>? tempMinBoiling;
+  final Data<Temp>? tempMinHot;
+  final Data<Temp>? tempMinWarm;
+  final Data<Temp>? tempMinMild;
+  final Data<Temp>? tempMinChilly;
+  final Data<UVIndex>? uvMinModerate;
+  final Data<UVIndex>? uvMinHigh;
+  final Data<UVIndex>? uvMinVeryHigh;
 
   @override
   Settings newSettings(Settings old) {
@@ -79,16 +93,22 @@ final class TweakSettingsEvent extends SettingsEvent {
         numberOfHoursPriorRainThreshold: numberOfHoursPriorRainThreshold,
         priorRainThreshold: priorRainThreshold,
         rainProbabilityThreshold: rainProbabilityThreshold,
-        mediumRainThreshold: mediumRainThreshold,
-        heavyRainThreshold: heavyRainThreshold,
+        rainMinMedium: rainMinMedium,
+        rainMinHeavy: rainMinHeavy,
         highHumidityThreshold: highHumidityThreshold,
         maxTemperatureForHighHumidityMist: maxTemperatureForHighHumidityMist,
         minTemperatureForHighHumiditySweat: minTemperatureForHighHumiditySweat,
-        minimumBreezyWindspeed: minimumBreezyWindspeed,
-        minimumWindyWindspeed: minimumWindyWindspeed,
-        minimumGaleyWindspeed: minimumGaleyWindspeed,
-        tempMinBoiling: boilingMinTemp,
-        tempMinChilly: freezingMaxTemp,
+        windMinBreezy: windMinBreezy,
+        windMinWindy: windMinWindy,
+        windMinGaley: windMinGaley,
+        tempMinBoiling: tempMinBoiling,
+        tempMinHot: tempMinHot,
+        tempMinWarm: tempMinWarm,
+        tempMinMild: tempMinMild,
+        tempMinChilly: tempMinChilly,
+        uvMinModerate: uvMinModerate,
+        uvMinHigh: uvMinHigh,
+        uvMinVeryHigh: uvMinVeryHigh,
       ),
       wakingHours: old.wakingHours.copyWith(
         start: wakingHourStart,
