@@ -165,3 +165,132 @@ List<(T, int, int)> buildLikeRanges<T, TElem>(Iterable<TElem> iter, {required T 
   }
   return ranges;
 }
+
+class JsonMigration<TLoad, TMigrateTo> {
+  final JsonMigration<dynamic, TLoad>? base;
+  final TLoad Function(Map<String, dynamic>) load;
+  final TMigrateTo Function(TLoad) migrate;
+
+  JsonMigration._({required this.base, required this.load, required this.migrate});
+
+  JsonMigration.chainStart({required this.load, required this.migrate}) : base = null;
+
+  JsonMigration<TMigrateTo, TNextMigrateTo> chain<TNextMigrateTo>({
+    required TMigrateTo Function(Map<String, dynamic>) load,
+    required TNextMigrateTo Function(TMigrateTo) migrate,
+  }) =>
+      JsonMigration._(base: this, load: load, migrate: migrate);
+
+  TMigrateTo Function(dynamic) get _launderedMigrate => (obj) => migrate(obj as TLoad);
+
+  // ignore: unused_element
+  TOtherMigrateTo Function(dynamic) _chainMigrate<TOtherMigrateTo>(dynamic func) => (x) => func(_launderedMigrate(x));
+
+  // ignore: unused_element
+  TOtherMigrateTo Function(Map<String, dynamic>) _chainLoad<TOtherMigrateTo>(TOtherMigrateTo Function(dynamic) func) => (Map<String, dynamic> x) => func(load(x));
+
+  static TopLevelJsonMigration<TMigrateTo> singleComplete<TMigrateTo>({
+    required String versionKey,
+    bool usesVersionKey = true, // If not set, sets fallbackVersionIfNonePresent to 1.
+    required TMigrateTo Function(Map<String, dynamic>) load,
+    required TMigrateTo Function()? makeDefault,
+  }) {
+    return TopLevelJsonMigration._(
+      versionKey: versionKey,
+      migrationFromVersion: [load],
+      makeDefault: makeDefault,
+      fallbackVersionIfNonePresent: usesVersionKey ? null : 1,
+    );
+  }
+
+  TopLevelJsonMigration<TMigrateTo> complete({
+    required String versionKey,
+    required TMigrateTo Function(Map<String, dynamic>) load,
+    required TMigrateTo Function()? makeDefault,
+    int? fallbackVersionIfNonePresent,
+  }) {
+    final migrationFromVersion = <TMigrateTo Function(Map<String, dynamic>)>[
+      load,
+    ];
+    dynamic version = this;
+    TMigrateTo Function(dynamic) migrationFunc = this._launderedMigrate;
+    // String migrationFuncSig = "${this.migrate}";
+    while (true) {
+      // This recursion needs to call a function on $version instead of defining the closure here,
+      // because if we defined it here it would take the value of $version at the *end* of the loop.
+      // https://github.com/dart-lang/sdk/issues/56991
+      migrationFromVersion.insert(0, version._chainLoad<TMigrateTo>(migrationFunc));
+
+      if (version.base == null) {
+        break;
+      } else {
+        version = version.base!;
+        // migrationFuncSig = "${version.migrate} > $migrationFuncSig";
+        // This recursion needs to call a function on $version instead of defining the closure here,
+        // because if we defined it here it would take the value of $version at the *end* of the loop.
+        // https://github.com/dart-lang/sdk/issues/56991
+        migrationFunc = version._chainMigrate<TMigrateTo>(migrationFunc);
+      }
+    }
+    return TopLevelJsonMigration._(
+      versionKey: versionKey,
+      migrationFromVersion: migrationFromVersion,
+      makeDefault: makeDefault,
+      fallbackVersionIfNonePresent: fallbackVersionIfNonePresent,
+    );
+  }
+}
+
+class TopLevelJsonMigration<TTarget> {
+  final String versionKey;
+  final List<TTarget Function(Map<String, dynamic>)> migrationFromVersion;
+  final TTarget Function()? makeDefault;
+  final int? fallbackVersionIfNonePresent;
+
+  TopLevelJsonMigration._({
+    required this.versionKey,
+    required this.migrationFromVersion,
+    required this.makeDefault,
+    this.fallbackVersionIfNonePresent,
+  });
+
+  TTarget _makeDefaultOrThrow(String msg) {
+    if (makeDefault != null) {
+      print(msg);
+      return makeDefault!();
+    } else {
+      throw msg;
+    }
+  }
+
+  TTarget fromJson(Map<String, dynamic> data) {
+    if (!data.containsKey(versionKey) && fallbackVersionIfNonePresent == null) {
+      return _makeDefaultOrThrow("TopLevelJsonMigration failed, version key not present and no fallback");
+    }
+    final version = data[versionKey];
+    late final int intVersion;
+    switch (version) {
+      case int v:
+        intVersion = v;
+      default:
+        if (fallbackVersionIfNonePresent != null) {
+          intVersion = fallbackVersionIfNonePresent!;
+        } else {
+          return _makeDefaultOrThrow("TopLevelJsonMigration failed, version key '$version' not an integer");
+        }
+    }
+
+    if (intVersion > 0 && intVersion <= migrationFromVersion.length) {
+      final migration = migrationFromVersion[intVersion - 1];
+      try {
+        return migration(data);
+      } catch (ex, stacktrace) {
+        return _makeDefaultOrThrow(
+          "TopLevelJsonMigration failed, exception during migration from JSON data version $intVersion to max version ${migrationFromVersion.length}:\n$ex\n$stacktrace",
+        );
+      }
+    } else {
+      return _makeDefaultOrThrow("TopLevelJsonMigration failed, JSON $version out of bounds from [1..${migrationFromVersion.length}]");
+    }
+  }
+}
