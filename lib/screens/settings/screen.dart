@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:turnip_rundown/data/weather/insights.dart';
+import 'package:turnip_rundown/data/weather_data_bank_repository.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:turnip_rundown/data/http_cache_repository.dart';
 import 'package:turnip_rundown/data/settings/repository.dart';
@@ -273,18 +274,7 @@ class RangeConfigPopupState<TUnit extends Unit<TUnit>> extends State<RangeConfig
                 color: Colors.grey[700],
               ),
             ),
-            // Material(
-            //   shape: ContinuousRectangleBorder(
-            //     borderRadius: BorderRadius.circular(28.0),
-            //   ),
             DecoratedBox(
-              //   decoration: ShapeDecoration(
-              //     shape: RoundedRectangleBorder(
-              //       borderRadius: BorderRadius.all(Radius.circular(10.0)),
-              //     ),
-              //     // color: Colors.black,
-              //   ),
-
               decoration: BoxDecoration(
                 border: Border.all(
                   color: Colors.grey,
@@ -334,11 +324,45 @@ class RangeConfigPopupState<TUnit extends Unit<TUnit>> extends State<RangeConfig
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
 
-  Widget _settingsHeader(String text) {
-    return Text(
+  Widget _settingsHeader(BuildContext context, String text, {String? info}) {
+    final title = Text(
       text,
       style: const TextStyle(fontWeight: FontWeight.w400, fontSize: 20),
     );
+    if (info == null) {
+      return title;
+    } else {
+      return Row(
+        children: [
+          title,
+          const SizedBox(
+            width: 4.0,
+          ),
+          IconButton(
+            onPressed: () {
+              showGeneralDialog(
+                context: context,
+                pageBuilder: (context, _, __) {
+                  return AlertDialog(
+                    title: Text(text),
+                    content: Text(info),
+                    actions: <Widget>[
+                      TextButton(
+                        child: const Text('Close'),
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                        },
+                      ),
+                    ],
+                  );
+                },
+              );
+            },
+            icon: const Icon(Icons.info_outline),
+          ),
+        ],
+      );
+    }
   }
 
   Widget _settingsTile(
@@ -423,7 +447,7 @@ class SettingsScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _settingsHeader("Weather Backend"),
+                  _settingsHeader(context, "Weather Backend"),
                   _settingsTile(
                     context,
                     title: const Text("Backend"),
@@ -462,7 +486,7 @@ class SettingsScreen extends StatelessWidget {
                     ),
                   ),
 
-                  _settingsHeader("Display Units"),
+                  _settingsHeader(context, "Display Units"),
                   _settingsTile(
                     context,
                     title: const Text("Temperature"),
@@ -510,12 +534,15 @@ class SettingsScreen extends StatelessWidget {
                   //     },
                   //   ),
                   // ),
-                  _settingsHeader("Waking Hours"),
+                  _settingsHeader(
+                    context,
+                    "Waking Hours",
+                    info: "When you open the app between your wake-up and bed times, it will automatically show you the weather for now til bedtime.",
+                  ),
                   _settingsTile(
                     context,
                     title: const Text("Wake-Up Time"),
-                    description: const Text(
-                        "The time you typically wake up. When you open the app between your wake-up and bed times, it will automatically show you the weather for now til bedtime. Whole hours only, minutes are ignored."),
+                    description: const Text("The time you typically wake up. Whole hours only, minutes are ignored."),
                     input: TextButton(
                       child: Text(jmFormatHour(state.wakingHours.start)),
                       onPressed: () async {
@@ -540,7 +567,7 @@ class SettingsScreen extends StatelessWidget {
                       },
                     ),
                   ),
-                  _settingsHeader("Insight Parameters"),
+                  _settingsHeader(context, "Insight Parameters"),
                   _settingsTile(
                     context,
                     title: const Text("Use Estimated Wet Bulb Temperature"),
@@ -794,28 +821,6 @@ class SettingsScreen extends StatelessWidget {
                   ),
                   _settingsTile(
                     context,
-                    title: const Text("Rain Threshold - Medium"),
-                    description: const Text("Predicted rainfall above this value shows a Medium Rain insight, and Light Rain otherwise."),
-                    input: DataPickerWidget(
-                      initial: state.weatherConfig.rainMinMedium,
-                      onChanged: (value) {
-                        context.read<SettingsBloc>().add(TweakSettingsEvent(rainMinMedium: value));
-                      },
-                    ),
-                  ),
-                  _settingsTile(
-                    context,
-                    title: const Text("Rain Threshold - Heavy"),
-                    description: const Text("Predicted rainfall below this value shows a Heavy Rain insight."),
-                    input: DataPickerWidget(
-                      initial: state.weatherConfig.rainMinHeavy,
-                      onChanged: (value) {
-                        context.read<SettingsBloc>().add(TweakSettingsEvent(rainMinHeavy: value));
-                      },
-                    ),
-                  ),
-                  _settingsTile(
-                    context,
                     title: const Text("High Humidity Threshold"),
                     description: const Text(
                       "Humidity higher than this is counted as 'high', showing a Uncomfortable or Sweaty insight.",
@@ -860,7 +865,7 @@ class SettingsScreen extends StatelessWidget {
                   _settingsButton(
                     child: const Text("Check API cache"),
                     onPressed: () async {
-                      final stats = await RepositoryProvider.of<HttpCacheRepository>(context).getStats();
+                      final stats = await RepositoryProvider.of<WeatherDataBankRepository>(context).getStats();
                       if (context.mounted) {
                         showDialog(
                           context: context,
@@ -879,7 +884,7 @@ class SettingsScreen extends StatelessWidget {
                   _settingsButton(
                     child: const Text("Reset API cache"),
                     onPressed: () {
-                      RepositoryProvider.of<HttpCacheRepository>(context).resetStats();
+                      RepositoryProvider.of<WeatherDataBankRepository>(context).resetStats();
                     },
                   ),
                 ],
