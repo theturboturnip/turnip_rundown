@@ -375,10 +375,15 @@ class SettingsScreen extends StatelessWidget {
           ),
           // IconButton(onPressed: () {}, icon: Icon(Icons.info_outline)),
           if (input != null)
-            Container(
-              constraints: const BoxConstraints(minWidth: 100, maxWidth: 300),
-              alignment: Alignment.centerRight,
-              child: input,
+            IntrinsicWidth(
+              child: Container(
+                constraints: const BoxConstraints(
+                  minWidth: 180,
+                  maxWidth: 300,
+                ),
+                alignment: Alignment.centerRight,
+                child: input,
+              ),
             ),
         ],
       ),
