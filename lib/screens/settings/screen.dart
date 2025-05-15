@@ -3,6 +3,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:turnip_rundown/data/weather/insights.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:turnip_rundown/data/http_cache_repository.dart';
 import 'package:turnip_rundown/data/settings/repository.dart';
@@ -173,13 +174,17 @@ Widget percentDataPickerSlider(Data<Percent> value, void Function(Data<Percent> 
 class RangeConfigPopup<TUnit extends Unit<TUnit>> extends StatefulWidget {
   final List<(String, IconData)?> stepNames; // The name of each step. Contains one more element than the thresholds
   final List<Data<TUnit>> initialThresholds;
+  final Widget title;
   final FutureOr<void> Function(List<Data<TUnit>>) updateThresholds;
+  final List<Data<TUnit>> resetThresholds;
 
   const RangeConfigPopup({
     super.key,
+    required this.title,
     required this.stepNames,
     required this.initialThresholds,
     required this.updateThresholds,
+    required this.resetThresholds,
   });
 
   @override
@@ -212,6 +217,14 @@ class RangeConfigPopupState<TUnit extends Unit<TUnit>> extends State<RangeConfig
     await widget.updateThresholds(wipThresholds);
   }
 
+  Future<void> resetThresholds() async {
+    setState(() {
+      for (final index in Iterable.generate(wipThresholds.length)) {
+        wipThresholds[index] = widget.resetThresholds[index];
+      }
+    });
+  }
+
   Widget _labelWidget((String, IconData)? label) {
     return Padding(
         padding: const EdgeInsets.all(64.0),
@@ -233,7 +246,19 @@ class RangeConfigPopupState<TUnit extends Unit<TUnit>> extends State<RangeConfig
 
   @override
   Widget build(BuildContext context) {
-    final widgets = <Widget>[];
+    final widgets = <Widget>[
+      // Row(children: [
+      //   DefaultTextStyle.merge(
+      //     style: Theme.of(context).textTheme.headlineLarge,
+      //     child: widget.title,
+      //   ),
+      //   const Spacer(),
+      //   TextButton(
+      //     onPressed: resetThresholds,
+      //     child: const Text("Reset"),
+      //   ),
+      // ]),
+    ];
     for (final (index, threshold) in wipThresholds.indexed) {
       final label = widget.stepNames[index];
       widgets.add(_labelWidget(label));
@@ -285,9 +310,22 @@ class RangeConfigPopupState<TUnit extends Unit<TUnit>> extends State<RangeConfig
       );
     }
     widgets.add(_labelWidget(widget.stepNames.last));
-    return SingleChildScrollView(
-      child: Column(
-        children: widgets,
+    return Scaffold(
+      primary: false,
+      appBar: AppBar(
+        title: widget.title,
+        actions: [
+          TextButton(
+            onPressed: resetThresholds,
+            child: const Text("Reset"),
+          ),
+        ],
+        primary: false,
+      ),
+      body: SingleChildScrollView(
+        child: Column(
+          children: widgets,
+        ),
       ),
     );
   }
@@ -521,6 +559,9 @@ class SettingsScreen extends StatelessWidget {
                         builder: (context) {
                           return Dialog(
                             child: RangeConfigPopup(
+                              title: const Text(
+                                "Temperature",
+                              ),
                               stepNames: const [
                                 ("Freezing", Icons.snowboarding),
                                 ("Chilly", Icons.snowboarding),
@@ -547,6 +588,13 @@ class SettingsScreen extends StatelessWidget {
                                       ),
                                     );
                               },
+                              resetThresholds: [
+                                WeatherInsightConfigV2.initial.tempMinChilly,
+                                WeatherInsightConfigV2.initial.tempMinMild,
+                                WeatherInsightConfigV2.initial.tempMinWarm,
+                                WeatherInsightConfigV2.initial.tempMinHot,
+                                WeatherInsightConfigV2.initial.tempMinBoiling,
+                              ],
                             ),
                           );
                         },
@@ -563,6 +611,9 @@ class SettingsScreen extends StatelessWidget {
                         builder: (context) {
                           return Dialog(
                             child: RangeConfigPopup(
+                              title: const Text(
+                                "UV Level",
+                              ),
                               stepNames: const [
                                 null,
                                 ("Mild UV", Icons.snowboarding),
@@ -583,6 +634,11 @@ class SettingsScreen extends StatelessWidget {
                                       ),
                                     );
                               },
+                              resetThresholds: [
+                                WeatherInsightConfigV2.initial.uvMinModerate,
+                                WeatherInsightConfigV2.initial.uvMinHigh,
+                                WeatherInsightConfigV2.initial.uvMinVeryHigh,
+                              ],
                             ),
                           );
                         },
@@ -599,6 +655,7 @@ class SettingsScreen extends StatelessWidget {
                         builder: (context) {
                           return Dialog(
                             child: RangeConfigPopup(
+                              title: const Text("Wind Speed"),
                               stepNames: const [
                                 null,
                                 ("Breezy", Icons.snowboarding),
@@ -619,6 +676,11 @@ class SettingsScreen extends StatelessWidget {
                                       ),
                                     );
                               },
+                              resetThresholds: [
+                                WeatherInsightConfigV2.initial.windMinBreezy,
+                                WeatherInsightConfigV2.initial.windMinWindy,
+                                WeatherInsightConfigV2.initial.windMinGaley,
+                              ],
                             ),
                           );
                         },
@@ -693,6 +755,7 @@ class SettingsScreen extends StatelessWidget {
                         builder: (context) {
                           return Dialog(
                             child: RangeConfigPopup(
+                              title: const Text("Rain"),
                               stepNames: const [
                                 ("Sprinkles", Icons.snowboarding),
                                 ("Light", Icons.snowboarding),
@@ -713,6 +776,11 @@ class SettingsScreen extends StatelessWidget {
                                       ),
                                     );
                               },
+                              resetThresholds: [
+                                WeatherInsightConfigV2.initial.rainMinLight,
+                                WeatherInsightConfigV2.initial.rainMinMedium,
+                                WeatherInsightConfigV2.initial.rainMinHeavy,
+                              ],
                             ),
                           );
                         },
