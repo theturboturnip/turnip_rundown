@@ -268,7 +268,7 @@ class WeatherInsightConfigV2 extends Equatable {
     uvMinVeryHigh: Data(8.0, UVIndex.uv),
   );
 
-  static WeatherInsightConfigV2 migrateFromJson(Map<String, dynamic> json) => weatherInsightLoader.fromJson(json);
+  static WeatherInsightConfigV2 migrateFromJson(Map<String, dynamic>? json) => (json == null) ? WeatherInsightConfigV2.initial : weatherInsightLoader.fromJson(json);
 
   factory WeatherInsightConfigV2.fromJsonUnversioned(Map<String, dynamic> json) => _$WeatherInsightConfigV2FromJson(json);
   Map<String, dynamic> toJson() => _$WeatherInsightConfigV2ToJson(this);
