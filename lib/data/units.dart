@@ -44,10 +44,10 @@ enum Temp implements Unit<Temp> {
 
   @override
   String get display => switch (this) {
-        Temp.farenheit => "°F",
-        Temp.celsius => "°C",
-        Temp.kelvin => "°K",
-      };
+    Temp.farenheit => "°F",
+    Temp.celsius => "°C",
+    Temp.kelvin => "°K",
+  };
 
   @override
   Map<Temp, String> get toJson => _$TempEnumMap;
@@ -89,10 +89,10 @@ enum Speed implements Unit<Speed> {
 
   @override
   String get display => switch (this) {
-        Speed.kmPerH => "kmph",
-        Speed.mPerS => "m/s",
-        Speed.milesPerHour => "mph",
-      };
+    Speed.kmPerH => "kmph",
+    Speed.mPerS => "m/s",
+    Speed.milesPerHour => "mph",
+  };
 
   @override
   Map<Speed, String> get toJson => _$SpeedEnumMap;
@@ -121,9 +121,9 @@ enum Percent implements Unit<Percent> {
 
   @override
   String get display => switch (this) {
-        Percent.outOf1 => "/1.0",
-        Percent.outOf100 => "%",
-      };
+    Percent.outOf1 => "/1.0",
+    Percent.outOf100 => "%",
+  };
 
   @override
   Map<Percent, String> get toJson => _$PercentEnumMap;
@@ -145,9 +145,9 @@ enum Pressure implements Unit<Pressure> {
 
   @override
   String get display => switch (this) {
-        Pressure.millibars => "mbar",
-        Pressure.hectopascals => "hPa",
-      };
+    Pressure.millibars => "mbar",
+    Pressure.hectopascals => "hPa",
+  };
 
   @override
   Map<Pressure, String> get toJson => _$PressureEnumMap;
@@ -224,11 +224,11 @@ enum Length implements Unit<Length> {
 
   @override
   String get display => switch (this) {
-        Length.m => "m",
-        Length.cm => "cm",
-        Length.mm => "mm",
-        Length.inch => "in",
-      };
+    Length.m => "m",
+    Length.cm => "cm",
+    Length.mm => "mm",
+    Length.inch => "in",
+  };
 
   @override
   Map<Length, String> get toJson => _$LengthEnumMap;
@@ -253,8 +253,8 @@ enum UVIndex implements Unit<UVIndex> {
 
   @override
   String get display => switch (this) {
-        UVIndex.uv => "UV",
-      };
+    UVIndex.uv => "UV",
+  };
 
   @override
   Map<UVIndex, String> get toJson => _$UVIndexEnumMap;
@@ -276,15 +276,19 @@ class UnitConverter<T extends Unit> implements JsonConverter<T, Object?> {
     TA? unknownValue,
   }) {
     if (source == null) {
-      throw ArgumentError('A value must be provided. Supported values: '
-          '${enumValues.values.join(', ')}');
+      throw ArgumentError(
+        'A value must be provided. Supported values: '
+        '${enumValues.values.join(', ')}',
+      );
     }
 
     final value = enumValues.entries.singleWhereOrNull((e) => e.value == source)?.key;
 
     if (value == null && unknownValue == null) {
-      throw ArgumentError('`$source` is not one of the supported values: '
-          '${enumValues.values.join(', ')}');
+      throw ArgumentError(
+        '`$source` is not one of the supported values: '
+        '${enumValues.values.join(', ')}',
+      );
     }
     return (value ?? unknownValue)!;
   }

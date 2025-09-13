@@ -7,45 +7,40 @@ part of 'units.dart';
 // **************************************************************************
 
 Data<TUnit> _$DataFromJson<TUnit extends Unit<TUnit>>(
-        Map<String, dynamic> json) =>
-    Data<TUnit>(
-      (json['value'] as num).toDouble(),
-      UnitConverter<TUnit>().fromJson(json['unit']),
-    );
+  Map<String, dynamic> json,
+) => Data<TUnit>(
+  (json['value'] as num).toDouble(),
+  UnitConverter<TUnit>().fromJson(json['unit']),
+);
 
 Map<String, dynamic> _$DataToJson<TUnit extends Unit<TUnit>>(
-        Data<TUnit> instance) =>
-    <String, dynamic>{
-      'value': instance._value,
-      'unit': UnitConverter<TUnit>().toJson(instance._unit),
-    };
+  Data<TUnit> instance,
+) => <String, dynamic>{
+  'value': instance._value,
+  'unit': UnitConverter<TUnit>().toJson(instance._unit),
+};
 
 DataSeries<TUnit> _$DataSeriesFromJson<TUnit extends Unit<TUnit>>(
-        Map<String, dynamic> json) =>
-    DataSeries<TUnit>(
-      (json['values'] as List<dynamic>)
-          .map((e) => (e as num).toDouble())
-          .toList(),
-      UnitConverter<TUnit>().fromJson(json['unit']),
-    );
+  Map<String, dynamic> json,
+) => DataSeries<TUnit>(
+  (json['values'] as List<dynamic>).map((e) => (e as num).toDouble()).toList(),
+  UnitConverter<TUnit>().fromJson(json['unit']),
+);
 
 Map<String, dynamic> _$DataSeriesToJson<TUnit extends Unit<TUnit>>(
-        DataSeries<TUnit> instance) =>
-    <String, dynamic>{
-      'values': instance._values,
-      'unit': UnitConverter<TUnit>().toJson(instance._unit),
-    };
+  DataSeries<TUnit> instance,
+) => <String, dynamic>{
+  'values': instance._values,
+  'unit': UnitConverter<TUnit>().toJson(instance._unit),
+};
 
 Coordinate _$CoordinateFromJson(Map<String, dynamic> json) => Coordinate(
-      lat: (json['lat'] as num).toDouble(),
-      long: (json['long'] as num).toDouble(),
-    );
+  lat: (json['lat'] as num).toDouble(),
+  long: (json['long'] as num).toDouble(),
+);
 
 Map<String, dynamic> _$CoordinateToJson(Coordinate instance) =>
-    <String, dynamic>{
-      'lat': instance.lat,
-      'long': instance.long,
-    };
+    <String, dynamic>{'lat': instance.lat, 'long': instance.long};
 
 const _$TempEnumMap = {
   Temp.farenheit: 'farenheit',
@@ -69,9 +64,7 @@ const _$PressureEnumMap = {
   Pressure.hectopascals: 'hectopascals',
 };
 
-const _$SolarRadiationEnumMap = {
-  SolarRadiation.wPerM2: 'wPerM2',
-};
+const _$SolarRadiationEnumMap = {SolarRadiation.wPerM2: 'wPerM2'};
 
 const _$LengthEnumMap = {
   Length.m: 'm',
@@ -80,6 +73,4 @@ const _$LengthEnumMap = {
   Length.inch: 'inch',
 };
 
-const _$UVIndexEnumMap = {
-  UVIndex.uv: 'uv',
-};
+const _$UVIndexEnumMap = {UVIndex.uv: 'uv'};

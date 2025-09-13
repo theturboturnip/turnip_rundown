@@ -95,23 +95,22 @@ class WeatherInsightConfigV1 {
     Data<Speed>? minimumGaleyWindspeed,
     Data<Temp>? boilingMinTemp,
     Data<Temp>? freezingMaxTemp,
-  }) =>
-      WeatherInsightConfigV1(
-        useEstimatedWetBulbTemp: useEstimatedWetBulbTemp ?? this.useEstimatedWetBulbTemp,
-        numberOfHoursPriorRainThreshold: numberOfHoursPriorRainThreshold ?? this.numberOfHoursPriorRainThreshold,
-        priorRainThreshold: priorRainThreshold ?? this.priorRainThreshold,
-        rainProbabilityThreshold: rainProbabilityThreshold ?? this.rainProbabilityThreshold,
-        mediumRainThreshold: mediumRainThreshold ?? this.mediumRainThreshold,
-        heavyRainThreshold: heavyRainThreshold ?? this.heavyRainThreshold,
-        highHumidityThreshold: highHumidityThreshold ?? this.highHumidityThreshold,
-        maxTemperatureForHighHumidityMist: maxTemperatureForHighHumidityMist ?? this.maxTemperatureForHighHumidityMist,
-        minTemperatureForHighHumiditySweat: minTemperatureForHighHumiditySweat ?? this.minTemperatureForHighHumiditySweat,
-        minimumBreezyWindspeed: minimumBreezyWindspeed ?? this.minimumBreezyWindspeed,
-        minimumWindyWindspeed: minimumWindyWindspeed ?? this.minimumWindyWindspeed,
-        minimumGaleyWindspeed: minimumGaleyWindspeed ?? this.minimumGaleyWindspeed,
-        boilingMinTemp: boilingMinTemp ?? this.boilingMinTemp,
-        freezingMaxTemp: freezingMaxTemp ?? this.freezingMaxTemp,
-      );
+  }) => WeatherInsightConfigV1(
+    useEstimatedWetBulbTemp: useEstimatedWetBulbTemp ?? this.useEstimatedWetBulbTemp,
+    numberOfHoursPriorRainThreshold: numberOfHoursPriorRainThreshold ?? this.numberOfHoursPriorRainThreshold,
+    priorRainThreshold: priorRainThreshold ?? this.priorRainThreshold,
+    rainProbabilityThreshold: rainProbabilityThreshold ?? this.rainProbabilityThreshold,
+    mediumRainThreshold: mediumRainThreshold ?? this.mediumRainThreshold,
+    heavyRainThreshold: heavyRainThreshold ?? this.heavyRainThreshold,
+    highHumidityThreshold: highHumidityThreshold ?? this.highHumidityThreshold,
+    maxTemperatureForHighHumidityMist: maxTemperatureForHighHumidityMist ?? this.maxTemperatureForHighHumidityMist,
+    minTemperatureForHighHumiditySweat: minTemperatureForHighHumiditySweat ?? this.minTemperatureForHighHumiditySweat,
+    minimumBreezyWindspeed: minimumBreezyWindspeed ?? this.minimumBreezyWindspeed,
+    minimumWindyWindspeed: minimumWindyWindspeed ?? this.minimumWindyWindspeed,
+    minimumGaleyWindspeed: minimumGaleyWindspeed ?? this.minimumGaleyWindspeed,
+    boilingMinTemp: boilingMinTemp ?? this.boilingMinTemp,
+    freezingMaxTemp: freezingMaxTemp ?? this.freezingMaxTemp,
+  );
 }
 
 @JsonSerializable()
@@ -295,66 +294,66 @@ class WeatherInsightConfigV2 extends Equatable {
     Data<UVIndex>? uvMinModerate,
     Data<UVIndex>? uvMinHigh,
     Data<UVIndex>? uvMinVeryHigh,
-  }) =>
-      WeatherInsightConfigV2(
-        useEstimatedWetBulbTemp: useEstimatedWetBulbTemp ?? this.useEstimatedWetBulbTemp,
-        numberOfHoursPriorRainThreshold: numberOfHoursPriorRainThreshold ?? this.numberOfHoursPriorRainThreshold,
-        priorRainThreshold: priorRainThreshold ?? this.priorRainThreshold,
-        rainProbabilityThreshold: rainProbabilityThreshold ?? this.rainProbabilityThreshold,
-        rainMinLight: rainMinLight ?? this.rainMinLight,
-        rainMinMedium: rainMinMedium ?? this.rainMinMedium,
-        rainMinHeavy: rainMinHeavy ?? this.rainMinHeavy,
-        highHumidityThreshold: highHumidityThreshold ?? this.highHumidityThreshold,
-        maxTemperatureForHighHumidityMist: maxTemperatureForHighHumidityMist ?? this.maxTemperatureForHighHumidityMist,
-        minTemperatureForHighHumiditySweat: minTemperatureForHighHumiditySweat ?? this.minTemperatureForHighHumiditySweat,
-        windMinBreezy: windMinBreezy ?? this.windMinBreezy,
-        windMinWindy: windMinWindy ?? this.windMinWindy,
-        windMinGaley: windMinGaley ?? this.windMinGaley,
-        tempMinBoiling: tempMinBoiling ?? this.tempMinBoiling,
-        tempMinHot: tempMinHot ?? this.tempMinHot,
-        tempMinWarm: tempMinWarm ?? this.tempMinWarm,
-        tempMinMild: tempMinMild ?? this.tempMinMild,
-        tempMinChilly: tempMinChilly ?? this.tempMinChilly,
-        uvMinModerate: uvMinModerate ?? this.uvMinModerate,
-        uvMinHigh: uvMinHigh ?? this.uvMinHigh,
-        uvMinVeryHigh: uvMinVeryHigh ?? this.uvMinVeryHigh,
-      );
+  }) => WeatherInsightConfigV2(
+    useEstimatedWetBulbTemp: useEstimatedWetBulbTemp ?? this.useEstimatedWetBulbTemp,
+    numberOfHoursPriorRainThreshold: numberOfHoursPriorRainThreshold ?? this.numberOfHoursPriorRainThreshold,
+    priorRainThreshold: priorRainThreshold ?? this.priorRainThreshold,
+    rainProbabilityThreshold: rainProbabilityThreshold ?? this.rainProbabilityThreshold,
+    rainMinLight: rainMinLight ?? this.rainMinLight,
+    rainMinMedium: rainMinMedium ?? this.rainMinMedium,
+    rainMinHeavy: rainMinHeavy ?? this.rainMinHeavy,
+    highHumidityThreshold: highHumidityThreshold ?? this.highHumidityThreshold,
+    maxTemperatureForHighHumidityMist: maxTemperatureForHighHumidityMist ?? this.maxTemperatureForHighHumidityMist,
+    minTemperatureForHighHumiditySweat: minTemperatureForHighHumiditySweat ?? this.minTemperatureForHighHumiditySweat,
+    windMinBreezy: windMinBreezy ?? this.windMinBreezy,
+    windMinWindy: windMinWindy ?? this.windMinWindy,
+    windMinGaley: windMinGaley ?? this.windMinGaley,
+    tempMinBoiling: tempMinBoiling ?? this.tempMinBoiling,
+    tempMinHot: tempMinHot ?? this.tempMinHot,
+    tempMinWarm: tempMinWarm ?? this.tempMinWarm,
+    tempMinMild: tempMinMild ?? this.tempMinMild,
+    tempMinChilly: tempMinChilly ?? this.tempMinChilly,
+    uvMinModerate: uvMinModerate ?? this.uvMinModerate,
+    uvMinHigh: uvMinHigh ?? this.uvMinHigh,
+    uvMinVeryHigh: uvMinVeryHigh ?? this.uvMinVeryHigh,
+  );
 
   @override
   List<Object?> get props => [
-        useEstimatedWetBulbTemp,
-        numberOfHoursPriorRainThreshold,
-        priorRainThreshold,
-        rainProbabilityThreshold,
-        rainMinMedium,
-        rainMinHeavy,
-        highHumidityThreshold,
-        maxTemperatureForHighHumidityMist,
-        minTemperatureForHighHumiditySweat,
-        windMinBreezy,
-        windMinWindy,
-        windMinGaley,
-        tempMinBoiling,
-        tempMinHot,
-        tempMinWarm,
-        tempMinMild,
-        tempMinChilly,
-        uvMinModerate,
-        uvMinHigh,
-        uvMinVeryHigh,
-      ];
+    useEstimatedWetBulbTemp,
+    numberOfHoursPriorRainThreshold,
+    priorRainThreshold,
+    rainProbabilityThreshold,
+    rainMinMedium,
+    rainMinHeavy,
+    highHumidityThreshold,
+    maxTemperatureForHighHumidityMist,
+    minTemperatureForHighHumiditySweat,
+    windMinBreezy,
+    windMinWindy,
+    windMinGaley,
+    tempMinBoiling,
+    tempMinHot,
+    tempMinWarm,
+    tempMinMild,
+    tempMinChilly,
+    uvMinModerate,
+    uvMinHigh,
+    uvMinVeryHigh,
+  ];
 }
 
-final weatherInsightLoader = const JsonMigration.chainStart(
-  load: WeatherInsightConfigV1.fromJsonUnversioned,
-  migrate: WeatherInsightConfigV2.fromV1,
-).complete(
-  load: WeatherInsightConfigV2.fromJsonUnversioned,
-  versionKey: "version",
-  // Older JSONs didn't have a version key
-  fallbackVersionIfNonePresent: 1,
-  makeDefault: () => WeatherInsightConfigV2.initial,
-);
+final weatherInsightLoader =
+    const JsonMigration.chainStart(
+      load: WeatherInsightConfigV1.fromJsonUnversioned,
+      migrate: WeatherInsightConfigV2.fromV1,
+    ).complete(
+      load: WeatherInsightConfigV2.fromJsonUnversioned,
+      versionKey: "version",
+      // Older JSONs didn't have a version key
+      fallbackVersionIfNonePresent: 1,
+      makeDefault: () => WeatherInsightConfigV2.initial,
+    );
 
 class ActiveHours {
   ActiveHours(this._hours);
@@ -412,7 +411,7 @@ enum EventInsightType {
   // coolMist, // TODO this isn't really relevant. replace with low vis?
 
   // TODO replace this with a separate "is-sunny" boolean? exact time ranges matter less?
-  sunny;
+  sunny,
 }
 
 class LevelMap<TLevel, TUnit extends Unit<TUnit>> {
@@ -422,7 +421,7 @@ class LevelMap<TLevel, TUnit extends Unit<TUnit>> {
   final List<(Data<TUnit>, TLevel)> linearLevelMap;
 
   LevelMap({required this.min, required Map<TLevel, Data<TUnit>> minValueForLevel})
-      : linearLevelMap = minValueForLevel.entries.map((entry) => (entry.value, entry.key)).sortedBy((elem) => elem.$1);
+    : linearLevelMap = minValueForLevel.entries.map((entry) => (entry.value, entry.key)).sortedBy((elem) => elem.$1);
 
   TLevel levelFor(Data<TUnit> value) {
     for (final (nextVal, nextLevel) in linearLevelMap.reversed) {
@@ -543,7 +542,7 @@ enum Heat {
   // <25C
   hot,
   // maximum
-  boiling;
+  boiling,
 }
 
 class HeatLevelInsight {
@@ -552,16 +551,12 @@ class HeatLevelInsight {
   final LevelsInsight<Heat?> levels;
 
   HeatLevelInsight(DataSeries<Temp> dataPlusOne, LevelMap<Heat?, Temp> levelMap)
-      : min = dataPlusOne.datas().min,
-        max = dataPlusOne.datas().max,
-        levels = LevelsInsight.levelRangesFromData(dataPlusOne, levelMap);
+    : min = dataPlusOne.datas().min,
+      max = dataPlusOne.datas().max,
+      levels = LevelsInsight.levelRangesFromData(dataPlusOne, levelMap);
 }
 
-enum Wind {
-  breezy,
-  windy,
-  galey;
-}
+enum Wind { breezy, windy, galey }
 
 LevelsInsight<Wind?> windLevelInsight(DataSeries<Speed> dataPlusOne, LevelMap<Wind?, Speed> levelMap) => LevelsInsight.levelRangesFromData(dataPlusOne, levelMap);
 
@@ -569,7 +564,7 @@ enum Precipitation {
   sprinkles,
   lightRain,
   mediumRain,
-  heavyRain; // TODO include snow inside here?
+  heavyRain, // TODO include snow inside here?
 }
 
 // EventInsightType.sprinkles: ("Sprinkles?", Symbols.sprinkler),
@@ -607,7 +602,7 @@ enum UvLevel {
   // low,
   moderate,
   high,
-  veryHigh;
+  veryHigh,
 }
 
 LevelsInsight<UvLevel?> uvLevelInsight(DataSeries<UVIndex> dataPlusOne, LevelMap<UvLevel?, UVIndex> levelMap) => LevelsInsight.levelRangesFromData(dataPlusOne, levelMap);
@@ -643,49 +638,52 @@ class WeatherInsightsPerLocation {
     final sublistEndExcl = maxLookahead + 1;
 
     final heatInsight = HeatLevelInsight(
-        futureTemp.sublist(0, sublistEndExcl),
-        LevelMap(
-          min: Heat.freezing,
-          minValueForLevel: {
-            // for compatibility with previous setup, use this:
-            // null: config.freezingMaxTemp,
-            // for new setup use this:
-            Heat.chilly: config.tempMinChilly,
-            Heat.mild: config.tempMinMild,
-            Heat.warm: config.tempMinWarm,
-            Heat.hot: config.tempMinHot,
+      futureTemp.sublist(0, sublistEndExcl),
+      LevelMap(
+        min: Heat.freezing,
+        minValueForLevel: {
+          // for compatibility with previous setup, use this:
+          // null: config.freezingMaxTemp,
+          // for new setup use this:
+          Heat.chilly: config.tempMinChilly,
+          Heat.mild: config.tempMinMild,
+          Heat.warm: config.tempMinWarm,
+          Heat.hot: config.tempMinHot,
 
-            // this should always be there
-            Heat.boiling: config.tempMinBoiling,
-          },
-        ));
+          // this should always be there
+          Heat.boiling: config.tempMinBoiling,
+        },
+      ),
+    );
     final precipInsight = precipitationLevelInsight(
       config,
       weather.precipitationProb.sublist(0, sublistEndExcl),
       weather.precipitation.sublist(0, sublistEndExcl),
     );
     final windInsight = windLevelInsight(
-        weather.windspeed.sublist(0, sublistEndExcl),
-        LevelMap(
-          min: null,
-          minValueForLevel: {
-            Wind.breezy: config.windMinBreezy,
-            Wind.windy: config.windMinWindy,
-            Wind.galey: config.windMinGaley,
-          },
-        ));
+      weather.windspeed.sublist(0, sublistEndExcl),
+      LevelMap(
+        min: null,
+        minValueForLevel: {
+          Wind.breezy: config.windMinBreezy,
+          Wind.windy: config.windMinWindy,
+          Wind.galey: config.windMinGaley,
+        },
+      ),
+    );
     final uvInsight = uvLevelInsight(
-        weather.uvIndex.sublist(0, sublistEndExcl),
-        LevelMap(
-          min: null,
-          minValueForLevel: {
-            // https://www.cancerresearchuk.org/about-cancer/causes-of-cancer/sun-uv-and-cancer/the-uv-index-and-sunburn-risk
-            // UvLevel.low: const Data(1.0, UVIndex.uv),
-            UvLevel.moderate: config.uvMinModerate,
-            UvLevel.high: config.uvMinHigh,
-            UvLevel.veryHigh: config.uvMinVeryHigh,
-          },
-        ));
+      weather.uvIndex.sublist(0, sublistEndExcl),
+      LevelMap(
+        min: null,
+        minValueForLevel: {
+          // https://www.cancerresearchuk.org/about-cancer/causes-of-cancer/sun-uv-and-cancer/the-uv-index-and-sunburn-risk
+          // UvLevel.low: const Data(1.0, UVIndex.uv),
+          UvLevel.moderate: config.uvMinModerate,
+          UvLevel.high: config.uvMinHigh,
+          UvLevel.veryHigh: config.uvMinVeryHigh,
+        },
+      ),
+    );
 
     final futureRainfallMM = weather.precipitation.valuesAs(Length.mm).mapIndexed(
       (index, len) {

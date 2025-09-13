@@ -69,11 +69,13 @@ final class RefreshPredictedWeather {
 
 class WeatherPredictBloc extends Bloc<RefreshPredictedWeather, WeatherPredictState> {
   WeatherPredictBloc(SettingsRepository settings, WeatherDataBankRepository weather)
-      : super(const WeatherPredictState(
+    : super(
+        const WeatherPredictState(
           config: WeatherPredictConfig(legend: [], hoursToLookAhead: 24, insightConfig: WeatherInsightConfigV2.initial),
           isLoading: true,
           mostRecentWeatherResult: null,
-        )) {
+        ),
+      ) {
     // Set a timer: every minute, if any of the weathers we've already fetched are out of date (i.e. we're no longer inside the first hour of the data)
     // then ask to refresh the predicted weather.
     timer = Timer(const Duration(minutes: 1), () {
@@ -91,11 +93,13 @@ class WeatherPredictBloc extends Bloc<RefreshPredictedWeather, WeatherPredictSta
     on<RefreshPredictedWeather>(
       (event, emit) async {
         // Tell the user we're now loading
-        emit(WeatherPredictState(
-          config: state.config,
-          isLoading: true,
-          mostRecentWeatherResult: state.mostRecentWeatherResult,
-        ));
+        emit(
+          WeatherPredictState(
+            config: state.config,
+            isLoading: true,
+            mostRecentWeatherResult: state.mostRecentWeatherResult,
+          ),
+        );
 
         final config = event.config ?? state.config;
 
@@ -110,77 +114,79 @@ class WeatherPredictBloc extends Bloc<RefreshPredictedWeather, WeatherPredictSta
             ),
           ),
         );
-        await weathersFuture.then((weathersAndStatus) {
-          final weathers = <HourlyPredictedWeather>[];
-          bool missingWeathers = false;
-          bool maybeStale = false;
-          List<String> errors = [];
-          for (final weatherAndStatus in weathersAndStatus) {
-            if (weatherAndStatus.isStale) {
-              maybeStale = true;
-            }
-            if (weatherAndStatus.weather == null) {
-              missingWeathers = true;
-            } else {
-              weathers.add(weatherAndStatus.weather!);
-            }
-            if (weatherAndStatus.errorWhenFetching != null) {
-              errors.add(weatherAndStatus.errorWhenFetching!);
-            } else if (weatherAndStatus.weather == null) {
-              errors.add("Failed to retrieve weather");
-            }
-          }
-          final error = errors.isEmpty ? null : errors.join(", ");
+        await weathersFuture
+            .then((weathersAndStatus) {
+              final weathers = <HourlyPredictedWeather>[];
+              bool missingWeathers = false;
+              bool maybeStale = false;
+              List<String> errors = [];
+              for (final weatherAndStatus in weathersAndStatus) {
+                if (weatherAndStatus.isStale) {
+                  maybeStale = true;
+                }
+                if (weatherAndStatus.weather == null) {
+                  missingWeathers = true;
+                } else {
+                  weathers.add(weatherAndStatus.weather!);
+                }
+                if (weatherAndStatus.errorWhenFetching != null) {
+                  errors.add(weatherAndStatus.errorWhenFetching!);
+                } else if (weatherAndStatus.weather == null) {
+                  errors.add("Failed to retrieve weather");
+                }
+              }
+              final error = errors.isEmpty ? null : errors.join(", ");
 
-          if (missingWeathers) {
-            emit(
-              WeatherPredictState(
-                config: config,
-                isLoading: false,
-                mostRecentWeatherResult: WeatherInsightsResult(
-                  weathersByHour: null,
-                  weatherMayBeStale: maybeStale,
-                  insights: null,
-                  error: error,
+              if (missingWeathers) {
+                emit(
+                  WeatherPredictState(
+                    config: config,
+                    isLoading: false,
+                    mostRecentWeatherResult: WeatherInsightsResult(
+                      weathersByHour: null,
+                      weatherMayBeStale: maybeStale,
+                      insights: null,
+                      error: error,
+                    ),
+                  ),
+                );
+              } else {
+                print("${DateTime.timestamp()} computing insights");
+                final insights = WeatherInsights.fromAnalysis(
+                  weathers,
+                  config.insightConfig,
+                  maxLookahead: config.hoursToLookAhead,
+                );
+                print("${DateTime.timestamp()} emitting");
+                emit(
+                  WeatherPredictState(
+                    config: config,
+                    isLoading: false,
+                    mostRecentWeatherResult: WeatherInsightsResult(
+                      weathersByHour: weathers,
+                      weatherMayBeStale: maybeStale,
+                      insights: insights,
+                      error: error,
+                    ),
+                  ),
+                );
+              }
+            })
+            .onError((e, s) async {
+              print("error $e $s");
+              emit(
+                WeatherPredictState(
+                  config: config,
+                  isLoading: false,
+                  mostRecentWeatherResult: WeatherInsightsResult(
+                    weathersByHour: null,
+                    weatherMayBeStale: false,
+                    insights: null,
+                    error: e?.toString(),
+                  ),
                 ),
-              ),
-            );
-          } else {
-            print("${DateTime.timestamp()} computing insights");
-            final insights = WeatherInsights.fromAnalysis(
-              weathers,
-              config.insightConfig,
-              maxLookahead: config.hoursToLookAhead,
-            );
-            print("${DateTime.timestamp()} emitting");
-            emit(
-              WeatherPredictState(
-                config: config,
-                isLoading: false,
-                mostRecentWeatherResult: WeatherInsightsResult(
-                  weathersByHour: weathers,
-                  weatherMayBeStale: maybeStale,
-                  insights: insights,
-                  error: error,
-                ),
-              ),
-            );
-          }
-        }).onError((e, s) async {
-          print("error $e $s");
-          emit(
-            WeatherPredictState(
-              config: config,
-              isLoading: false,
-              mostRecentWeatherResult: WeatherInsightsResult(
-                weathersByHour: null,
-                weatherMayBeStale: false,
-                insights: null,
-                error: e?.toString(),
-              ),
-            ),
-          );
-        });
+              );
+            });
       },
       transformer: restartable(),
     );

@@ -46,7 +46,7 @@ final router = GoRouter(
               name: "rundown",
               path: "/rundown",
               builder: (context, state) => RundownScreen(),
-            )
+            ),
           ],
         ),
         StatefulShellBranch(
@@ -55,7 +55,7 @@ final router = GoRouter(
               name: "settings",
               path: "/settings",
               builder: (context, state) => const SettingsScreen(),
-            )
+            ),
           ],
         ),
       ],

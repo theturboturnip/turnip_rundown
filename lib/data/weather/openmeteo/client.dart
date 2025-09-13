@@ -284,18 +284,20 @@ DataSeries<Temp> estimateWetBulbGlobeTemps({
 }) {
   final length = dryBulbTemp.length;
   return IterableZip([
-    dryBulbTemp.datas(),
-    windspeed.datas(),
-    relHumidity.datas(),
-    dewPointTemp?.datas() ?? Iterable.generate(length, (i) => null),
-    solarRadiation?.datas() ?? Iterable.generate(length, (i) => null),
-  ]).map((datas) {
-    return estimateWetBulbGlobeTemp(
-      dryBulbTemp: datas[0] as Data<Temp>,
-      windspeed: datas[1] as Data<Speed>,
-      relHumidity: datas[2] as Data<Percent>,
-      dewPointTemp: datas[3] as Data<Temp>?,
-      solarRadiation: datas[4] as Data<SolarRadiation>?,
-    );
-  }).toDataSeries(Temp.celsius);
+        dryBulbTemp.datas(),
+        windspeed.datas(),
+        relHumidity.datas(),
+        dewPointTemp?.datas() ?? Iterable.generate(length, (i) => null),
+        solarRadiation?.datas() ?? Iterable.generate(length, (i) => null),
+      ])
+      .map((datas) {
+        return estimateWetBulbGlobeTemp(
+          dryBulbTemp: datas[0] as Data<Temp>,
+          windspeed: datas[1] as Data<Speed>,
+          relHumidity: datas[2] as Data<Percent>,
+          dewPointTemp: datas[3] as Data<Temp>?,
+          solarRadiation: datas[4] as Data<SolarRadiation>?,
+        );
+      })
+      .toDataSeries(Temp.celsius);
 }

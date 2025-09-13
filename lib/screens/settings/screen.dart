@@ -228,21 +228,22 @@ class RangeConfigPopupState<TUnit extends Unit<TUnit>> extends State<RangeConfig
 
   Widget _labelWidget((String, IconData)? label) {
     return Padding(
-        padding: const EdgeInsets.all(64.0),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            // Icon(label.$2),
-            Text(
-              label?.$1 ?? "Nothing",
-              style: TextStyle(
-                fontSize: 18.0,
-                color: (label == null) ? Colors.grey : null,
-              ),
+      padding: const EdgeInsets.all(64.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          // Icon(label.$2),
+          Text(
+            label?.$1 ?? "Nothing",
+            style: TextStyle(
+              fontSize: 18.0,
+              color: (label == null) ? Colors.grey : null,
             ),
-            // Icon(label.$2),
-          ],
-        ));
+          ),
+          // Icon(label.$2),
+        ],
+      ),
+    );
   }
 
   @override
@@ -546,7 +547,10 @@ class SettingsScreen extends StatelessWidget {
                     input: TextButton(
                       child: Text(jmFormatHour(state.wakingHours.start)),
                       onPressed: () async {
-                        final selectedTime = await showTimePicker(context: context, initialTime: TimeOfDay(hour: state.wakingHours.start, minute: 0));
+                        final selectedTime = await showTimePicker(
+                          context: context,
+                          initialTime: TimeOfDay(hour: state.wakingHours.start, minute: 0),
+                        );
                         if (selectedTime != null && context.mounted) {
                           context.read<SettingsBloc>().add(TweakSettingsEvent(wakingHourStart: selectedTime.hour));
                         }
@@ -560,7 +564,10 @@ class SettingsScreen extends StatelessWidget {
                     input: TextButton(
                       child: Text(jmFormatHour(state.wakingHours.end)),
                       onPressed: () async {
-                        final selectedTime = await showTimePicker(context: context, initialTime: TimeOfDay(hour: state.wakingHours.end, minute: 0));
+                        final selectedTime = await showTimePicker(
+                          context: context,
+                          initialTime: TimeOfDay(hour: state.wakingHours.end, minute: 0),
+                        );
                         if (selectedTime != null && context.mounted) {
                           context.read<SettingsBloc>().add(TweakSettingsEvent(wakingHourEnd: selectedTime.hour));
                         }
@@ -611,14 +618,14 @@ class SettingsScreen extends StatelessWidget {
                               ],
                               updateThresholds: (newThresholds) {
                                 context.read<SettingsBloc>().add(
-                                      TweakSettingsEvent(
-                                        tempMinChilly: newThresholds[0],
-                                        tempMinMild: newThresholds[1],
-                                        tempMinWarm: newThresholds[2],
-                                        tempMinHot: newThresholds[3],
-                                        tempMinBoiling: newThresholds[4],
-                                      ),
-                                    );
+                                  TweakSettingsEvent(
+                                    tempMinChilly: newThresholds[0],
+                                    tempMinMild: newThresholds[1],
+                                    tempMinWarm: newThresholds[2],
+                                    tempMinHot: newThresholds[3],
+                                    tempMinBoiling: newThresholds[4],
+                                  ),
+                                );
                               },
                               resetThresholds: [
                                 WeatherInsightConfigV2.initial.tempMinChilly,
@@ -659,12 +666,12 @@ class SettingsScreen extends StatelessWidget {
                               ],
                               updateThresholds: (newThresholds) {
                                 context.read<SettingsBloc>().add(
-                                      TweakSettingsEvent(
-                                        uvMinModerate: newThresholds[0],
-                                        uvMinHigh: newThresholds[1],
-                                        uvMinVeryHigh: newThresholds[2],
-                                      ),
-                                    );
+                                  TweakSettingsEvent(
+                                    uvMinModerate: newThresholds[0],
+                                    uvMinHigh: newThresholds[1],
+                                    uvMinVeryHigh: newThresholds[2],
+                                  ),
+                                );
                               },
                               resetThresholds: [
                                 WeatherInsightConfigV2.initial.uvMinModerate,
@@ -701,12 +708,12 @@ class SettingsScreen extends StatelessWidget {
                               ],
                               updateThresholds: (newThresholds) {
                                 context.read<SettingsBloc>().add(
-                                      TweakSettingsEvent(
-                                        windMinBreezy: newThresholds[0],
-                                        windMinWindy: newThresholds[1],
-                                        windMinGaley: newThresholds[2],
-                                      ),
-                                    );
+                                  TweakSettingsEvent(
+                                    windMinBreezy: newThresholds[0],
+                                    windMinWindy: newThresholds[1],
+                                    windMinGaley: newThresholds[2],
+                                  ),
+                                );
                               },
                               resetThresholds: [
                                 WeatherInsightConfigV2.initial.windMinBreezy,
@@ -743,10 +750,10 @@ class SettingsScreen extends StatelessWidget {
                           icon: const Icon(Icons.remove),
                           onPressed: () {
                             context.read<SettingsBloc>().add(
-                                  TweakSettingsEvent(
-                                    numberOfHoursPriorRainThreshold: math.max(state.weatherConfig.numberOfHoursPriorRainThreshold - 1, 0),
-                                  ),
-                                );
+                              TweakSettingsEvent(
+                                numberOfHoursPriorRainThreshold: math.max(state.weatherConfig.numberOfHoursPriorRainThreshold - 1, 0),
+                              ),
+                            );
                           },
                         ),
                         Text(
@@ -757,10 +764,10 @@ class SettingsScreen extends StatelessWidget {
                           icon: const Icon(Icons.add),
                           onPressed: () {
                             context.read<SettingsBloc>().add(
-                                  TweakSettingsEvent(
-                                    numberOfHoursPriorRainThreshold: math.min(state.weatherConfig.numberOfHoursPriorRainThreshold + 1, 24),
-                                  ),
-                                );
+                              TweakSettingsEvent(
+                                numberOfHoursPriorRainThreshold: math.min(state.weatherConfig.numberOfHoursPriorRainThreshold + 1, 24),
+                              ),
+                            );
                           },
                         ),
                       ],
@@ -801,12 +808,12 @@ class SettingsScreen extends StatelessWidget {
                               ],
                               updateThresholds: (newThresholds) {
                                 context.read<SettingsBloc>().add(
-                                      TweakSettingsEvent(
-                                        rainMinLight: newThresholds[0],
-                                        rainMinMedium: newThresholds[1],
-                                        rainMinHeavy: newThresholds[2],
-                                      ),
-                                    );
+                                  TweakSettingsEvent(
+                                    rainMinLight: newThresholds[0],
+                                    rainMinMedium: newThresholds[1],
+                                    rainMinHeavy: newThresholds[2],
+                                  ),
+                                );
                               },
                               resetThresholds: [
                                 WeatherInsightConfigV2.initial.rainMinLight,

@@ -130,8 +130,7 @@ class SqfliteApiCacheAndSettingsRepository extends WeatherDataBankRepository imp
         columns: ["response", "timeoutAfter"],
         where: "uri = ?",
         whereArgs: [uri.toString()],
-      ))
-          .firstOrNull;
+      )).firstOrNull;
       final timeoutAfterStr = cachedApiResponse != null ? cachedApiResponse["timeoutAfter"] as String : null;
       final timeoutAfter = timeoutAfterStr != null ? UtcDateTime.tryParseAndCoerceFullIso8601(timeoutAfterStr) : null;
       if (timeoutAfter != null && timeoutAfter.isAfter(timestamp)) {
@@ -179,7 +178,7 @@ class SqfliteApiCacheAndSettingsRepository extends WeatherDataBankRepository imp
           (row["host"] as String): HostStats(
             cacheHits: row["cacheHits"] as int,
             cacheMisses: row["cacheMisses"] as int,
-          )
+          ),
       },
     );
   }

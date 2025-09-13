@@ -57,8 +57,8 @@ class HoursLookaheadBloc extends Bloc<ChangeLockedLookaheadEvent, HoursLookahead
   late StreamSubscription _streamSubscription;
 
   HoursLookaheadBloc(SettingsRepository repo)
-      : _refreshStream = Stream.periodic(const Duration(minutes: 1), (x) => x),
-        super(HoursLookaheadState(lockedUtcLookaheadTo: repo.lockedUtcLookaheadTo, decrementWillResultInReset: false)) {
+    : _refreshStream = Stream.periodic(const Duration(minutes: 1), (x) => x),
+      super(HoursLookaheadState(lockedUtcLookaheadTo: repo.lockedUtcLookaheadTo, decrementWillResultInReset: false)) {
     on<ChangeLockedLookaheadEvent>(
       (event, emit) async {
         var lockedUtcLookaheadTo = state.lockedUtcLookaheadTo;

@@ -66,25 +66,28 @@ abstract class WeatherDataBankRepository implements HttpCacheRepository {
     print("banked weather for $coords is null or stale, looking up online");
 
     final client = (clients[backend] ?? clients[RequestedWeatherBackend.openmeteo]!);
-    return await client.getPredictedWeather(coords, this, forceRefreshCache: forceRefreshCache).then(
-      (newBank) {
-        now = UtcDateTime.timestamp();
-        addToCache(backend, coords, newBank, now.add(const Duration(minutes: 30)));
-        return HourlyPredictedWeatherAndStatus(
-          weather: newBank.tryExtract(now, nextHours: nextHours)!,
-          isStale: false,
-          errorWhenFetching: null,
+    return await client
+        .getPredictedWeather(coords, this, forceRefreshCache: forceRefreshCache)
+        .then(
+          (newBank) {
+            now = UtcDateTime.timestamp();
+            addToCache(backend, coords, newBank, now.add(const Duration(minutes: 30)));
+            return HourlyPredictedWeatherAndStatus(
+              weather: newBank.tryExtract(now, nextHours: nextHours)!,
+              isStale: false,
+              errorWhenFetching: null,
+            );
+          },
+        )
+        .catchError(
+          (err, stackTrace) {
+            print("failed to look up weather online $err $stackTrace");
+            return HourlyPredictedWeatherAndStatus(
+              weather: cachedPerHour,
+              isStale: isStale,
+              errorWhenFetching: "$err",
+            );
+          },
         );
-      },
-    ).catchError(
-      (err, stackTrace) {
-        print("failed to look up weather online $err $stackTrace");
-        return HourlyPredictedWeatherAndStatus(
-          weather: cachedPerHour,
-          isStale: isStale,
-          errorWhenFetching: "$err",
-        );
-      },
-    );
   }
 }

@@ -10,8 +10,7 @@ class UtcDateTime implements Comparable<UtcDateTime> {
     int day, {
     int hour = 0,
     int minute = 0,
-  }) =>
-      UtcDateTime(DateTime.utc(year, month, day, hour, minute));
+  }) => UtcDateTime(DateTime.utc(year, month, day, hour, minute));
 
   factory UtcDateTime.timestamp() => UtcDateTime(DateTime.timestamp());
 
@@ -178,16 +177,18 @@ class JsonMigration<TLoad, TMigrateTo> {
   JsonMigration<TMigrateTo, TNextMigrateTo> chain<TNextMigrateTo>({
     required TMigrateTo Function(Map<String, dynamic>) load,
     required TNextMigrateTo Function(TMigrateTo) migrate,
-  }) =>
-      JsonMigration._(base: this, load: load, migrate: migrate);
+  }) => JsonMigration._(base: this, load: load, migrate: migrate);
 
-  TMigrateTo Function(dynamic) get _launderedMigrate => (obj) => migrate(obj as TLoad);
-
-  // ignore: unused_element
-  TOtherMigrateTo Function(dynamic) _chainMigrate<TOtherMigrateTo>(dynamic func) => (x) => func(_launderedMigrate(x));
+  TMigrateTo Function(dynamic) get _launderedMigrate =>
+      (obj) => migrate(obj as TLoad);
 
   // ignore: unused_element
-  TOtherMigrateTo Function(Map<String, dynamic>) _chainLoad<TOtherMigrateTo>(TOtherMigrateTo Function(dynamic) func) => (Map<String, dynamic> x) => func(load(x));
+  TOtherMigrateTo Function(dynamic) _chainMigrate<TOtherMigrateTo>(dynamic func) =>
+      (x) => func(_launderedMigrate(x));
+
+  // ignore: unused_element
+  TOtherMigrateTo Function(Map<String, dynamic>) _chainLoad<TOtherMigrateTo>(TOtherMigrateTo Function(dynamic) func) =>
+      (Map<String, dynamic> x) => func(load(x));
 
   static TopLevelJsonMigration<TMigrateTo> singleComplete<TMigrateTo>({
     required String versionKey,
@@ -255,11 +256,11 @@ class TopLevelJsonMigration<TTarget> {
   });
 
   TopLevelJsonMigration<TTarget> withoutDefault() => TopLevelJsonMigration._(
-        versionKey: versionKey,
-        migrationFromVersion: migrationFromVersion,
-        fallbackVersionIfNonePresent: fallbackVersionIfNonePresent,
-        makeDefault: null,
-      );
+    versionKey: versionKey,
+    migrationFromVersion: migrationFromVersion,
+    fallbackVersionIfNonePresent: fallbackVersionIfNonePresent,
+    makeDefault: null,
+  );
 
   TTarget _makeDefaultOrThrow(String msg) {
     if (makeDefault != null) {

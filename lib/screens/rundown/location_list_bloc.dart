@@ -14,10 +14,10 @@ final class LocationListState extends Equatable {
   });
 
   factory LocationListState.initial(Coordinate? currentCoordinate) => LocationListState(
-        currentCoordinate: currentCoordinate,
-        includeCurrentCoordinateInInsights: true,
-        otherNamedLocations: const [],
-      );
+    currentCoordinate: currentCoordinate,
+    includeCurrentCoordinateInInsights: true,
+    otherNamedLocations: const [],
+  );
 
   final Coordinate? currentCoordinate;
   final bool includeCurrentCoordinateInInsights;
@@ -26,11 +26,11 @@ final class LocationListState extends Equatable {
 
   @override
   List<Object?> get props => [
-        currentCoordinate,
-        includeCurrentCoordinateInInsights,
-        otherNamedLocations,
-        currentCoordinateError,
-      ];
+    currentCoordinate,
+    includeCurrentCoordinateInInsights,
+    otherNamedLocations,
+    currentCoordinateError,
+  ];
 
   List<LegendElement> get legend {
     var legend = <LegendElement>[];
@@ -86,86 +86,103 @@ final class RemoveOtherLocation extends LocationListEvent {
 
 class LocationListBloc extends Bloc<LocationListEvent, LocationListState> {
   LocationListBloc(CurrentCoordinateRepository location, SettingsRepository settings)
-      : super(
-          LocationListState.initial(settings.lastGeocoordLookup),
-        ) {
+    : super(
+        LocationListState.initial(settings.lastGeocoordLookup),
+      ) {
     on<RefreshCurrentCoordinate>(
       (event, emit) async {
-        await location.getCoordinate().then((newCoordinate) async {
-          // TODO make rounding precision a preference?
-          newCoordinate = newCoordinate.roundedTo(2, elevationDp: 0);
-          settings.storeLastGeocoordLookup(newCoordinate);
-          if (state.includeCurrentCoordinateInInsights) {
-            emit(LocationListState(
-              currentCoordinate: newCoordinate,
-              includeCurrentCoordinateInInsights: state.includeCurrentCoordinateInInsights,
-              otherNamedLocations: state.otherNamedLocations,
-            ));
-          } else {
-            emit(LocationListState(
-              currentCoordinate: newCoordinate,
-              includeCurrentCoordinateInInsights: state.includeCurrentCoordinateInInsights,
-              otherNamedLocations: state.otherNamedLocations,
-            ));
-          }
-        }).onError((e, s) {
-          print("error $e $s");
-          emit(LocationListState(
-            currentCoordinate: null,
-            includeCurrentCoordinateInInsights: state.includeCurrentCoordinateInInsights,
-            otherNamedLocations: state.otherNamedLocations,
-            currentCoordinateError: "$e",
-          ));
-        });
+        await location
+            .getCoordinate()
+            .then((newCoordinate) async {
+              // TODO make rounding precision a preference?
+              newCoordinate = newCoordinate.roundedTo(2, elevationDp: 0);
+              settings.storeLastGeocoordLookup(newCoordinate);
+              if (state.includeCurrentCoordinateInInsights) {
+                emit(
+                  LocationListState(
+                    currentCoordinate: newCoordinate,
+                    includeCurrentCoordinateInInsights: state.includeCurrentCoordinateInInsights,
+                    otherNamedLocations: state.otherNamedLocations,
+                  ),
+                );
+              } else {
+                emit(
+                  LocationListState(
+                    currentCoordinate: newCoordinate,
+                    includeCurrentCoordinateInInsights: state.includeCurrentCoordinateInInsights,
+                    otherNamedLocations: state.otherNamedLocations,
+                  ),
+                );
+              }
+            })
+            .onError((e, s) {
+              print("error $e $s");
+              emit(
+                LocationListState(
+                  currentCoordinate: null,
+                  includeCurrentCoordinateInInsights: state.includeCurrentCoordinateInInsights,
+                  otherNamedLocations: state.otherNamedLocations,
+                  currentCoordinateError: "$e",
+                ),
+              );
+            });
       },
       transformer: restartable(),
     );
     // TODO handle MarkCurrentLocationAsBlah with a common subclass so that events don't conflict with each other concurrently?
     on<MarkCurrentCoordinateAsIncluded>(
       (event, emit) {
-        emit(LocationListState(
-          currentCoordinate: state.currentCoordinate,
-          includeCurrentCoordinateInInsights: true,
-          otherNamedLocations: state.otherNamedLocations,
-          currentCoordinateError: state.currentCoordinateError,
-        ));
+        emit(
+          LocationListState(
+            currentCoordinate: state.currentCoordinate,
+            includeCurrentCoordinateInInsights: true,
+            otherNamedLocations: state.otherNamedLocations,
+            currentCoordinateError: state.currentCoordinateError,
+          ),
+        );
       },
       transformer: sequential(),
     );
     on<MarkCurrentCoordinateAsExcluded>(
       (event, emit) {
-        emit(LocationListState(
-          currentCoordinate: state.currentCoordinate,
-          includeCurrentCoordinateInInsights: false,
-          otherNamedLocations: state.otherNamedLocations,
-          currentCoordinateError: state.currentCoordinateError,
-        ));
+        emit(
+          LocationListState(
+            currentCoordinate: state.currentCoordinate,
+            includeCurrentCoordinateInInsights: false,
+            otherNamedLocations: state.otherNamedLocations,
+            currentCoordinateError: state.currentCoordinateError,
+          ),
+        );
       },
       transformer: sequential(),
     );
     // TODO handle AppendOtherLocation and RemoveOtherLocation with a common subclass so that events don't conflict with each other concurrently?
     on<AppendOtherLocation>(
       (event, emit) {
-        emit(LocationListState(
-          currentCoordinate: state.currentCoordinate,
-          includeCurrentCoordinateInInsights: state.includeCurrentCoordinateInInsights,
-          otherNamedLocations: [
-            ...state.otherNamedLocations,
-            event.otherLocation,
-          ],
-          currentCoordinateError: state.currentCoordinateError,
-        ));
+        emit(
+          LocationListState(
+            currentCoordinate: state.currentCoordinate,
+            includeCurrentCoordinateInInsights: state.includeCurrentCoordinateInInsights,
+            otherNamedLocations: [
+              ...state.otherNamedLocations,
+              event.otherLocation,
+            ],
+            currentCoordinateError: state.currentCoordinateError,
+          ),
+        );
       },
       transformer: sequential(),
     );
     on<RemoveOtherLocation>(
       (event, emit) {
-        emit(LocationListState(
-          currentCoordinate: state.currentCoordinate,
-          includeCurrentCoordinateInInsights: state.includeCurrentCoordinateInInsights,
-          otherNamedLocations: List.from(state.otherNamedLocations)..removeAt(event.index),
-          currentCoordinateError: state.currentCoordinateError,
-        ));
+        emit(
+          LocationListState(
+            currentCoordinate: state.currentCoordinate,
+            includeCurrentCoordinateInInsights: state.includeCurrentCoordinateInInsights,
+            otherNamedLocations: List.from(state.otherNamedLocations)..removeAt(event.index),
+            currentCoordinateError: state.currentCoordinateError,
+          ),
+        );
       },
       transformer: sequential(),
     );

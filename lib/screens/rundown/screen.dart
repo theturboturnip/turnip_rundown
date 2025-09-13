@@ -124,10 +124,12 @@ class DataGraph<TUnit extends Unit<TUnit>> extends StatelessWidget {
                 (index, dataPoints) => LineChartBarData(
                   spots: dataPoints.indexed
                       .take(selectedNumDataPoints)
-                      .map((item) => FlSpot(
-                            item.$1.toDouble(),
-                            item.$2,
-                          ))
+                      .map(
+                        (item) => FlSpot(
+                          item.$1.toDouble(),
+                          item.$2,
+                        ),
+                      )
                       .toList(),
                   isCurved: true,
                   preventCurveOverShooting: true,
@@ -229,14 +231,16 @@ class DataGraph<TUnit extends Unit<TUnit>> extends StatelessWidget {
               }).toList(),
             ),
           ),
-          rangeAnnotations: RangeAnnotations(verticalRangeAnnotations: [
-            if (hoursLookedAhead != selectedNumDataPoints)
-              VerticalRangeAnnotation(
-                x1: hoursLookedAhead.toDouble(),
-                x2: selectedNumDataPoints.toDouble() - 1,
-                color: Colors.grey.withValues(alpha: 0.5),
-              ),
-          ]),
+          rangeAnnotations: RangeAnnotations(
+            verticalRangeAnnotations: [
+              if (hoursLookedAhead != selectedNumDataPoints)
+                VerticalRangeAnnotation(
+                  x1: hoursLookedAhead.toDouble(),
+                  x2: selectedNumDataPoints.toDouble() - 1,
+                  color: Colors.grey.withValues(alpha: 0.5),
+                ),
+            ],
+          ),
           gridData: const FlGridData(
             drawHorizontalLine: true,
             horizontalInterval: null,
@@ -294,19 +298,20 @@ class RundownScreen extends StatelessWidget {
                   builder: (context, hoursLookaheadState) {
                     // Whenever the LocationListBloc or the settings change, refresh the predicted weather based on that change
                     context.read<WeatherPredictBloc>().add(
-                          RefreshPredictedWeather(
-                            config: WeatherPredictConfig(
-                              legend: locationState.legend,
-                              hoursToLookAhead: settings.wakingHours.numHoursToLookahead(hoursLookaheadState.lockedUtcLookaheadTo),
-                              insightConfig: settings.weatherConfig,
-                            ),
-                            forceRefreshCache: false,
-                          ),
-                        );
+                      RefreshPredictedWeather(
+                        config: WeatherPredictConfig(
+                          legend: locationState.legend,
+                          hoursToLookAhead: settings.wakingHours.numHoursToLookahead(hoursLookaheadState.lockedUtcLookaheadTo),
+                          insightConfig: settings.weatherConfig,
+                        ),
+                        forceRefreshCache: false,
+                      ),
+                    );
                     return BlocBuilder<WeatherPredictBloc, WeatherPredictState>(
                       builder: (context, weatherState) {
                         final predictConfig = weatherState.config;
-                        final insightResults = weatherState.mostRecentWeatherResult ??
+                        final insightResults =
+                            weatherState.mostRecentWeatherResult ??
                             const WeatherInsightsResult(
                               weathersByHour: null,
                               weatherMayBeStale: false,
@@ -420,18 +425,18 @@ class RundownScreen extends StatelessWidget {
       maxLines: 1,
       textScaler: MediaQuery.of(context).textScaler,
       textDirection: TextDirection.ltr,
-    )..layout())
-        .size;
+    )..layout()).size;
     return settings.temperatureUnit.displayUnits().map((unit) {
           final minString = insightsResult.insights?.minTemp?.valueAs(unit).toStringAsFixed(1);
           final maxString = insightsResult.insights?.maxTemp?.valueAs(unit).toStringAsFixed(1);
           return Padding(
-            padding: const EdgeInsets.all(10.0),
-            child: Text(
-              "${minString ?? "..."}–${maxString ?? "..."}${unit.display}",
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 50),
-            ),
-          ) as Widget;
+                padding: const EdgeInsets.all(10.0),
+                child: Text(
+                  "${minString ?? "..."}–${maxString ?? "..."}${unit.display}",
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 50),
+                ),
+              )
+              as Widget;
         }).toList() +
         [
           Padding(
@@ -449,8 +454,8 @@ class RundownScreen extends StatelessWidget {
                     color: Colors.grey[700],
                     onPressed: () {
                       context.read<HoursLookaheadBloc>().add(
-                            const ClearLockedLookaheadEvent(),
-                          );
+                        const ClearLockedLookaheadEvent(),
+                      );
                     },
                   ),
                 ),
@@ -461,11 +466,11 @@ class RundownScreen extends StatelessWidget {
                       ? null
                       : () {
                           context.read<HoursLookaheadBloc>().add(
-                                DecrementLockedLookaheadEvent(
-                                  hour0InLocalTime: dateTimesForEachHour[0],
-                                  currentNumLookaheadHours: currentNumLookaheadHours,
-                                ),
-                              );
+                            DecrementLockedLookaheadEvent(
+                              hour0InLocalTime: dateTimesForEachHour[0],
+                              currentNumLookaheadHours: currentNumLookaheadHours,
+                            ),
+                          );
                         },
                 ),
                 SizedBox.fromSize(
@@ -488,11 +493,11 @@ class RundownScreen extends StatelessWidget {
                   color: hoursLookaheadState.lockedUtcLookaheadTo == null ? Colors.grey : Colors.grey[700],
                   onPressed: () {
                     context.read<HoursLookaheadBloc>().add(
-                          IncrementLockedLookaheadEvent(
-                            hour0InLocalTime: dateTimesForEachHour[0],
-                            currentNumLookaheadHours: currentNumLookaheadHours,
-                          ),
-                        );
+                      IncrementLockedLookaheadEvent(
+                        hour0InLocalTime: dateTimesForEachHour[0],
+                        currentNumLookaheadHours: currentNumLookaheadHours,
+                      ),
+                    );
                   },
                 ),
                 IconButton(
@@ -500,13 +505,13 @@ class RundownScreen extends StatelessWidget {
                   color: Colors.grey,
                   onPressed: () {
                     context.read<WeatherPredictBloc>().add(
-                          const RefreshPredictedWeather(
-                            config: null,
-                            forceRefreshCache: true,
-                          ),
-                        );
+                      const RefreshPredictedWeather(
+                        config: null,
+                        forceRefreshCache: true,
+                      ),
+                    );
                   },
-                )
+                ),
               ],
             ),
           ),
@@ -601,7 +606,8 @@ class RundownScreen extends StatelessWidget {
                 create: (context) => LocationSuggestBloc(RepositoryProvider.of<GeocoderRepository>(context)),
                 child: BlocBuilder<LocationSuggestBloc, LocationSuggestState>(
                   builder: (context, state) {
-                    final suggestions = state.suggested
+                    final suggestions =
+                        state.suggested
                             ?.map(
                               (namedLocation) => ListTile(
                                 title: Text(namedLocation.name),
@@ -622,11 +628,11 @@ class RundownScreen extends StatelessWidget {
                           TextField(
                             key: const ValueKey("search"),
                             onChanged: (newQuery) => context.read<LocationSuggestBloc>().add(
-                                  UpdateLocationQuery(
-                                    newQuery: newQuery,
-                                    near: currentCoordinate,
-                                  ),
-                                ),
+                              UpdateLocationQuery(
+                                newQuery: newQuery,
+                                near: currentCoordinate,
+                              ),
+                            ),
                             decoration: const InputDecoration(
                               hintText: "Search for a new location...",
                               suffixIcon: Icon(Icons.search),
@@ -634,7 +640,7 @@ class RundownScreen extends StatelessWidget {
                             ),
                             autofocus: true,
                           ),
-                          ...suggestions
+                          ...suggestions,
                         ],
                       ),
                     );
@@ -788,7 +794,7 @@ class RundownScreen extends StatelessWidget {
           hoursLookedAhead: insightsResult.weathersByHour!.first.precipitationUpToNow.length,
           key: null,
         ),
-      ]
+      ],
     ];
   }
 
@@ -962,7 +968,8 @@ class RundownScreen extends StatelessWidget {
               {}
           }
         }
-        final nonNullSubtitle = subtitle ??
+        final nonNullSubtitle =
+            subtitle ??
             _renderTimeRange(
               (plan.$2, plan.$3 + 1),
               dateTimesForEachHour,
@@ -1104,13 +1111,15 @@ class RundownScreen extends StatelessWidget {
             dateTimesForEachHour,
             hoursLookedAhead,
           );
-          insightWidgets.add(InsightWidget(
-            icon: Icon(icon),
-            title: title,
-            subtitle: subtitle,
-            startTimeUtc: dateTimesForEachHour[entry.value.firstHour!].toUtc(),
-            jumpTo: eventTypeToKey[entry.key]!,
-          ));
+          insightWidgets.add(
+            InsightWidget(
+              icon: Icon(icon),
+              title: title,
+              subtitle: subtitle,
+              startTimeUtc: dateTimesForEachHour[entry.value.firstHour!].toUtc(),
+              jumpTo: eventTypeToKey[entry.key]!,
+            ),
+          );
         }
       }
     }

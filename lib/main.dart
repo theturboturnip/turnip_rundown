@@ -70,10 +70,12 @@ void main() async {
     );
   }
 
-  runApp(MyApp(
-    cacheRepo: cacheRepo,
-    settingsRepo: settingsRepo,
-  ));
+  runApp(
+    MyApp(
+      cacheRepo: cacheRepo,
+      settingsRepo: settingsRepo,
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {

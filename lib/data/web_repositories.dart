@@ -9,10 +9,7 @@ import 'package:turnip_rundown/data/weather_data_bank_repository.dart';
 import 'package:turnip_rundown/util.dart';
 
 class InMemoryHttpCacheRepository extends WeatherDataBankRepository {
-  InMemoryHttpCacheRepository({required super.clients})
-      : cache = {},
-        stats = {},
-        super(cachedWeatherDataAndSoftTimeouts: {});
+  InMemoryHttpCacheRepository({required super.clients}) : cache = {}, stats = {}, super(cachedWeatherDataAndSoftTimeouts: {});
 
   // Uri -> (timeout, response data)
   final Map<Uri, (UtcDateTime, String)> cache;
