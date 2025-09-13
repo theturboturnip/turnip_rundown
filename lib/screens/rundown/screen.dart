@@ -329,7 +329,7 @@ class RundownScreen extends StatelessWidget {
                               .toLocal(),
                         );
                         final dateTimesForEachHour = List.generate(
-                          24,
+                          25,
                           (index) => utcHourInLocalTime.add(Duration(hours: index)),
                         );
                         final dateTimesForPriorHours = List.generate(
