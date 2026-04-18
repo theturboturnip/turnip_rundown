@@ -302,7 +302,7 @@ class RangeConfigPopupState<TUnit extends Unit<TUnit>> extends State<RangeConfig
     }
     widgets.add(_labelWidget(widget.stepNames.last));
     return Scaffold(
-      primary: false,
+      primary: true,
       appBar: AppBar(
         title: widget.title,
         actions: [
@@ -441,461 +441,474 @@ class SettingsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocBuilder<SettingsBloc, Settings>(
       builder: (context, state) {
-        return SafeArea(
-          child: SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _settingsHeader(context, "Weather Backend"),
-                  _settingsTile(
-                    context,
-                    title: const Text("Backend"),
-                    description: const Text("The backend for weather data. Met Office may not be available on specific platforms."),
-                    input: SimpleDataSelectorWidget<RequestedWeatherBackend>(
-                      selected: state.backend,
-                      entries: [
-                        const DropdownMenuEntry(
-                          value: RequestedWeatherBackend.openmeteo,
-                          label: "Openmeteo",
-                        ),
-                        DropdownMenuEntry(
-                          value: RequestedWeatherBackend.met,
-                          label: "Met Office",
-                          enabled: metOfficeApiKey.isNotEmpty,
-                        ),
-                      ],
-                      onSelected: (backend) {
-                        context.read<SettingsBloc>().add(TweakSettingsEvent(backend: backend));
-                      },
-                    ),
-                  ),
-                  _settingsTile(
-                    context,
-                    title: const Text("Sunrise/set Backend"),
-                    input: TextButton(
-                      onPressed: () => launchUrl(
-                        Uri(scheme: "https", host: "sunrise-sunset.org"),
+        return SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _settingsHeader(context, "Backends"),
+                _settingsTile(
+                  context,
+                  title: const Text("Weather"),
+                  description: const Text("Met Office may not be available on some platforms."),
+                  input: SimpleDataSelectorWidget<RequestedWeatherBackend>(
+                    selected: state.backend,
+                    entries: [
+                      const DropdownMenuEntry(
+                        value: RequestedWeatherBackend.openmeteo,
+                        label: "Openmeteo",
                       ),
-                      child: const Text(
-                        "https://sunrise-sunset.org",
-                        style: TextStyle(
-                          color: Colors.blue,
-                        ),
+                      DropdownMenuEntry(
+                        value: RequestedWeatherBackend.met,
+                        label: "Met Office",
+                        enabled: metOfficeApiKey.isNotEmpty,
+                      ),
+                    ],
+                    onSelected: (backend) {
+                      context.read<SettingsBloc>().add(TweakSettingsEvent(backend: backend));
+                    },
+                  ),
+                ),
+                _settingsTile(
+                  context,
+                  title: const Text("Geo-Lookup"),
+                  input: TextButton(
+                    onPressed: () => launchUrl(
+                      Uri(scheme: "https", host: "photon.komoot.io"),
+                    ),
+                    child: const Text(
+                      "https://photon.komoot.io",
+                      style: TextStyle(
+                        color: Colors.blue,
                       ),
                     ),
                   ),
+                ),
+                _settingsTile(
+                  context,
+                  title: const Text("Sunrise/Sunset"),
+                  input: TextButton(
+                    onPressed: () => launchUrl(
+                      Uri(scheme: "https", host: "sunrise-sunset.org"),
+                    ),
+                    child: const Text(
+                      "https://sunrise-sunset.org",
+                      style: TextStyle(
+                        color: Colors.blue,
+                      ),
+                    ),
+                  ),
+                ),
 
-                  _settingsHeader(context, "Display Units"),
-                  _settingsTile(
-                    context,
-                    title: const Text("Temperature"),
-                    input: SimpleDataSelectorWidget(
-                      selected: state.temperatureUnit,
-                      entries: const [
-                        DropdownMenuEntry(value: TempDisplay.celsius, label: "°C"),
-                        DropdownMenuEntry(value: TempDisplay.farenheit, label: "°F"),
-                        DropdownMenuEntry(value: TempDisplay.both, label: "°C and °F"),
-                      ],
-                      onSelected: (s) {
-                        context.read<SettingsBloc>().add(TweakSettingsEvent(temperatureUnit: s));
-                      },
-                    ),
-                  ),
-                  _settingsTile(
-                    context,
-                    title: const Text("Rainfall"),
-                    input: SimpleDataSelectorWidget(
-                      selected: state.rainfallUnit,
-                      entries: const [
-                        DropdownMenuEntry(value: Rainfall.mm, label: "mm"),
-                        DropdownMenuEntry(value: Rainfall.inch, label: "in"),
-                      ],
-                      onSelected: (s) {
-                        context.read<SettingsBloc>().add(TweakSettingsEvent(rainfallUnit: s));
-                      },
-                    ),
-                  ),
-                  // TODO windspeed display unit
-                  // _settingsTile(context,
-                  //   title: const Text("Windspeed"),
-                  //   input: SegmentedButton<Speed>(
-                  //     segments: const [
-                  //       ButtonSegment(value: Speed.kmPerH, label: Text("kmph")),
-                  //       ButtonSegment(value: Speed.mPerS, label: Text("m/s")),
-                  //       ButtonSegment(value: Speed.milesPerHour, label: Text("mph")),
-                  //     ],
-                  //     selected: {state.rainfallUnit},
-                  //     emptySelectionAllowed: false,
-                  //     multiSelectionEnabled: false,
-                  //     onSelectionChanged: (selected) {
-                  //       assert(selected.length == 1);
-                  //       context.read<SettingsBloc>().add(SettingsEvent(rainfallUnit: selected.first));
-                  //     },
-                  //   ),
-                  // ),
-                  _settingsHeader(
-                    context,
-                    "Waking Hours",
-                    info: "When you open the app between your wake-up and bed times, it will automatically show you the weather for now til bedtime.",
-                  ),
-                  _settingsTile(
-                    context,
-                    title: const Text("Wake-Up Time"),
-                    description: const Text("The time you typically wake up. Whole hours only, minutes are ignored."),
-                    input: TextButton(
-                      child: Text(jmFormatHour(state.wakingHours.start)),
-                      onPressed: () async {
-                        final selectedTime = await showTimePicker(
-                          context: context,
-                          initialTime: TimeOfDay(hour: state.wakingHours.start, minute: 0),
-                        );
-                        if (selectedTime != null && context.mounted) {
-                          context.read<SettingsBloc>().add(TweakSettingsEvent(wakingHourStart: selectedTime.hour));
-                        }
-                      },
-                    ),
-                  ),
-                  _settingsTile(
-                    context,
-                    title: const Text("Bedtime"),
-                    description: const Text("The time you typically go to bed. Whole hours only, minutes are ignored."),
-                    input: TextButton(
-                      child: Text(jmFormatHour(state.wakingHours.end)),
-                      onPressed: () async {
-                        final selectedTime = await showTimePicker(
-                          context: context,
-                          initialTime: TimeOfDay(hour: state.wakingHours.end, minute: 0),
-                        );
-                        if (selectedTime != null && context.mounted) {
-                          context.read<SettingsBloc>().add(TweakSettingsEvent(wakingHourEnd: selectedTime.hour));
-                        }
-                      },
-                    ),
-                  ),
-                  _settingsHeader(context, "Insight Parameters"),
-                  _settingsTile(
-                    context,
-                    title: const Text("Use Estimated Wet Bulb Temperature"),
-                    description: const Text(
-                      "Wet Bulb Temperature is a better approximation of how it feels outside. When enabled, the main display and insights will display this temperature.",
-                    ),
-                    input: Switch(
-                      value: state.weatherConfig.useEstimatedWetBulbTemp,
-                      onChanged: (value) {
-                        context.read<SettingsBloc>().add(TweakSettingsEvent(useEstimatedWetBulbTemp: value));
-                      },
-                    ),
-                  ),
-                  _settingsTile(
-                    context,
-                    title: const Text("Update Temperature Levels"),
-                    description: const Text("Tap to change the temperature range that are counted as chilly, mild, warm, etc."),
-                    onPressed: () {
-                      showDialog(
-                        context: context,
-                        builder: (context) {
-                          return Dialog(
-                            child: RangeConfigPopup(
-                              title: const Text(
-                                "Temperature",
-                              ),
-                              stepNames: const [
-                                ("Freezing", Icons.snowboarding),
-                                ("Chilly", Icons.snowboarding),
-                                ("Mild", Icons.snowboarding),
-                                ("Warm", Icons.snowboarding),
-                                ("Hot", Icons.snowboarding),
-                                ("Boiling", Icons.snowboarding),
-                              ],
-                              initialThresholds: [
-                                state.weatherConfig.tempMinChilly,
-                                state.weatherConfig.tempMinMild,
-                                state.weatherConfig.tempMinWarm,
-                                state.weatherConfig.tempMinHot,
-                                state.weatherConfig.tempMinBoiling,
-                              ],
-                              updateThresholds: (newThresholds) {
-                                context.read<SettingsBloc>().add(
-                                  TweakSettingsEvent(
-                                    tempMinChilly: newThresholds[0],
-                                    tempMinMild: newThresholds[1],
-                                    tempMinWarm: newThresholds[2],
-                                    tempMinHot: newThresholds[3],
-                                    tempMinBoiling: newThresholds[4],
-                                  ),
-                                );
-                              },
-                              resetThresholds: [
-                                WeatherInsightConfigV2.initial.tempMinChilly,
-                                WeatherInsightConfigV2.initial.tempMinMild,
-                                WeatherInsightConfigV2.initial.tempMinWarm,
-                                WeatherInsightConfigV2.initial.tempMinHot,
-                                WeatherInsightConfigV2.initial.tempMinBoiling,
-                              ],
-                            ),
-                          );
-                        },
-                      );
+                _settingsHeader(context, "Display Units"),
+                _settingsTile(
+                  context,
+                  title: const Text("Temperature"),
+                  input: SimpleDataSelectorWidget(
+                    selected: state.temperatureUnit,
+                    entries: const [
+                      DropdownMenuEntry(value: TempDisplay.celsius, label: "°C"),
+                      DropdownMenuEntry(value: TempDisplay.farenheit, label: "°F"),
+                      DropdownMenuEntry(value: TempDisplay.both, label: "°C and °F"),
+                    ],
+                    onSelected: (s) {
+                      context.read<SettingsBloc>().add(TweakSettingsEvent(temperatureUnit: s));
                     },
                   ),
-                  _settingsTile(
-                    context,
-                    title: const Text("Update UV Levels"),
-                    description: const Text("Tap to change the UV ranges that are counted as mild, high, and extreme."),
-                    onPressed: () {
-                      showDialog(
-                        context: context,
-                        builder: (context) {
-                          return Dialog(
-                            child: RangeConfigPopup(
-                              title: const Text(
-                                "UV Level",
-                              ),
-                              stepNames: const [
-                                null,
-                                ("Mild UV", Icons.snowboarding),
-                                ("High UV", Icons.snowboarding),
-                                ("Extreme UV", Icons.snowboarding),
-                              ],
-                              initialThresholds: [
-                                state.weatherConfig.uvMinModerate,
-                                state.weatherConfig.uvMinHigh,
-                                state.weatherConfig.uvMinVeryHigh,
-                              ],
-                              updateThresholds: (newThresholds) {
-                                context.read<SettingsBloc>().add(
-                                  TweakSettingsEvent(
-                                    uvMinModerate: newThresholds[0],
-                                    uvMinHigh: newThresholds[1],
-                                    uvMinVeryHigh: newThresholds[2],
-                                  ),
-                                );
-                              },
-                              resetThresholds: [
-                                WeatherInsightConfigV2.initial.uvMinModerate,
-                                WeatherInsightConfigV2.initial.uvMinHigh,
-                                WeatherInsightConfigV2.initial.uvMinVeryHigh,
-                              ],
-                            ),
-                          );
-                        },
-                      );
+                ),
+                _settingsTile(
+                  context,
+                  title: const Text("Rainfall"),
+                  input: SimpleDataSelectorWidget(
+                    selected: state.rainfallUnit,
+                    entries: const [
+                      DropdownMenuEntry(value: Rainfall.mm, label: "mm"),
+                      DropdownMenuEntry(value: Rainfall.inch, label: "in"),
+                    ],
+                    onSelected: (s) {
+                      context.read<SettingsBloc>().add(TweakSettingsEvent(rainfallUnit: s));
                     },
                   ),
-                  _settingsTile(
-                    context,
-                    title: const Text("Update Wind Speed Levels"),
-                    description: const Text("Tap to change the windspeeds ranges that are counted as breezy, windy, and gale-y."),
-                    onPressed: () {
-                      showDialog(
-                        context: context,
-                        builder: (context) {
-                          return Dialog(
-                            child: RangeConfigPopup(
-                              title: const Text("Wind Speed"),
-                              stepNames: const [
-                                null,
-                                ("Breezy", Icons.snowboarding),
-                                ("Windy", Icons.snowboarding),
-                                ("Gale-y", Icons.snowboarding),
-                              ],
-                              initialThresholds: [
-                                state.weatherConfig.windMinBreezy,
-                                state.weatherConfig.windMinWindy,
-                                state.weatherConfig.windMinGaley,
-                              ],
-                              updateThresholds: (newThresholds) {
-                                context.read<SettingsBloc>().add(
-                                  TweakSettingsEvent(
-                                    windMinBreezy: newThresholds[0],
-                                    windMinWindy: newThresholds[1],
-                                    windMinGaley: newThresholds[2],
-                                  ),
-                                );
-                              },
-                              resetThresholds: [
-                                WeatherInsightConfigV2.initial.windMinBreezy,
-                                WeatherInsightConfigV2.initial.windMinWindy,
-                                WeatherInsightConfigV2.initial.windMinGaley,
-                              ],
-                            ),
-                          );
-                        },
-                      );
-                    },
-                  ),
-                  _settingsTile(
-                    context,
-                    title: const Text("Slippery - Recent Rainfall Threshold"),
-                    description: Text("If rainfall over the last ${state.weatherConfig.numberOfHoursPriorRainThreshold} hours is higher than this, show a Slippery insight."),
-                    input: DataPickerWidget(
-                      initial: state.weatherConfig.priorRainThreshold,
-                      onChanged: (value) {
-                        context.read<SettingsBloc>().add(TweakSettingsEvent(priorRainThreshold: value));
-                      },
-                    ),
-                  ),
-                  _settingsTile(
-                    context,
-                    title: const Text("Slippery - Definition of Recent"),
-                    description: const Text("Rainfall this many hours ago will be counted towards the Slippery insight total."),
-                    input: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      spacing: 30.0,
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.remove),
-                          onPressed: () {
-                            context.read<SettingsBloc>().add(
-                              TweakSettingsEvent(
-                                numberOfHoursPriorRainThreshold: math.max(state.weatherConfig.numberOfHoursPriorRainThreshold - 1, 0),
-                              ),
-                            );
-                          },
-                        ),
-                        Text(
-                          state.weatherConfig.numberOfHoursPriorRainThreshold.toString(),
-                          style: const TextStyle(fontSize: 16),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.add),
-                          onPressed: () {
-                            context.read<SettingsBloc>().add(
-                              TweakSettingsEvent(
-                                numberOfHoursPriorRainThreshold: math.min(state.weatherConfig.numberOfHoursPriorRainThreshold + 1, 24),
-                              ),
-                            );
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                  _settingsTile(
-                    context,
-                    title: const Text("Rain Chance Threshold"),
-                    description: const Text("If the chance of rain is higher than this, show a Light/Medium/Heavy Rain insight."),
-                    input: DataPickerWidget(
-                      initial: state.weatherConfig.rainProbabilityThreshold,
-                      onChanged: (value) {
-                        context.read<SettingsBloc>().add(TweakSettingsEvent(rainProbabilityThreshold: value));
-                      },
-                    ),
-                  ),
-                  _settingsTile(
-                    context,
-                    title: const Text("Update Rain Thresholds"),
-                    description: const Text("Tap to change the precipitation levels that are counted as sprinkly, light, medium, and heavy."),
-                    onPressed: () {
-                      showDialog(
-                        context: context,
-                        builder: (context) {
-                          return Dialog(
-                            child: RangeConfigPopup(
-                              title: const Text("Rain"),
-                              stepNames: const [
-                                ("Sprinkles", Icons.snowboarding),
-                                ("Light", Icons.snowboarding),
-                                ("Medium", Icons.snowboarding),
-                                ("Heavy", Icons.snowboarding),
-                              ],
-                              initialThresholds: [
-                                state.weatherConfig.rainMinLight,
-                                state.weatherConfig.rainMinMedium,
-                                state.weatherConfig.rainMinHeavy,
-                              ],
-                              updateThresholds: (newThresholds) {
-                                context.read<SettingsBloc>().add(
-                                  TweakSettingsEvent(
-                                    rainMinLight: newThresholds[0],
-                                    rainMinMedium: newThresholds[1],
-                                    rainMinHeavy: newThresholds[2],
-                                  ),
-                                );
-                              },
-                              resetThresholds: [
-                                WeatherInsightConfigV2.initial.rainMinLight,
-                                WeatherInsightConfigV2.initial.rainMinMedium,
-                                WeatherInsightConfigV2.initial.rainMinHeavy,
-                              ],
-                            ),
-                          );
-                        },
-                      );
-                    },
-                  ),
-                  _settingsTile(
-                    context,
-                    title: const Text("High Humidity Threshold"),
-                    description: const Text(
-                      "Humidity higher than this is counted as 'high', showing a Uncomfortable or Sweaty insight.",
-                    ),
-                    input: DataPickerWidget(
-                      initial: state.weatherConfig.highHumidityThreshold,
-                      onChanged: (value) {
-                        context.read<SettingsBloc>().add(TweakSettingsEvent(highHumidityThreshold: value));
-                      },
-                    ),
-                  ),
-                  _settingsTile(
-                    context,
-                    title: const Text("High Humidity Temperature - Uncomfortable"),
-                    description: const Text("High humidity insights require the temperature to be above this."),
-                    input: DataPickerWidget(
-                      initial: state.weatherConfig.maxTemperatureForHighHumidityMist,
-                      onChanged: (value) {
-                        context.read<SettingsBloc>().add(TweakSettingsEvent(maxTemperatureForHighHumidityMist: value));
-                      },
-                    ),
-                  ),
-                  _settingsTile(
-                    context,
-                    title: const Text("High Humidity Temperature - Sweaty"),
-                    description: const Text(
-                      "At high humidity, any temperatures above this show a Sweaty insight. Temperatures between Uncomfortable and Sweaty show an Uncomfortable insight.",
-                    ),
-                    input: DataPickerWidget(
-                      initial: state.weatherConfig.minTemperatureForHighHumiditySweat,
-                      onChanged: (value) {
-                        context.read<SettingsBloc>().add(TweakSettingsEvent(minTemperatureForHighHumiditySweat: value));
-                      },
-                    ),
-                  ),
-                  _settingsButton(
-                    child: const Text("Reset insight parameters"),
-                    onPressed: () {
-                      context.read<SettingsBloc>().add(const ResetSettingsWeatherConfigEvent());
-                    },
-                  ),
-                  _settingsButton(
-                    child: const Text("Check API cache"),
+                ),
+                // TODO windspeed display unit
+                // _settingsTile(context,
+                //   title: const Text("Windspeed"),
+                //   input: SegmentedButton<Speed>(
+                //     segments: const [
+                //       ButtonSegment(value: Speed.kmPerH, label: Text("kmph")),
+                //       ButtonSegment(value: Speed.mPerS, label: Text("m/s")),
+                //       ButtonSegment(value: Speed.milesPerHour, label: Text("mph")),
+                //     ],
+                //     selected: {state.rainfallUnit},
+                //     emptySelectionAllowed: false,
+                //     multiSelectionEnabled: false,
+                //     onSelectionChanged: (selected) {
+                //       assert(selected.length == 1);
+                //       context.read<SettingsBloc>().add(SettingsEvent(rainfallUnit: selected.first));
+                //     },
+                //   ),
+                // ),
+                _settingsHeader(
+                  context,
+                  "Waking Hours",
+                  info: "When you open the app between your wake-up and bed times, it will automatically show you the weather for now til bedtime.",
+                ),
+                _settingsTile(
+                  context,
+                  title: const Text("Wake-Up Time"),
+                  description: const Text("The time you typically wake up. Whole hours only, minutes are ignored."),
+                  input: TextButton(
+                    child: Text(jmFormatHour(state.wakingHours.start)),
                     onPressed: () async {
-                      final stats = await RepositoryProvider.of<WeatherDataBankRepository>(context).getStats();
-                      if (context.mounted) {
-                        showDialog(
-                          context: context,
-                          builder: (context) {
-                            return AlertDialog(
-                              title: const Text("API cache statistics"),
-                              content: Text(
-                                stats.hostStats.entries.map((entry) => "${entry.key} : hit ${entry.value.cacheHits} miss ${entry.value.cacheMisses}").join("\n"),
-                              ),
-                            );
-                          },
-                        );
+                      final selectedTime = await showTimePicker(
+                        context: context,
+                        initialTime: TimeOfDay(hour: state.wakingHours.start, minute: 0),
+                      );
+                      if (selectedTime != null && context.mounted) {
+                        context.read<SettingsBloc>().add(TweakSettingsEvent(wakingHourStart: selectedTime.hour));
                       }
                     },
                   ),
-                  _settingsButton(
-                    child: const Text("Reset API cache"),
-                    onPressed: () {
-                      RepositoryProvider.of<WeatherDataBankRepository>(context).resetStats();
+                ),
+                _settingsTile(
+                  context,
+                  title: const Text("Bedtime"),
+                  description: const Text("The time you typically go to bed. Whole hours only, minutes are ignored."),
+                  input: TextButton(
+                    child: Text(jmFormatHour(state.wakingHours.end)),
+                    onPressed: () async {
+                      final selectedTime = await showTimePicker(
+                        context: context,
+                        initialTime: TimeOfDay(hour: state.wakingHours.end, minute: 0),
+                      );
+                      if (selectedTime != null && context.mounted) {
+                        context.read<SettingsBloc>().add(TweakSettingsEvent(wakingHourEnd: selectedTime.hour));
+                      }
                     },
                   ),
-                ],
-              ),
+                ),
+                _settingsHeader(context, "Insight Parameters"),
+                _settingsTile(
+                  context,
+                  title: const Text("Use Estimated Wet Bulb Temperature"),
+                  description: const Text(
+                    "Wet Bulb Temperature is a better approximation of how it feels outside. When enabled, the main display and insights will display this temperature.",
+                  ),
+                  input: Switch(
+                    value: state.weatherConfig.useEstimatedWetBulbTemp,
+                    onChanged: (value) {
+                      context.read<SettingsBloc>().add(TweakSettingsEvent(useEstimatedWetBulbTemp: value));
+                    },
+                  ),
+                ),
+                _settingsTile(
+                  context,
+                  title: const Text("Update Temperature Levels"),
+                  description: const Text("Tap to change the temperature range that are counted as chilly, mild, warm, etc."),
+                  onPressed: () {
+                    showDialog(
+                      context: context,
+                      builder: (context) {
+                        return Dialog(
+                          child: RangeConfigPopup(
+                            title: const Text(
+                              "Temperature",
+                            ),
+                            stepNames: const [
+                              ("Freezing", Icons.snowboarding),
+                              ("Chilly", Icons.snowboarding),
+                              ("Mild", Icons.snowboarding),
+                              ("Warm", Icons.snowboarding),
+                              ("Hot", Icons.snowboarding),
+                              ("Boiling", Icons.snowboarding),
+                            ],
+                            initialThresholds: [
+                              state.weatherConfig.tempMinChilly,
+                              state.weatherConfig.tempMinMild,
+                              state.weatherConfig.tempMinWarm,
+                              state.weatherConfig.tempMinHot,
+                              state.weatherConfig.tempMinBoiling,
+                            ],
+                            updateThresholds: (newThresholds) {
+                              context.read<SettingsBloc>().add(
+                                TweakSettingsEvent(
+                                  tempMinChilly: newThresholds[0],
+                                  tempMinMild: newThresholds[1],
+                                  tempMinWarm: newThresholds[2],
+                                  tempMinHot: newThresholds[3],
+                                  tempMinBoiling: newThresholds[4],
+                                ),
+                              );
+                            },
+                            resetThresholds: [
+                              WeatherInsightConfigV2.initial.tempMinChilly,
+                              WeatherInsightConfigV2.initial.tempMinMild,
+                              WeatherInsightConfigV2.initial.tempMinWarm,
+                              WeatherInsightConfigV2.initial.tempMinHot,
+                              WeatherInsightConfigV2.initial.tempMinBoiling,
+                            ],
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
+                _settingsTile(
+                  context,
+                  title: const Text("Update UV Levels"),
+                  description: const Text("Tap to change the UV ranges that are counted as mild, high, and extreme."),
+                  onPressed: () {
+                    showDialog(
+                      context: context,
+                      builder: (context) {
+                        return Dialog(
+                          child: RangeConfigPopup(
+                            title: const Text(
+                              "UV Level",
+                            ),
+                            stepNames: const [
+                              null,
+                              ("Mild UV", Icons.snowboarding),
+                              ("High UV", Icons.snowboarding),
+                              ("Extreme UV", Icons.snowboarding),
+                            ],
+                            initialThresholds: [
+                              state.weatherConfig.uvMinModerate,
+                              state.weatherConfig.uvMinHigh,
+                              state.weatherConfig.uvMinVeryHigh,
+                            ],
+                            updateThresholds: (newThresholds) {
+                              context.read<SettingsBloc>().add(
+                                TweakSettingsEvent(
+                                  uvMinModerate: newThresholds[0],
+                                  uvMinHigh: newThresholds[1],
+                                  uvMinVeryHigh: newThresholds[2],
+                                ),
+                              );
+                            },
+                            resetThresholds: [
+                              WeatherInsightConfigV2.initial.uvMinModerate,
+                              WeatherInsightConfigV2.initial.uvMinHigh,
+                              WeatherInsightConfigV2.initial.uvMinVeryHigh,
+                            ],
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
+                _settingsTile(
+                  context,
+                  title: const Text("Update Wind Speed Levels"),
+                  description: const Text("Tap to change the windspeeds ranges that are counted as breezy, windy, and gale-y."),
+                  onPressed: () {
+                    showDialog(
+                      context: context,
+                      builder: (context) {
+                        return Dialog(
+                          child: RangeConfigPopup(
+                            title: const Text("Wind Speed"),
+                            stepNames: const [
+                              null,
+                              ("Breezy", Icons.snowboarding),
+                              ("Windy", Icons.snowboarding),
+                              ("Gale-y", Icons.snowboarding),
+                            ],
+                            initialThresholds: [
+                              state.weatherConfig.windMinBreezy,
+                              state.weatherConfig.windMinWindy,
+                              state.weatherConfig.windMinGaley,
+                            ],
+                            updateThresholds: (newThresholds) {
+                              context.read<SettingsBloc>().add(
+                                TweakSettingsEvent(
+                                  windMinBreezy: newThresholds[0],
+                                  windMinWindy: newThresholds[1],
+                                  windMinGaley: newThresholds[2],
+                                ),
+                              );
+                            },
+                            resetThresholds: [
+                              WeatherInsightConfigV2.initial.windMinBreezy,
+                              WeatherInsightConfigV2.initial.windMinWindy,
+                              WeatherInsightConfigV2.initial.windMinGaley,
+                            ],
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
+                _settingsTile(
+                  context,
+                  title: const Text("Slippery - Recent Rainfall Threshold"),
+                  description: Text("If rainfall over the last ${state.weatherConfig.numberOfHoursPriorRainThreshold} hours is higher than this, show a Slippery insight."),
+                  input: DataPickerWidget(
+                    initial: state.weatherConfig.priorRainThreshold,
+                    onChanged: (value) {
+                      context.read<SettingsBloc>().add(TweakSettingsEvent(priorRainThreshold: value));
+                    },
+                  ),
+                ),
+                _settingsTile(
+                  context,
+                  title: const Text("Slippery - Definition of Recent"),
+                  description: const Text("Rainfall this many hours ago will be counted towards the Slippery insight total."),
+                  input: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    spacing: 30.0,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.remove),
+                        onPressed: () {
+                          context.read<SettingsBloc>().add(
+                            TweakSettingsEvent(
+                              numberOfHoursPriorRainThreshold: math.max(state.weatherConfig.numberOfHoursPriorRainThreshold - 1, 0),
+                            ),
+                          );
+                        },
+                      ),
+                      Text(
+                        state.weatherConfig.numberOfHoursPriorRainThreshold.toString(),
+                        style: const TextStyle(fontSize: 16),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.add),
+                        onPressed: () {
+                          context.read<SettingsBloc>().add(
+                            TweakSettingsEvent(
+                              numberOfHoursPriorRainThreshold: math.min(state.weatherConfig.numberOfHoursPriorRainThreshold + 1, 24),
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+                _settingsTile(
+                  context,
+                  title: const Text("Rain Chance Threshold"),
+                  description: const Text("If the chance of rain is higher than this, show a Light/Medium/Heavy Rain insight."),
+                  input: DataPickerWidget(
+                    initial: state.weatherConfig.rainProbabilityThreshold,
+                    onChanged: (value) {
+                      context.read<SettingsBloc>().add(TweakSettingsEvent(rainProbabilityThreshold: value));
+                    },
+                  ),
+                ),
+                _settingsTile(
+                  context,
+                  title: const Text("Update Rain Thresholds"),
+                  description: const Text("Tap to change the precipitation levels that are counted as sprinkly, light, medium, and heavy."),
+                  onPressed: () {
+                    showDialog(
+                      context: context,
+                      builder: (context) {
+                        return Dialog(
+                          child: RangeConfigPopup(
+                            title: const Text("Rain"),
+                            stepNames: const [
+                              ("Sprinkles", Icons.snowboarding),
+                              ("Light", Icons.snowboarding),
+                              ("Medium", Icons.snowboarding),
+                              ("Heavy", Icons.snowboarding),
+                            ],
+                            initialThresholds: [
+                              state.weatherConfig.rainMinLight,
+                              state.weatherConfig.rainMinMedium,
+                              state.weatherConfig.rainMinHeavy,
+                            ],
+                            updateThresholds: (newThresholds) {
+                              context.read<SettingsBloc>().add(
+                                TweakSettingsEvent(
+                                  rainMinLight: newThresholds[0],
+                                  rainMinMedium: newThresholds[1],
+                                  rainMinHeavy: newThresholds[2],
+                                ),
+                              );
+                            },
+                            resetThresholds: [
+                              WeatherInsightConfigV2.initial.rainMinLight,
+                              WeatherInsightConfigV2.initial.rainMinMedium,
+                              WeatherInsightConfigV2.initial.rainMinHeavy,
+                            ],
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
+                _settingsTile(
+                  context,
+                  title: const Text("High Humidity Threshold"),
+                  description: const Text(
+                    "Humidity higher than this is counted as 'high', showing a Uncomfortable or Sweaty insight.",
+                  ),
+                  input: DataPickerWidget(
+                    initial: state.weatherConfig.highHumidityThreshold,
+                    onChanged: (value) {
+                      context.read<SettingsBloc>().add(TweakSettingsEvent(highHumidityThreshold: value));
+                    },
+                  ),
+                ),
+                _settingsTile(
+                  context,
+                  title: const Text("High Humidity Temperature - Uncomfortable"),
+                  description: const Text("High humidity insights require the temperature to be above this."),
+                  input: DataPickerWidget(
+                    initial: state.weatherConfig.maxTemperatureForHighHumidityMist,
+                    onChanged: (value) {
+                      context.read<SettingsBloc>().add(TweakSettingsEvent(maxTemperatureForHighHumidityMist: value));
+                    },
+                  ),
+                ),
+                _settingsTile(
+                  context,
+                  title: const Text("High Humidity Temperature - Sweaty"),
+                  description: const Text(
+                    "At high humidity, any temperatures above this show a Sweaty insight. Temperatures between Uncomfortable and Sweaty show an Uncomfortable insight.",
+                  ),
+                  input: DataPickerWidget(
+                    initial: state.weatherConfig.minTemperatureForHighHumiditySweat,
+                    onChanged: (value) {
+                      context.read<SettingsBloc>().add(TweakSettingsEvent(minTemperatureForHighHumiditySweat: value));
+                    },
+                  ),
+                ),
+                _settingsButton(
+                  child: const Text("Reset insight parameters"),
+                  onPressed: () {
+                    context.read<SettingsBloc>().add(const ResetSettingsWeatherConfigEvent());
+                  },
+                ),
+                _settingsButton(
+                  child: const Text("Check API cache"),
+                  onPressed: () async {
+                    final stats = await RepositoryProvider.of<WeatherDataBankRepository>(context).getStats();
+                    if (context.mounted) {
+                      showDialog(
+                        context: context,
+                        builder: (context) {
+                          return AlertDialog(
+                            title: const Text("API cache statistics"),
+                            content: Text(
+                              stats.hostStats.entries.map((entry) => "${entry.key} : hit ${entry.value.cacheHits} miss ${entry.value.cacheMisses}").join("\n"),
+                            ),
+                          );
+                        },
+                      );
+                    }
+                  },
+                ),
+                _settingsButton(
+                  child: const Text("Reset API cache"),
+                  onPressed: () {
+                    RepositoryProvider.of<WeatherDataBankRepository>(context).resetStats();
+                  },
+                ),
+              ],
             ),
           ),
         );
