@@ -1,5 +1,6 @@
 import 'package:bloc/bloc.dart';
 import 'package:bloc_concurrency/bloc_concurrency.dart';
+import 'package:bloc_event_transformers/bloc_event_transformers.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:turnip_rundown/data/geo/repository.dart';
 import 'package:turnip_rundown/data/units.dart';
@@ -28,15 +29,7 @@ class LocationSuggestBloc extends Bloc<UpdateLocationQuery, LocationSuggestState
         });
         emit(LocationSuggestState(query: event.newQuery, suggested: suggested));
       },
-      transformer: debounceRestartable(const Duration(milliseconds: 300)),
+      transformer: debounce(const Duration(milliseconds: 1100)),
     );
   }
-}
-
-EventTransformer<RegistrationEvent> debounceRestartable<RegistrationEvent>(
-  Duration duration,
-) {
-  // This feeds the debounced event stream to restartable() and returns that
-  // as a transformer.
-  return (events, mapper) => restartable<RegistrationEvent>().call(events.debounceTime(duration), mapper);
 }

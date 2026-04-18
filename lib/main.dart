@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -56,6 +57,8 @@ void main() async {
       dbFolder = (await getApplicationDocumentsDirectory()).path;
     }
 
+    final packageInfo = await PackageInfo.fromPlatform(baseUrl: "https://theturboturnip.com/apps/turnip_rundown/");
+
     // Create separate repositories in the relevant directories for different purposes.
     // The repositories will both be capable of storing the other kind of data,
     // they just won't.
@@ -67,6 +70,7 @@ void main() async {
     cacheRepo = settingsRepo = await SqfliteApiCacheAndSettingsRepository.getRepository(
       join(dbFolder, "turnip_rundown.db"),
       clients: weatherClients,
+      packageInfo: packageInfo,
     );
   }
 

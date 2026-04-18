@@ -125,6 +125,7 @@ class WakingHours {
   }
 }
 
+// TODO allow configurable geocode lookup between https://photon.komoot.io/ and https://nominatim.org/, but make sure we're using the right setup for nominatim..
 @JsonEnum(alwaysCreate: true)
 enum RequestedWeatherBackend {
   openmeteo,

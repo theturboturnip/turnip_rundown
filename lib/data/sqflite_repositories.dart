@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:http/http.dart' as http;
 import 'package:turnip_rundown/data.dart';
@@ -21,9 +22,13 @@ class SqfliteApiCacheAndSettingsRepository extends WeatherDataBankRepository imp
     this._lastGeocoordLookup, {
     required super.clients,
     required super.cachedWeatherDataAndSoftTimeouts,
+    required this.httpClient,
+    required this.packageInfo,
   });
 
   final Database db;
+  final http.Client httpClient;
+  final PackageInfo packageInfo;
   Settings _settings;
   UtcDateTime? _lockedUtcLookaheadTo;
   Coordinate? _lastGeocoordLookup;
@@ -31,6 +36,7 @@ class SqfliteApiCacheAndSettingsRepository extends WeatherDataBankRepository imp
   static Future<SqfliteApiCacheAndSettingsRepository> getRepository(
     String databasePath, {
     required Map<RequestedWeatherBackend, WeatherClient?> clients,
+    required PackageInfo packageInfo,
   }) async {
     final db = await openDatabase(
       databasePath,
@@ -96,6 +102,8 @@ class SqfliteApiCacheAndSettingsRepository extends WeatherDataBankRepository imp
       lastGeocoordLookup,
       clients: clients,
       cachedWeatherDataAndSoftTimeouts: cachedWeather,
+      httpClient: http.Client(),
+      packageInfo: packageInfo,
     );
     await repo.clearTimedOutEntries();
 
@@ -147,10 +155,17 @@ class SqfliteApiCacheAndSettingsRepository extends WeatherDataBankRepository imp
       await txn.rawUpdate("UPDATE stats SET cacheMisses = cacheMisses + 1 WHERE host = ?", [uri.host]);
     });
 
-    print("doing HTTP request $uri");
+    final newHeaders = <String, String>{};
+    if (headers != null) {
+      newHeaders.addAll(headers);
+    }
+    newHeaders["User-Agent"] = "${packageInfo.packageName}/${packageInfo.version}";
+
+    print("doing HTTP request $uri $newHeaders");
 
     final timeoutAfter = timestamp.add(timeout);
-    final response = await http.read(uri, headers: headers);
+    // TODO handle errors, use the http.Client
+    final response = await http.read(uri, headers: newHeaders);
 
     await db.rawInsert(
       "INSERT OR REPLACE INTO cache (uri, response, timeoutAfter) VALUES (?, ?, ?)",
